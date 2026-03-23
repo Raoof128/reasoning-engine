@@ -98,6 +98,39 @@ Add to your project's `.mcp.json`:
 
 Copy `skill/deep-research.md` to `~/.claude/skills/deep-research.md` for the `/deep-research` slash command.
 
+## Required Skills and MCP Servers
+
+This agent works with the following Claude Code components:
+
+### Required MCP Servers
+
+| MCP Server | Purpose | How to Get |
+|-----------|---------|-----------|
+| **reasoning-engine** | Core reasoning backend (this repo) | Install from this repo |
+| **crawl4ai** | Web crawling for live research | Built-in Claude Code MCP |
+
+### Required Skills (for full pipeline)
+
+| Skill | Purpose | Pipeline Phase |
+|-------|---------|---------------|
+| **deep-research** | Orchestrates the ACPR reasoning loop | Phases 1-7 |
+| **stop-slop** | Removes AI writing patterns from synthesis | Phase 8 |
+| **docx** | Generates publication-quality Word documents | Phase 9 |
+
+### Optional Skills
+
+| Skill | Purpose |
+|-------|---------|
+| **theme-factory** | Apply visual themes to the output document |
+
+Install the deep-research skill:
+
+```bash
+cp skill/deep-research.md ~/.claude/skills/
+```
+
+The stop-slop and docx skills are typically provided by Claude Code plugins (e.g., superpowers).
+
 ## MCP Tools
 
 | Tool | Purpose |
@@ -141,6 +174,15 @@ This project implements ideas from three research documents on AI reasoning arch
 - **UCB1 selection** balances trying promising branches against exploring undervisited ones.
 
 The key insight: a Claude Code skill can orchestrate this entire pipeline using parallel agent spawning on a Max subscription, with a lightweight Python MCP server handling the deterministic math. No separate API key needed.
+
+## Documentation
+
+- [Architecture Overview](docs/architecture.md)
+- [API Reference](docs/api-reference.md)
+- [Usage Examples](docs/examples.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security Policy](SECURITY.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
 
 ## License
 
