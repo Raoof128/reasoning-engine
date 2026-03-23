@@ -6,6 +6,11 @@ KAPPA_THRESHOLD = 0.15
 REFLEXION_THRESHOLD = 0.5
 PRUNE_THRESHOLD = 0.25
 
+DIFFICULTY_LOW = 0.3
+DIFFICULTY_MEDIUM = 0.5
+DIFFICULTY_HIGH = 0.7
+DEPTH_MAX_BRANCHES = 2
+
 
 @dataclass
 class BudgetAllocation:
@@ -28,11 +33,11 @@ class AllocationResult:
 
 
 def allocate_budget(difficulty: float) -> BudgetAllocation:
-    if difficulty < 0.3:
+    if difficulty < DIFFICULTY_LOW:
         return BudgetAllocation("single_pass", 1, 3, 5, 2000, 0)
-    elif difficulty < 0.5:
+    elif difficulty < DIFFICULTY_MEDIUM:
         return BudgetAllocation("best_of_n", 3, 5, 15, 3000, 1)
-    elif difficulty < 0.7:
+    elif difficulty < DIFFICULTY_HIGH:
         return BudgetAllocation("beam_search", 5, 8, 30, 4000, 2)
     else:
         return BudgetAllocation("forest", 8, 12, 50, 5000, 3)
@@ -59,7 +64,7 @@ def select_branches(scores: dict[str, float], budget_remaining: int) -> Allocati
                 to_continue.append(branch_id)
     else:
         allocation = "depth"
-        top_n = max(1, min(2, len(sorted_branches)))
+        top_n = max(1, min(DEPTH_MAX_BRANCHES, len(sorted_branches)))
         for i, (branch_id, score) in enumerate(sorted_branches):
             if i < top_n:
                 to_continue.append(branch_id)

@@ -81,6 +81,11 @@ def estimate_difficulty(query: str) -> float:
     structure_score = min(multi_part_matches / 3.0, 1.0)
     question_count = query.count("?")
     question_score = min(question_count / 3.0, 1.0)
+    # Difficulty scoring weights:
+    #   0.25 — length_score:    longer queries tend to be more complex
+    #   0.35 — keyword_score:   presence of technical/complex keywords (highest weight)
+    #   0.25 — structure_score: multi-part conjunctions signal multi-faceted questions
+    #   0.15 — question_score:  multiple question marks indicate compound questions
     difficulty = (
         0.25 * length_score + 0.35 * keyword_score + 0.25 * structure_score + 0.15 * question_score
     )

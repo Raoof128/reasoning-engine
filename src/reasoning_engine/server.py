@@ -1,6 +1,7 @@
 """FastMCP server exposing the reasoning engine to Claude Code."""
 
 import json
+import logging
 import os
 
 from fastmcp import FastMCP
@@ -11,22 +12,16 @@ from reasoning_engine.memory import recall_memory, record_reflection, save_memor
 from reasoning_engine.sanitizer import sanitize_content as _sanitize
 from reasoning_engine.sessions import (
     check_termination as _check_termination,
-)
-from reasoning_engine.sessions import (
     create_session,
     get_active_branches,
+    get_consensus_candidates as _get_consensus,
     get_session,
+    register_branch as _register_branch,
+    score_branch as _score_branch,
     update_branch_status,
 )
-from reasoning_engine.sessions import (
-    get_consensus_candidates as _get_consensus,
-)
-from reasoning_engine.sessions import (
-    register_branch as _register_branch,
-)
-from reasoning_engine.sessions import (
-    score_branch as _score_branch,
-)
+
+logger = logging.getLogger("reasoning-engine")
 
 DB_PATH = os.environ.get(
     "REASONING_ENGINE_DB",
@@ -41,11 +36,26 @@ mcp = FastMCP(
 )
 
 
+def _parse_json(raw: str, field_name: str) -> list | dict:
+    """Parse a JSON string with a helpful error message on failure."""
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"Invalid JSON in '{field_name}': {exc.msg} (pos {exc.pos}). "
+            f"Input was: {raw[:200]!r}"
+        ) from exc
+
+
 @mcp.tool()
-def init_research_session(query: str, context: str = "") -> str:
+def init_research_session(query: str) -> str:
     """Create a new research session. Estimates difficulty and returns budget allocation."""
-    session = create_session(DB_PATH, query=query, context=context)
+    session = create_session(DB_PATH, query=query)
     session["session_id"] = session.pop("id")
+    logger.info(
+        "Session created: id=%s difficulty=%.2f strategy=%s",
+        session["session_id"], session["difficulty"], session["strategy"],
+    )
     return json.dumps(session)
 
 
@@ -57,11 +67,12 @@ def register_branch(
     branch = _register_branch(
         DB_PATH,
         session_id=session_id,
-        trace=json.loads(trace),
-        sources=json.loads(sources),
+        trace=_parse_json(trace, "trace"),
+        sources=_parse_json(sources, "sources"),
         parent_id=parent_id or None,
         depth=depth,
     )
+    logger.info("Branch registered: id=%s session=%s depth=%d", branch["id"], session_id, depth)
     return json.dumps({"branch_id": branch["id"], "session_id": session_id})
 
 
@@ -76,6 +87,7 @@ def score_branch(
 ) -> str:
     """Record a Critic's dual-signal score for a reasoning branch."""
     _score_branch(DB_PATH, branch_id, q_score, advantage, critique, confidence)
+    logger.info("Branch scored: id=%s q=%.2f adv=%.2f conf=%.2f", branch_id, q_score, advantage, confidence)
     return json.dumps({"status": "scored", "branch_id": branch_id})
 
 
@@ -91,16 +103,19 @@ def select_next_branches(session_id: str) -> str:
         update_branch_status(DB_PATH, bid, "pruned")
     for bid in result.branches_to_reflect:
         update_branch_status(DB_PATH, bid, "reflecting")
-    return json.dumps(
-        {
-            "branches_to_continue": result.branches_to_continue,
-            "branches_to_reflect": result.branches_to_reflect,
-            "branches_to_prune": result.branches_to_prune,
-            "allocation": result.allocation,
-            "kappa": round(result.kappa, 4),
-            "budget_remaining": result.budget_remaining,
-        }
+    logger.info(
+        "Branches selected: kappa=%.4f allocation=%s continue=%d reflect=%d prune=%d",
+        result.kappa, result.allocation,
+        len(result.branches_to_continue), len(result.branches_to_reflect), len(result.branches_to_prune),
     )
+    return json.dumps({
+        "branches_to_continue": result.branches_to_continue,
+        "branches_to_reflect": result.branches_to_reflect,
+        "branches_to_prune": result.branches_to_prune,
+        "allocation": result.allocation,
+        "kappa": round(result.kappa, 4),
+        "budget_remaining": result.budget_remaining,
+    })
 
 
 @mcp.tool()
@@ -114,13 +129,7 @@ def record_reflection_tool(
 ) -> str:
     """Store a Reflexion cycle's critique and revision in episodic memory."""
     result = record_reflection(
-        DB_PATH,
-        branch_id,
-        session_id,
-        original_critique,
-        revision_summary,
-        score_before,
-        score_after,
+        DB_PATH, branch_id, session_id, original_critique, revision_summary, score_before, score_after,
     )
     update_branch_status(DB_PATH, branch_id, "active")
     return json.dumps(result)
@@ -131,6 +140,7 @@ def check_termination(session_id: str) -> str:
     """Check whether the research session should terminate."""
     session = get_session(DB_PATH, session_id)
     result = _check_termination(DB_PATH, session_id, session["budget_remaining_steps"])
+    logger.info("Termination check: session=%s should_terminate=%s reason=%s", session_id, result["should_terminate"], result["reason"])
     return json.dumps(result)
 
 
@@ -153,8 +163,11 @@ def consensus_candidates(session_id: str, top_k: int = 3) -> str:
 def save_to_memory(session_id: str, query: str, key_learnings: str, domain_tags: str) -> str:
     """Persist episodic memory from a research session for future recall."""
     result = save_memory(
-        DB_PATH, session_id, query, json.loads(key_learnings), json.loads(domain_tags)
+        DB_PATH, session_id, query,
+        _parse_json(key_learnings, "key_learnings"),
+        _parse_json(domain_tags, "domain_tags"),
     )
+    logger.info("Memory saved: id=%s session=%s", result["id"], session_id)
     return json.dumps(result)
 
 
@@ -164,6 +177,7 @@ def recall_memory_tool(query: str, limit: int = 5) -> str:
     results = recall_memory(DB_PATH, query, limit)
     for r in results:
         r.pop("_relevance", None)
+    logger.info("Memory recalled: query=%r results=%d", query, len(results))
     return json.dumps(results)
 
 

@@ -1,27 +1,23 @@
-from reasoning_engine.db import get_conn
+from reasoning_engine.db import get_connection
 from reasoning_engine.memory import recall_memory, record_reflection, save_memory
 
 
 def _create_session(db_path, session_id="sess-1", query="test query"):
     """Helper to insert a session row so FK constraints are satisfied."""
-    conn = get_conn(db_path)
-    conn.execute(
-        "INSERT INTO sessions (id, query) VALUES (?, ?)",
-        (session_id, query),
-    )
-    conn.commit()
-    conn.close()
+    with get_connection(db_path) as conn:
+        conn.execute(
+            "INSERT INTO sessions (id, query) VALUES (?, ?)",
+            (session_id, query),
+        )
 
 
 def _create_branch(db_path, branch_id="branch-1", session_id="sess-1"):
     """Helper to insert a branch row so FK constraints are satisfied."""
-    conn = get_conn(db_path)
-    conn.execute(
-        "INSERT INTO branches (id, session_id) VALUES (?, ?)",
-        (branch_id, session_id),
-    )
-    conn.commit()
-    conn.close()
+    with get_connection(db_path) as conn:
+        conn.execute(
+            "INSERT INTO branches (id, session_id) VALUES (?, ?)",
+            (branch_id, session_id),
+        )
 
 
 def test_save_and_recall_memory(db_path):
