@@ -111,17 +111,17 @@ This agent works with the following Claude Code components:
 
 ### Required Skills (for full pipeline)
 
-| Skill | Purpose | Pipeline Phase |
-|-------|---------|---------------|
-| **deep-research** | Orchestrates the ACPR reasoning loop | Phases 1-7 |
-| **stop-slop** | Removes AI writing patterns from synthesis | Phase 8 |
-| **docx** | Generates publication-quality Word documents | Phase 9 |
+| Skill | Purpose | Pipeline Phase | Source |
+|-------|---------|---------------|--------|
+| **deep-research** | Orchestrates the ACPR reasoning loop | Phases 1-7 | Included in this repo |
+| **[stop-slop](https://github.com/hardikpandya/stop-slop)** | Removes AI writing patterns from synthesis | Phase 8 | by [Hardik Pandya](https://github.com/hardikpandya/stop-slop) |
+| **[docx](https://github.com/anthropics/skills/tree/main/skills/docx)** | Generates publication-quality Word documents | Phase 9 | by [Anthropic](https://github.com/anthropics/skills/tree/main/skills/docx) |
 
 ### Optional Skills
 
-| Skill | Purpose |
-|-------|---------|
-| **theme-factory** | Apply visual themes to the output document |
+| Skill | Purpose | Source |
+|-------|---------|--------|
+| **[theme-factory](https://github.com/anthropics/skills/tree/main/skills/theme-factory)** | Apply visual themes to the output document | by [Anthropic](https://github.com/anthropics/skills/tree/main/skills/theme-factory) |
 
 Install the deep-research skill:
 
@@ -129,7 +129,7 @@ Install the deep-research skill:
 cp skill/deep-research.md ~/.claude/skills/
 ```
 
-The stop-slop and docx skills are typically provided by Claude Code plugins (e.g., superpowers).
+The stop-slop and docx skills are third-party — see their repos for installation.
 
 ## MCP Tools
 
