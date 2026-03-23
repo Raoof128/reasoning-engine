@@ -3,10 +3,12 @@ import tempfile
 
 import pytest
 
+from reasoning_engine.db import init_db
+
 
 @pytest.fixture
 def db_path(tmp_path):
     """Temporary SQLite database for tests."""
-    # Will be updated in Task 2 when db module exists
     path = str(tmp_path / "test_reasoning.db")
+    init_db(path)
     return path
