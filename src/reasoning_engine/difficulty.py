@@ -3,19 +3,54 @@
 import re
 
 COMPLEX_KEYWORDS = {
-    "implications", "interaction", "heterogeneous", "integration",
-    "trade-offs", "tradeoffs", "compare", "contrast", "analyze",
-    "synthesize", "relationship", "architecture", "framework",
-    "mechanism", "algorithm", "optimization", "scaling",
-    "cross-domain", "multi-step", "multi-modal", "emergent",
+    "implications",
+    "interaction",
+    "heterogeneous",
+    "integration",
+    "trade-offs",
+    "tradeoffs",
+    "compare",
+    "contrast",
+    "analyze",
+    "synthesize",
+    "relationship",
+    "architecture",
+    "framework",
+    "mechanism",
+    "algorithm",
+    "optimization",
+    "scaling",
+    "cross-domain",
+    "multi-step",
+    "multi-modal",
+    "emergent",
 }
 
 DOMAIN_KEYWORDS = {
-    "llm", "transformer", "attention", "reinforcement", "reward",
-    "neural", "gradient", "backpropagation", "embedding", "tokenization",
-    "mcts", "beam search", "tree search", "chain-of-thought",
-    "process reward", "reflexion", "self-critique", "agentic",
-    "prm", "orm", "rlhf", "dpo", "ppo", "grpo",
+    "llm",
+    "transformer",
+    "attention",
+    "reinforcement",
+    "reward",
+    "neural",
+    "gradient",
+    "backpropagation",
+    "embedding",
+    "tokenization",
+    "mcts",
+    "beam search",
+    "tree search",
+    "chain-of-thought",
+    "process reward",
+    "reflexion",
+    "self-critique",
+    "agentic",
+    "prm",
+    "orm",
+    "rlhf",
+    "dpo",
+    "ppo",
+    "grpo",
 }
 
 MULTI_PART_SIGNALS = re.compile(
@@ -47,9 +82,6 @@ def estimate_difficulty(query: str) -> float:
     question_count = query.count("?")
     question_score = min(question_count / 3.0, 1.0)
     difficulty = (
-        0.25 * length_score
-        + 0.35 * keyword_score
-        + 0.25 * structure_score
-        + 0.15 * question_score
+        0.25 * length_score + 0.35 * keyword_score + 0.25 * structure_score + 0.15 * question_score
     )
     return max(0.0, min(1.0, difficulty))

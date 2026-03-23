@@ -1,5 +1,6 @@
 import math
-from reasoning_engine.ucb import ucb_score, select_best_ucb
+
+from reasoning_engine.ucb import select_best_ucb, ucb_score
 
 
 def test_ucb_score_basic():

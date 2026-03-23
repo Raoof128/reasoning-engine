@@ -69,4 +69,6 @@ def select_branches(scores: dict[str, float], budget_remaining: int) -> Allocati
                 to_prune.append(branch_id)
 
     steps_used = len(to_continue) + len(to_reflect)
-    return AllocationResult(to_continue, to_reflect, to_prune, allocation, kappa, budget_remaining - steps_used)
+    return AllocationResult(
+        to_continue, to_reflect, to_prune, allocation, kappa, budget_remaining - steps_used
+    )

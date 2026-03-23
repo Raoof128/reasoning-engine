@@ -1,4 +1,4 @@
-from reasoning_engine.dora import allocate_budget, select_branches, AllocationResult
+from reasoning_engine.dora import allocate_budget, select_branches
 
 
 def test_easy_query_gets_single_pass():

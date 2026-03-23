@@ -1,7 +1,5 @@
-import uuid
-
 from reasoning_engine.db import get_conn
-from reasoning_engine.memory import save_memory, recall_memory, record_reflection
+from reasoning_engine.memory import recall_memory, record_reflection, save_memory
 
 
 def _create_session(db_path, session_id="sess-1", query="test query"):

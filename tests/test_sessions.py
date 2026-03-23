@@ -1,15 +1,15 @@
 import json
 
 from reasoning_engine.sessions import (
+    check_termination,
     create_session,
+    get_active_branches,
+    get_branch,
+    get_consensus_candidates,
     get_session,
     register_branch,
     score_branch,
-    get_active_branches,
-    get_branch,
     update_branch_status,
-    check_termination,
-    get_consensus_candidates,
 )
 
 
@@ -85,8 +85,9 @@ def test_check_termination_budget_exhausted(db_path):
 def test_check_termination_high_confidence(db_path):
     session = create_session(db_path, query="Test")
     branch = register_branch(db_path, session["id"], trace=["Path"])
-    score_branch(db_path, branch["id"], q_score=0.9, advantage=0.5,
-                 critique="Excellent", confidence=0.85)
+    score_branch(
+        db_path, branch["id"], q_score=0.9, advantage=0.5, critique="Excellent", confidence=0.85
+    )
     result = check_termination(db_path, session["id"], budget_remaining=10)
     assert result["should_terminate"] is True
     assert "confidence" in result["reason"].lower()
@@ -96,10 +97,8 @@ def test_get_consensus_candidates(db_path):
     session = create_session(db_path, query="Test")
     b1 = register_branch(db_path, session["id"], trace=["Good path"])
     b2 = register_branch(db_path, session["id"], trace=["Bad path"])
-    score_branch(db_path, b1["id"], q_score=0.9, advantage=0.4,
-                 critique="Strong", confidence=0.8)
-    score_branch(db_path, b2["id"], q_score=0.3, advantage=0.1,
-                 critique="Weak", confidence=0.5)
+    score_branch(db_path, b1["id"], q_score=0.9, advantage=0.4, critique="Strong", confidence=0.8)
+    score_branch(db_path, b2["id"], q_score=0.3, advantage=0.1, critique="Weak", confidence=0.5)
 
     candidates = get_consensus_candidates(db_path, session["id"], top_k=1)
     assert len(candidates) == 1

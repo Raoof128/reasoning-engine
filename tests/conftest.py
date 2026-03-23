@@ -1,6 +1,3 @@
-import sqlite3
-import tempfile
-
 import pytest
 
 from reasoning_engine.db import init_db

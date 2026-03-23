@@ -5,9 +5,7 @@ from reasoning_engine.db import init_db
 
 def test_init_db_creates_tables(db_path):
     conn = sqlite3.connect(db_path)
-    cursor = conn.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
-    )
+    cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
     tables = [row[0] for row in cursor.fetchall()]
     conn.close()
 

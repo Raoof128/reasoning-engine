@@ -11,7 +11,9 @@ def ucb_score(q_value: float, parent_visits: int, node_visits: int, c: float = D
     return q_value + c * math.sqrt(math.log(parent_visits) / node_visits)
 
 
-def select_best_ucb(branches: dict[str, dict], total_visits: int, c: float = DEFAULT_C) -> str:
+def select_best_ucb(branches: dict[str, dict], total_visits: int, c: float = DEFAULT_C) -> str | None:
+    if not branches:
+        return None
     best_id = None
     best_score = -float("inf")
     for branch_id, data in branches.items():
