@@ -190,3 +190,25 @@ Top 3 branches merged. The synthesis covers:
 - Implications for building research agents that improve across sessions
 
 Total: 28 web sources, 3 reflexion cycles, 50 MCP tool calls.
+
+## Verifiable Research Run
+
+```bash
+reasoning-engine research "Scholar Gateway exposes semantic search" \
+  --draft "Scholar Gateway exposes semantic search."
+```
+
+Expected output includes:
+
+```json
+{
+  "attestation": {
+    "valid": true
+  },
+  "quality_gate": {
+    "result": "pass"
+  },
+  "run_id": "run_<id>",
+  "run_pack": "runs/run_<id>"
+}
+```
