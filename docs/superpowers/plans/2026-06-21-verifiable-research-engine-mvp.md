@@ -1863,7 +1863,7 @@ def export_run_pack(
     )
     (output / "sources.bib").write_text(_source_bib(evidence), encoding="utf-8")
     (output / "methodology.md").write_text(
-        "# Methodology\n\nEvidence was retrieved through configured adapters, claims were verified against evidence, and the quality gate was run before export.\n",
+        "# Methodology\n\nEvidence was retrieved through configured adapters, claims were verified against the same evidence records exported in the run pack, and the quality gate was run before export.\n\nMVP verification uses deterministic lexical overlap as a placeholder verifier. It is suitable for pipeline testing, not final semantic claim verification.\n",
         encoding="utf-8",
     )
 
@@ -1967,6 +1967,7 @@ def test_service_runs_pipeline_and_exports_attested_pack(tmp_path, db_path):
     assert result["quality_gate"]["result"] == "pass"
     assert result["run_pack"]
     assert result["attestation"]["valid"] is True
+    assert result["evidence"][0]["snippet"] in result["verified_against_snippets"]
 ```
 
 - [ ] **Step 2: Run service tests to verify they fail**
@@ -2036,7 +2037,12 @@ class VerifiableResearchService:
             )
             self.store.save_gap(gap)
             self.store.append_provenance(run_id, "evidence_gap_recorded", result.error.to_dict())
-            return {"evidence": [], "error": result.error.to_dict(), "gaps": [gap.to_dict()]}
+            return {
+                "evidence_records": [],
+                "evidence": [],
+                "error": result.error.to_dict(),
+                "gaps": [gap.to_dict()],
+            }
         if not result.evidence:
             gap = EvidenceGap(
                 gap_id=f"gap_{run_id}",
@@ -2046,7 +2052,7 @@ class VerifiableResearchService:
                 created_at=utc_now(),
             )
             self.store.save_gap(gap)
-            return {"evidence": [], "error": None, "gaps": [gap.to_dict()]}
+            return {"evidence_records": [], "evidence": [], "error": None, "gaps": [gap.to_dict()]}
         for item in result.evidence:
             self.store.save_evidence(item)
         self.store.append_provenance(
@@ -2054,7 +2060,12 @@ class VerifiableResearchService:
             "scholar_search_completed",
             {"evidence_count": len(result.evidence)},
         )
-        return {"evidence": [item.to_dict() for item in result.evidence], "error": None, "gaps": []}
+        return {
+            "evidence_records": result.evidence,
+            "evidence": [item.to_dict() for item in result.evidence],
+            "error": None,
+            "gaps": [],
+        }
 
     def run_research_pipeline(
         self,
@@ -2067,9 +2078,7 @@ class VerifiableResearchService:
         run = self.start_run(query=query, mode=mode, profile=profile)
         search_result = self.scholar_search(run.run_id, query, use_mock_empty=use_mock_empty)
         evidence_dicts = search_result["evidence"]
-        evidence = []
-        if not use_mock_empty:
-            evidence = ScholarGatewayAdapter().mock_adapter.search(run.run_id, query, limit=len(evidence_dicts) or 1).evidence
+        evidence = search_result["evidence_records"]
         claims = extract_claims(run.run_id, draft, run.profile)
         verifications = verify_claims(claims, evidence)
         for claim in claims:
@@ -2097,6 +2106,8 @@ class VerifiableResearchService:
             "quality_gate": gate,
             "run_pack": str(output),
             "attestation": attestation,
+            "evidence": evidence_dicts,
+            "verified_against_snippets": [item.snippet for item in evidence],
         }
 
     def _build_report(self, run: ResearchRun, claims: list[Any], verifications: list[Any], gate: dict[str, Any]) -> str:
@@ -2484,9 +2495,98 @@ git commit -m "feat(research): add verifiable research cli"
 - Modify: `README.md`
 - Modify: `docs/api-reference.md`
 - Modify: `docs/examples.md`
+- Create: `tests/test_verifiable_invariants.py`
 - Test: all test files
 
-- [ ] **Step 1: Add README usage section**
+- [ ] **Step 1: Add invariant tests**
+
+Create `tests/test_verifiable_invariants.py`:
+
+```python
+import json
+from pathlib import Path
+
+from reasoning_engine.db import init_db
+from reasoning_engine.server import get_scholar_auth_status
+from reasoning_engine.verifiable.claims import extract_claims, verify_claims
+from reasoning_engine.verifiable.quality import run_quality_gate
+from reasoning_engine.verifiable.runpack import verify_run_pack_attestation
+from reasoning_engine.verifiable.service import VerifiableResearchService
+
+
+def test_failed_retrieval_creates_no_evidence(tmp_path, db_path):
+    init_db(db_path)
+    service = VerifiableResearchService(db_path=db_path, runs_dir=tmp_path)
+
+    result = service.run_research_pipeline(
+        query="unsupported retrieval path",
+        draft="Unsupported retrieval path has evidence.",
+        profile="general",
+        use_mock_empty=True,
+    )
+
+    assert result["evidence"] == []
+
+
+def test_unsupported_factual_claim_blocks_final_report():
+    claims = extract_claims("run_001", "Scholar Gateway exposes semantic search.", "general")
+    verifications = verify_claims(claims, [])
+
+    gate = run_quality_gate("run_001", claims, verifications, gaps=[])
+
+    assert gate["result"] == "blocked"
+
+
+def test_token_value_never_appears_in_auth_status(monkeypatch):
+    monkeypatch.setenv("SCHOLAR_GATEWAY_ACCESS_TOKEN", "secret-token-value")
+
+    payload = json.loads(get_scholar_auth_status())
+
+    assert payload["has_env_token"] is True
+    assert "secret-token-value" not in json.dumps(payload)
+
+
+def test_tampered_run_pack_fails_verification(tmp_path, db_path):
+    init_db(db_path)
+    service = VerifiableResearchService(db_path=db_path, runs_dir=tmp_path)
+    result = service.run_research_pipeline(
+        query="Scholar Gateway exposes semantic search",
+        draft="Scholar Gateway exposes semantic search.",
+        profile="general",
+    )
+    report = Path(result["run_pack"]) / "report.md"
+    report.write_text("# Tampered\n", encoding="utf-8")
+
+    assert verify_run_pack_attestation(result["run_pack"])["valid"] is False
+
+
+def test_final_report_has_run_id_and_quality_gate(tmp_path, db_path):
+    init_db(db_path)
+    service = VerifiableResearchService(db_path=db_path, runs_dir=tmp_path)
+    result = service.run_research_pipeline(
+        query="Scholar Gateway exposes semantic search",
+        draft="Scholar Gateway exposes semantic search.",
+        profile="general",
+    )
+
+    report = Path(result["run_pack"]) / "report.md"
+    text = report.read_text(encoding="utf-8")
+
+    assert result["run_id"] in text
+    assert "Quality gate:" in text
+```
+
+- [ ] **Step 2: Run invariant tests**
+
+Run:
+
+```bash
+pytest tests/test_verifiable_invariants.py -v
+```
+
+Expected: PASS.
+
+- [ ] **Step 3: Add README usage section**
 
 Append this section to `README.md`:
 
@@ -2516,10 +2616,12 @@ reasoning-engine scholar search "literature synthesis evaluation" --limit 5
 ```
 
 Tokens are read from environment or local credential mechanisms. Tokens are not
-stored in SQLite or run packs.
+stored in SQLite or run packs. MVP verification uses deterministic lexical
+overlap as a placeholder verifier, so it is suitable for pipeline testing and
+audit workflow validation rather than final semantic claim verification.
 ````
 
-- [ ] **Step 2: Add API reference section**
+- [ ] **Step 4: Add API reference section**
 
 Append this section to `docs/api-reference.md`:
 
@@ -2536,7 +2638,7 @@ Append this section to `docs/api-reference.md`:
 - `export_run_pack_tool(query, draft, mode="standard", profile="auto")`: exports an attested run pack through the pipeline.
 ```
 
-- [ ] **Step 3: Add example run output**
+- [ ] **Step 5: Add example run output**
 
 Append this section to `docs/examples.md`:
 
@@ -2565,7 +2667,7 @@ Expected output includes:
 ```
 ````
 
-- [ ] **Step 4: Run full verification**
+- [ ] **Step 6: Run full verification**
 
 Run:
 
@@ -2577,7 +2679,7 @@ pytest -q
 
 Expected: all commands pass.
 
-- [ ] **Step 5: Run CLI smoke manually**
+- [ ] **Step 7: Run CLI smoke manually**
 
 Run:
 
@@ -2589,10 +2691,10 @@ REASONING_ENGINE_RUNS_DIR="$(mktemp -d)" reasoning-engine research \
 
 Expected: JSON output includes `"valid": true` and a `run_pack` path.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add README.md docs/api-reference.md docs/examples.md
+git add README.md docs/api-reference.md docs/examples.md tests/test_verifiable_invariants.py
 git commit -m "docs(research): document verifiable research mvp"
 ```
 
@@ -2610,7 +2712,7 @@ Spec coverage:
 - Claim extraction, support statuses, and final-report blockers are covered by Task 5.
 - Run-pack export and attestation are covered by Task 6.
 - CLI surface for `research` and `scholar search` is covered by Task 9.
-- Documentation and full verification are covered by Task 10.
+- Core invariant regression tests, documentation, and full verification are covered by Task 10.
 
 Known exclusions from this MVP plan:
 
