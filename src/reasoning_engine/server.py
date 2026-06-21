@@ -51,12 +51,19 @@ from reasoning_engine.validation import (
     validate_string_list,
     validate_text,
 )
+from reasoning_engine.verifiable.profiles import classify_research_mode
+from reasoning_engine.verifiable.quality import run_quality_gate
+from reasoning_engine.verifiable.service import VerifiableResearchService
 
 logger = logging.getLogger("reasoning-engine")
 
 DB_PATH = os.environ.get(
     "REASONING_ENGINE_DB",
     os.path.join(os.path.dirname(__file__), "reasoning.db"),
+)
+RUNS_DIR = os.environ.get(
+    "REASONING_ENGINE_RUNS_DIR",
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "runs"),
 )
 
 init_db(DB_PATH)
@@ -312,3 +319,83 @@ def evidence_gap_questions_tool(query: str, claims: str) -> str:
         max_item_chars=MAX_TRACE_STEP_CHARS,
     )
     return _json_response(evidence_gap_questions(query, claim_list))
+
+
+def _research_service() -> VerifiableResearchService:
+    return VerifiableResearchService(DB_PATH, RUNS_DIR)
+
+
+@mcp.tool()
+def start_research_run(query: str, mode: str = "standard", profile: str = "auto") -> str:
+    """Create a verifiable research run with selected mode and profile."""
+    query = validate_text(query, "query", MAX_QUERY_CHARS)
+    run = _research_service().start_run(query=query, mode=mode, profile=profile)
+    return _json_response(run.to_dict())
+
+
+@mcp.tool()
+def classify_research_mode_tool(query: str, requested_mode: str = "standard") -> str:
+    """Classify the research mode, escalating high-stakes queries."""
+    query = validate_text(query, "query", MAX_QUERY_CHARS)
+    return _json_response({"mode": classify_research_mode(query, requested_mode)})
+
+
+@mcp.tool()
+def scholar_search_tool(run_id: str, query: str, limit: int = 10) -> str:
+    """Search Scholar Gateway through the verifiable research service."""
+    run_id = validate_text(run_id, "run_id", 128)
+    query = validate_text(query, "query", MAX_QUERY_CHARS)
+    limit = validate_limited_int(limit, "limit", 1, 25)
+    payload = _research_service().scholar_search(run_id, query, limit)
+    payload.pop("evidence_records", None)
+    return _json_response(payload)
+
+
+@mcp.tool()
+def get_scholar_auth_status() -> str:
+    """Return Scholar Gateway auth status without exposing token values."""
+    return _json_response(
+        {
+            "live_enabled": os.environ.get("SCHOLAR_GATEWAY_LIVE") == "1",
+            "has_env_token": bool(os.environ.get("SCHOLAR_GATEWAY_ACCESS_TOKEN")),
+            "token_storage": "environment_or_keyring",
+        }
+    )
+
+
+@mcp.tool()
+def run_research_pipeline_tool(
+    query: str,
+    draft: str,
+    mode: str = "standard",
+    profile: str = "auto",
+) -> str:
+    """Run the MVP verifiable research pipeline and export an attested run pack."""
+    query = validate_text(query, "query", MAX_QUERY_CHARS)
+    draft = validate_text(draft, "draft", MAX_QUERY_CHARS * 4)
+    return _json_response(
+        _research_service().run_research_pipeline(
+            query=query,
+            draft=draft,
+            mode=mode,
+            profile=profile,
+        )
+    )
+
+
+@mcp.tool()
+def run_quality_gate_tool(run_id: str) -> str:
+    """Run the quality gate for persisted claims and verifications."""
+    run_id = validate_text(run_id, "run_id", 128)
+    store = _research_service().store
+    claims = store.list_claims(run_id)
+    verifications = store.list_verifications(run_id)
+    gaps = store.list_gaps(run_id)
+    result = run_quality_gate(run_id, claims, verifications, gaps)
+    return _json_response(result)
+
+
+@mcp.tool()
+def export_run_pack_tool(query: str, draft: str, mode: str = "standard", profile: str = "auto") -> str:
+    """Run the pipeline and return the exported run-pack path."""
+    return run_research_pipeline_tool(query, draft, mode, profile)

@@ -11,13 +11,20 @@ os.environ["REASONING_ENGINE_DB"] = _tmp_db.name
 
 from reasoning_engine.server import (  # noqa: E402
     check_termination,
+    classify_research_mode_tool,
+    export_run_pack_tool,
+    get_scholar_auth_status,
     get_session_state,
     init_research_session,
     plan_research_angles_tool,
     register_branch,
+    run_quality_gate_tool,
+    run_research_pipeline_tool,
     sanitize_content,
     score_branch,
     select_next_branches,
+    scholar_search_tool,
+    start_research_run,
 )
 
 
@@ -121,3 +128,75 @@ def test_plan_research_angles_tool():
     )
     assert len(angles) == 3
     assert "name" in angles[0]
+
+
+def test_verifiable_start_research_run_tool():
+    data = json.loads(start_research_run("Explain MCP prompt injection", mode="standard", profile="auto"))
+
+    assert data["run_id"].startswith("run_")
+    assert data["profile"] == "security"
+    assert data["mode"] == "high_stakes"
+
+
+def test_classify_research_mode_tool():
+    data = json.loads(classify_research_mode_tool("Can this vulnerability leak credentials?"))
+
+    assert data["mode"] == "high_stakes"
+
+
+def test_verifiable_scholar_search_tool_uses_mock_by_default():
+    run = json.loads(start_research_run("Scholar Gateway semantic search"))
+    data = json.loads(scholar_search_tool(run["run_id"], "Scholar Gateway semantic search", limit=1))
+
+    assert data["evidence"][0]["source_adapter"] == "scholar_gateway"
+    assert data["error"] is None
+
+
+def test_get_scholar_auth_status_does_not_expose_token(monkeypatch):
+    monkeypatch.setenv("SCHOLAR_GATEWAY_ACCESS_TOKEN", "secret-token")
+    data = json.loads(get_scholar_auth_status())
+
+    assert data["has_env_token"] is True
+    assert "secret-token" not in json.dumps(data)
+
+
+def test_run_research_pipeline_tool_exports_pack():
+    data = json.loads(
+        run_research_pipeline_tool(
+            "Scholar Gateway exposes semantic search",
+            "Scholar Gateway exposes semantic search.",
+            mode="standard",
+            profile="general",
+        )
+    )
+
+    assert data["run_id"].startswith("run_")
+    assert data["attestation"]["valid"] is True
+
+
+def test_run_quality_gate_tool_reads_persisted_claims():
+    data = json.loads(
+        run_research_pipeline_tool(
+            "Scholar Gateway exposes semantic search",
+            "Scholar Gateway exposes semantic search.",
+            mode="standard",
+            profile="general",
+        )
+    )
+
+    gate = json.loads(run_quality_gate_tool(data["run_id"]))
+
+    assert gate["result"] == "pass"
+
+
+def test_export_run_pack_tool_aliases_pipeline():
+    data = json.loads(
+        export_run_pack_tool(
+            "Scholar Gateway exposes semantic search",
+            "Scholar Gateway exposes semantic search.",
+            mode="standard",
+            profile="general",
+        )
+    )
+
+    assert data["attestation"]["valid"] is True

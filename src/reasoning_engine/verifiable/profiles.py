@@ -187,6 +187,7 @@ HIGH_STAKES_TERMS = (
     "vulnerability",
     "exploit",
     "credential",
+    "prompt injection",
     "public health",
 )
 
