@@ -246,6 +246,9 @@ chmod +x ./run-notion-mcp-laptop.sh
 ./run-notion-mcp-laptop.sh
 ```
 
+On macOS, you can also double-click `run-notion-mcp-laptop.command` from
+Finder to start the same launcher in Terminal.
+
 The launcher keeps the MCP server bound to `127.0.0.1`, creates a local bearer
 token file at `~/.reasoning-engine/notion-http.env`, starts a temporary
 Cloudflare Tunnel, and prints the Notion MCP URL. See

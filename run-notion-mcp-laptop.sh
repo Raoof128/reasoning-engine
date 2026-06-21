@@ -79,6 +79,7 @@ source "$ENV_FILE"
 if [[ -z "${REASONING_ENGINE_HTTP_TOKEN:-}" ]]; then
   fail "REASONING_ENGINE_HTTP_TOKEN is missing from $ENV_FILE"
 fi
+export REASONING_ENGINE_HTTP_TOKEN
 
 bold "Starting local MCP server on http://$HOST:$PORT/mcp"
 

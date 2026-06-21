@@ -27,6 +27,9 @@ chmod +x ./run-notion-mcp-laptop.sh
 ./run-notion-mcp-laptop.sh
 ```
 
+On macOS, you can also double-click `run-notion-mcp-laptop.command` from
+Finder. It opens Terminal and runs the same launcher from the repository root.
+
 The script will:
 
 1. Verify macOS and Homebrew.
