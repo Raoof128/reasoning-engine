@@ -37,7 +37,9 @@ def test_validate_http_bind_allows_public_bind_with_unsafe_flag():
 
 def test_http_and_stdio_tool_registry_match():
     stdio_tools = {tool.name for tool in create_mcp()._tool_manager.list_tools()}
-    http_tools = {tool.name for tool in create_mcp(host="127.0.0.1", port=8765)._tool_manager.list_tools()}
+    http_tools = {
+        tool.name for tool in create_mcp(host="127.0.0.1", port=8765)._tool_manager.list_tools()
+    }
 
     assert http_tools == stdio_tools
     assert "run_research_pipeline_tool" in http_tools
