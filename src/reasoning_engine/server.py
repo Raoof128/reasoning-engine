@@ -5,8 +5,6 @@ import logging
 import os
 from typing import Any
 
-from mcp.server.fastmcp import FastMCP
-
 from reasoning_engine.db import init_db
 from reasoning_engine.dora import select_branches
 from reasoning_engine.memory import recall_memory, record_reflection, save_memory
@@ -68,11 +66,6 @@ RUNS_DIR = os.environ.get(
 
 init_db(DB_PATH)
 
-mcp = FastMCP(
-    "reasoning-engine",
-    instructions="Actor-Critic-Planner-Reflexion reasoning backend for deep research",
-)
-
 
 def _parse_json(raw: str, field_name: str) -> list | dict:
     """Parse a JSON string with a helpful error message on failure."""
@@ -86,7 +79,6 @@ def _json_response(payload: dict[str, Any] | list[Any]) -> str:
     return json.dumps(payload, ensure_ascii=False)
 
 
-@mcp.tool()
 def init_research_session(query: str) -> str:
     """Create a new research session. Estimates difficulty and returns budget allocation."""
     query = validate_text(query, "query", MAX_QUERY_CHARS)
@@ -101,7 +93,6 @@ def init_research_session(query: str) -> str:
     return _json_response(session)
 
 
-@mcp.tool()
 def register_branch(
     session_id: str, trace: str, sources: str = "[]", parent_id: str = "", depth: int = 0
 ) -> str:
@@ -127,7 +118,6 @@ def register_branch(
     return _json_response({"branch_id": branch["id"], "session_id": session_id})
 
 
-@mcp.tool()
 def score_branch(
     session_id: str,
     branch_id: str,
@@ -155,7 +145,6 @@ def score_branch(
     return _json_response({"status": "scored", "branch_id": branch_id})
 
 
-@mcp.tool()
 def select_next_branches(session_id: str) -> str:
     """Run DORA allocation: compute kappa, decide explore vs exploit, return branch decisions."""
     session = get_session(DB_PATH, session_id)
@@ -190,7 +179,6 @@ def select_next_branches(session_id: str) -> str:
     )
 
 
-@mcp.tool()
 def record_reflection_tool(
     session_id: str,
     branch_id: str,
@@ -222,7 +210,6 @@ def record_reflection_tool(
     return _json_response(result)
 
 
-@mcp.tool()
 def check_termination(session_id: str) -> str:
     """Check whether the research session should terminate."""
     session = get_session(DB_PATH, session_id)
@@ -236,7 +223,6 @@ def check_termination(session_id: str) -> str:
     return _json_response(result)
 
 
-@mcp.tool()
 def get_session_state(session_id: str) -> str:
     """Return full session state including all branches and scores."""
     session = get_session(DB_PATH, session_id)
@@ -244,7 +230,6 @@ def get_session_state(session_id: str) -> str:
     return _json_response({"session": dict(session), "branches": branches})
 
 
-@mcp.tool()
 def consensus_candidates(session_id: str, top_k: int = 3) -> str:
     """Return top-K branches by q_score for final synthesis."""
     top_k = validate_limited_int(top_k, "top_k", 1, MAX_TOP_K)
@@ -252,7 +237,6 @@ def consensus_candidates(session_id: str, top_k: int = 3) -> str:
     return _json_response(candidates)
 
 
-@mcp.tool()
 def save_to_memory(session_id: str, query: str, key_learnings: str, domain_tags: str) -> str:
     """Persist episodic memory from a research session for future recall."""
     get_session(DB_PATH, session_id)
@@ -280,7 +264,6 @@ def save_to_memory(session_id: str, query: str, key_learnings: str, domain_tags:
     return _json_response(result)
 
 
-@mcp.tool()
 def recall_memory_tool(query: str, limit: int = 5) -> str:
     """Retrieve relevant episodic memories from past research sessions."""
     query = validate_text(query, "query", MAX_QUERY_CHARS)
@@ -292,7 +275,6 @@ def recall_memory_tool(query: str, limit: int = 5) -> str:
     return _json_response(results)
 
 
-@mcp.tool()
 def sanitize_content(raw_text: str) -> str:
     """Sanitize web-crawled content, stripping HTML, scripts, and prompt injection patterns."""
     raw_text = validate_text(raw_text, "raw_text", MAX_QUERY_CHARS * 4, allow_empty=True)
@@ -300,7 +282,6 @@ def sanitize_content(raw_text: str) -> str:
     return _json_response({"cleaned": cleaned})
 
 
-@mcp.tool()
 def plan_research_angles_tool(query: str, max_angles: int = 6) -> str:
     """Return prioritized research angles and starter questions for a query."""
     query = validate_text(query, "query", MAX_QUERY_CHARS)
@@ -308,7 +289,6 @@ def plan_research_angles_tool(query: str, max_angles: int = 6) -> str:
     return _json_response(plan_research_angles(query, max_angles))
 
 
-@mcp.tool()
 def evidence_gap_questions_tool(query: str, claims: str) -> str:
     """Generate verification questions for claims before final synthesis."""
     query = validate_text(query, "query", MAX_QUERY_CHARS)
@@ -325,7 +305,6 @@ def _research_service() -> VerifiableResearchService:
     return VerifiableResearchService(DB_PATH, RUNS_DIR)
 
 
-@mcp.tool()
 def start_research_run(query: str, mode: str = "standard", profile: str = "auto") -> str:
     """Create a verifiable research run with selected mode and profile."""
     query = validate_text(query, "query", MAX_QUERY_CHARS)
@@ -333,14 +312,12 @@ def start_research_run(query: str, mode: str = "standard", profile: str = "auto"
     return _json_response(run.to_dict())
 
 
-@mcp.tool()
 def classify_research_mode_tool(query: str, requested_mode: str = "standard") -> str:
     """Classify the research mode, escalating high-stakes queries."""
     query = validate_text(query, "query", MAX_QUERY_CHARS)
     return _json_response({"mode": classify_research_mode(query, requested_mode)})
 
 
-@mcp.tool()
 def scholar_search_tool(run_id: str, query: str, limit: int = 10) -> str:
     """Search Scholar Gateway through the verifiable research service."""
     run_id = validate_text(run_id, "run_id", 128)
@@ -351,7 +328,6 @@ def scholar_search_tool(run_id: str, query: str, limit: int = 10) -> str:
     return _json_response(payload)
 
 
-@mcp.tool()
 def get_scholar_auth_status() -> str:
     """Return Scholar Gateway auth status without exposing token values."""
     return _json_response(
@@ -363,7 +339,6 @@ def get_scholar_auth_status() -> str:
     )
 
 
-@mcp.tool()
 def run_research_pipeline_tool(
     query: str,
     draft: str,
@@ -383,7 +358,6 @@ def run_research_pipeline_tool(
     )
 
 
-@mcp.tool()
 def run_quality_gate_tool(run_id: str) -> str:
     """Run the quality gate for persisted claims and verifications."""
     run_id = validate_text(run_id, "run_id", 128)
@@ -395,9 +369,37 @@ def run_quality_gate_tool(run_id: str) -> str:
     return _json_response(result)
 
 
-@mcp.tool()
 def export_run_pack_tool(
     query: str, draft: str, mode: str = "standard", profile: str = "auto"
 ) -> str:
     """Run the pipeline and return the exported run-pack path."""
     return run_research_pipeline_tool(query, draft, mode, profile)
+
+
+def register_tools(mcp):
+    mcp.tool()(init_research_session)
+    mcp.tool()(register_branch)
+    mcp.tool()(score_branch)
+    mcp.tool()(select_next_branches)
+    mcp.tool()(record_reflection_tool)
+    mcp.tool()(check_termination)
+    mcp.tool()(get_session_state)
+    mcp.tool()(consensus_candidates)
+    mcp.tool()(save_to_memory)
+    mcp.tool()(recall_memory_tool)
+    mcp.tool()(sanitize_content)
+    mcp.tool()(plan_research_angles_tool)
+    mcp.tool()(evidence_gap_questions_tool)
+    mcp.tool()(start_research_run)
+    mcp.tool()(classify_research_mode_tool)
+    mcp.tool()(scholar_search_tool)
+    mcp.tool()(get_scholar_auth_status)
+    mcp.tool()(run_research_pipeline_tool)
+    mcp.tool()(run_quality_gate_tool)
+    mcp.tool()(export_run_pack_tool)
+    return mcp
+
+
+from reasoning_engine.transport import create_mcp  # noqa: E402
+
+mcp = create_mcp()
