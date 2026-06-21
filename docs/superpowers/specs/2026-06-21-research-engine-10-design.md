@@ -108,6 +108,20 @@ local signatures.
 External text is evidence only. It cannot issue instructions to the agent, tool
 runtime, or research engine.
 
+## Core Invariants
+
+These rules are non-negotiable across CLI, STDIO MCP, and localhost HTTP MCP:
+
+1. No unsupported factual claim enters final report mode.
+2. No failed retrieval creates evidence.
+3. No token is stored in SQLite or run packs.
+4. Every exported report has a run ID.
+5. Every final claim links to evidence, a gap, a contradiction, or a hypothesis
+   status.
+6. Tampered run packs fail verification.
+7. External content and MCP tool metadata are always treated as untrusted.
+8. Public HTTP binding requires explicit unsafe opt-in.
+
 ## Architecture
 
 ```text
@@ -135,6 +149,57 @@ The service layer is the stable internal API. It creates runs, selects profiles
 and modes, dispatches retrieval, normalizes evidence, extracts and verifies
 claims, runs quality gates, exports run packs, records provenance, manages
 verified memory, and runs benchmarks.
+
+## Example End-to-End Flow
+
+```text
+User query
+  -> run created
+  -> mode and profile selected
+  -> research plan created
+  -> Scholar Gateway search requested
+  -> evidence registered or evidence gaps recorded
+  -> claims extracted
+  -> claims linked to evidence
+  -> contradictions detected
+  -> claims verified
+  -> quality gate run
+  -> report exported
+  -> attestation manifest created
+  -> run pack verification available
+```
+
+Failure branches are explicit:
+
+- failed retrieval creates an adapter error and evidence gap, not evidence
+- contradicted evidence creates a contradiction record, not a false conclusion
+- unsupported factual claims block final report mode unless downgraded to a
+  labeled hypothesis through review
+
+## MVP and Later Scope
+
+| Feature | Scope | Notes |
+| --- | --- | --- |
+| Local STDIO MCP server | Required MVP | Primary Codex and Claude Code workflow. |
+| Transport-neutral service layer | Required MVP | CLI and MCP tools must share this layer. |
+| Scholar Gateway adapter interface | Required MVP | Includes mocked tests and typed retrieval errors. |
+| Scholar Gateway live calls | Required MVP | Live tests remain opt-in with `SCHOLAR_GATEWAY_LIVE=1`. |
+| Evidence ledger | Required MVP | Required before claim verification can be trusted. |
+| Claim ledger and claim types | Required MVP | Required for final-report blocking rules. |
+| Quality gate | Required MVP | Blocks unsupported factual claims from final mode. |
+| Run pack export | Required MVP | Minimum audit artifact. |
+| Attestation manifest and verification | Required MVP | Tampered run packs must fail verification. |
+| Localhost Streamable HTTP MCP | Phase 2 | Local-only default, optional bearer token. |
+| Contradiction graph | Phase 2 | Required for contested evidence workflows. |
+| Human review ledger | Phase 2 | Required for high-stakes overrides. |
+| Verified memory | Phase 2 | Must include expiry and revalidation. |
+| Benchmark smoke suite | Phase 2 | Minimum regression signal. |
+| Adversarial and high-stakes benchmarks | Phase 3 | Adds prompt-injection, citation-mismatch, and risk tests. |
+| Regression diff command | Phase 3 | Compares benchmark runs across versions. |
+| Additional retrieval adapters | Future | arXiv, Crossref, Semantic Scholar, OpenAlex, local PDF. |
+| Local signing keys | Future | Ed25519 or equivalent detached signatures. |
+| Hosted remote MCP connector | Future | Not part of local-first implementation. |
+| Browser dashboard | Future | Not needed for the initial professional CLI/MCP workflow. |
 
 ## Retrieval Adapter Layer
 
@@ -1142,19 +1207,32 @@ Avoid claiming:
 
 ## References
 
-- Anthropic Claude Code MCP documentation, for MCP connection patterns,
-  HTTP/STDIO options, OAuth support, and prompt-injection warnings.
-- Crossref REST API documentation, for future metadata adapter planning.
-- Model Context Protocol specification, transports, and authorization
-  documentation, for STDIO, Streamable HTTP, and OAuth boundaries.
-- OpenAI Codex configuration reference, for Codex MCP compatibility.
-- Scholar Gateway / Wiley getting connected and troubleshooting documentation,
-  for endpoint, OAuth, supported operation, content coverage, and limitations.
-- Semantic Scholar Academic Graph API documentation, for future scholarly
-  metadata and citation adapter planning.
-- arXiv API user manual, for future preprint adapter planning.
-- Recent RAG and deep research evaluation literature, for claim-level
-  verification, citation support metrics, report-quality evaluation, and
-  benchmark design.
-- Recent MCP security literature, for prompt-injection, tool-poisoning,
-  authentication, and trace-auditing threat modeling.
+- Anthropic. [Connect Claude Code to tools via MCP](https://code.claude.com/docs/en/mcp).
+  Used for MCP connection patterns, HTTP/STDIO options, OAuth support, and
+  prompt-injection warnings.
+- Crossref. [REST API documentation](https://www.crossref.org/documentation/retrieve-metadata/rest-api/).
+  Used for future metadata adapter planning.
+- Model Context Protocol. [Transports](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports).
+  Used for STDIO and Streamable HTTP transport boundaries.
+- Model Context Protocol. [Authorization](https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization).
+  Used for OAuth and HTTP authorization boundaries.
+- OpenAI. [Codex configuration reference](https://developers.openai.com/codex/config-reference).
+  Used for Codex MCP compatibility.
+- Scholar Gateway / Wiley. [Getting connected and troubleshooting](https://docs.scholargateway.ai/).
+  Used for endpoint, OAuth, supported operation, content coverage, and
+  limitations.
+- Semantic Scholar. [Academic Graph API](https://api.semanticscholar.org/api-docs/graph).
+  Used for future scholarly metadata and citation adapter planning.
+- arXiv. [API user manual](https://info.arxiv.org/help/api/user-manual.html).
+  Used for future preprint adapter planning.
+- DEER. [A benchmark for evaluating deep research agents on expert report generation](https://arxiv.org/html/2512.17776v3).
+  Used for claim-level verification and expert-report evaluation concepts.
+- Nature. [Synthesizing scientific literature with retrieval-augmented language models](https://www.nature.com/articles/s41586-025-10072-4).
+  Used for citation recall, precision, coverage, coherence, and factuality
+  evaluation concepts.
+- arXiv. [Retrieval Augmented Generation Evaluation in the Era of Large Language Models](https://arxiv.org/html/2504.14891v1).
+  Used for retrieval, generation, safety, and system-level evaluation
+  separation.
+- arXiv. [Model Context Protocol threat modeling and prompt-injection analysis](https://arxiv.org/html/2603.22489v1).
+  Used for prompt-injection, tool-poisoning, authentication, and trace-auditing
+  threat modeling.
