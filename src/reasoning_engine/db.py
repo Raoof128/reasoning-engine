@@ -93,8 +93,78 @@ def init_db(db_path: str | None = None) -> str:
             CREATE INDEX IF NOT EXISTS idx_reflections_session ON reflections(session_id);
             CREATE INDEX IF NOT EXISTS idx_sources_branch ON sources(branch_id);
             CREATE INDEX IF NOT EXISTS idx_memory_query ON episodic_memory(query);
+
+            CREATE TABLE IF NOT EXISTS research_runs (
+                run_id TEXT PRIMARY KEY,
+                query TEXT NOT NULL,
+                profile TEXT NOT NULL,
+                mode TEXT NOT NULL,
+                status TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS evidence_records (
+                evidence_id TEXT PRIMARY KEY,
+                run_id TEXT NOT NULL REFERENCES research_runs(run_id),
+                payload TEXT NOT NULL,
+                snippet_hash TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS evidence_gaps (
+                gap_id TEXT PRIMARY KEY,
+                run_id TEXT NOT NULL REFERENCES research_runs(run_id),
+                payload TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS claims (
+                claim_id TEXT PRIMARY KEY,
+                run_id TEXT NOT NULL REFERENCES research_runs(run_id),
+                payload TEXT NOT NULL,
+                status TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS claim_verifications (
+                verification_id TEXT PRIMARY KEY,
+                claim_id TEXT NOT NULL REFERENCES claims(claim_id),
+                run_id TEXT NOT NULL REFERENCES research_runs(run_id),
+                payload TEXT NOT NULL,
+                support_status TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS quality_gate_results (
+                gate_id TEXT PRIMARY KEY,
+                run_id TEXT NOT NULL REFERENCES research_runs(run_id),
+                payload TEXT NOT NULL,
+                result TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS provenance_events (
+                event_id TEXT PRIMARY KEY,
+                run_id TEXT NOT NULL REFERENCES research_runs(run_id),
+                event_type TEXT NOT NULL,
+                payload TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS attestation_manifests (
+                run_id TEXT PRIMARY KEY REFERENCES research_runs(run_id),
+                payload TEXT NOT NULL,
+                run_pack_hash TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_evidence_run ON evidence_records(run_id);
+            CREATE INDEX IF NOT EXISTS idx_gaps_run ON evidence_gaps(run_id);
+            CREATE INDEX IF NOT EXISTS idx_claims_run ON claims(run_id);
+            CREATE INDEX IF NOT EXISTS idx_verifications_run ON claim_verifications(run_id);
+            CREATE INDEX IF NOT EXISTS idx_provenance_run ON provenance_events(run_id);
         """)
-        conn.execute("PRAGMA user_version = 1")
+        conn.execute("PRAGMA user_version = 2")
         conn.commit()
     finally:
         conn.close()
