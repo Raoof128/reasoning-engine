@@ -62,14 +62,17 @@ def main(argv: list[str] | None = None) -> int:
             port=args.port,
             unsafe_bind_public=args.unsafe_bind_public,
         )
+        bearer_token = None
         if args.bearer_token_env:
-            has_token = bool(os.environ.get(args.bearer_token_env))
+            bearer_token = os.environ.get(args.bearer_token_env)
+            if not bearer_token:
+                raise ValueError(f"{args.bearer_token_env} is not set or is empty")
             print(
                 json.dumps(
                     {
                         "bearer_token_env": args.bearer_token_env,
-                        "has_bearer_token": has_token,
-                        "token_value": "<redacted>" if has_token else None,
+                        "has_bearer_token": True,
+                        "token_value": "<redacted>",
                     },
                     sort_keys=True,
                 )
@@ -80,6 +83,7 @@ def main(argv: list[str] | None = None) -> int:
             port=args.port,
             streamable_http_path=args.path,
             unsafe_bind_public=args.unsafe_bind_public,
+            bearer_token=bearer_token,
         )
         return 0
 

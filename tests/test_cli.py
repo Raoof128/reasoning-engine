@@ -78,6 +78,7 @@ def test_cli_serve_http_wires_localhost_args(monkeypatch):
             "port": 8765,
             "streamable_http_path": "/mcp",
             "unsafe_bind_public": False,
+            "bearer_token": None,
         }
     ]
 
@@ -112,9 +113,11 @@ def test_cli_serve_allows_public_bind_with_unsafe_flag(monkeypatch):
 
 def test_cli_serve_bearer_token_env_does_not_print_secret(monkeypatch, capsys):
     monkeypatch.setenv("REASONING_ENGINE_HTTP_TOKEN", "secret-token")
+    calls = []
 
     def fake_run_mcp(**kwargs):
         assert kwargs["transport"] == "streamable-http"
+        calls.append(kwargs)
 
     monkeypatch.setattr("reasoning_engine.cli.run_mcp", fake_run_mcp)
 
@@ -130,5 +133,21 @@ def test_cli_serve_bearer_token_env_does_not_print_secret(monkeypatch, capsys):
     captured = capsys.readouterr()
 
     assert code == 0
+    assert calls[0]["bearer_token"] == "secret-token"
     assert "secret-token" not in captured.out
     assert "secret-token" not in captured.err
+
+
+def test_cli_serve_bearer_token_env_requires_existing_secret(monkeypatch):
+    monkeypatch.delenv("REASONING_ENGINE_HTTP_TOKEN", raising=False)
+
+    with pytest.raises(ValueError, match="REASONING_ENGINE_HTTP_TOKEN"):
+        main(
+            [
+                "serve",
+                "--transport",
+                "http",
+                "--bearer-token-env",
+                "REASONING_ENGINE_HTTP_TOKEN",
+            ]
+        )

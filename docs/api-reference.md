@@ -363,4 +363,6 @@ Security behavior:
 - Host defaults to `127.0.0.1`.
 - Public bind addresses are rejected unless `--unsafe-bind-public` is passed.
 - FastMCP Host/Origin protection is exercised in tests.
+- `--bearer-token-env NAME` enables bearer-token authentication and requires
+  `NAME` to be set.
 - Bearer token environment values are never printed by the CLI.

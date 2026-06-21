@@ -232,3 +232,15 @@ Public binding requires an explicit unsafe opt-in:
 ```bash
 reasoning-engine serve --transport http --host 0.0.0.0 --unsafe-bind-public
 ```
+
+For a Notion AI Custom MCP test through a temporary Cloudflare HTTPS tunnel:
+
+```bash
+./run-notion-mcp-laptop.sh
+```
+
+The script prints the public Notion MCP URL and stores the bearer token in:
+
+```text
+~/.reasoning-engine/notion-http.env
+```

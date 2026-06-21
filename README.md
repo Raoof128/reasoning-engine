@@ -238,6 +238,19 @@ Public binding is blocked unless explicitly acknowledged:
 reasoning-engine serve --transport http --host 0.0.0.0 --unsafe-bind-public
 ```
 
+For Notion AI Custom MCP testing through a Cloudflare HTTPS tunnel, use the
+laptop launcher:
+
+```bash
+chmod +x ./run-notion-mcp-laptop.sh
+./run-notion-mcp-laptop.sh
+```
+
+The launcher keeps the MCP server bound to `127.0.0.1`, creates a local bearer
+token file at `~/.reasoning-engine/notion-http.env`, starts a temporary
+Cloudflare Tunnel, and prints the Notion MCP URL. See
+[Notion Laptop MCP Tunnel](docs/notion-laptop-mcp.md).
+
 The project requires `mcp>=1.24.0,<2`, which is above the `1.23.0` safety floor
 for default FastMCP DNS rebinding protection.
 

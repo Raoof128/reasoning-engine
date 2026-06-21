@@ -6,6 +6,7 @@ from starlette.testclient import TestClient
 
 from reasoning_engine.transport import (
     SAFE_MCP_MIN_VERSION,
+    StaticBearerTokenVerifier,
     create_mcp,
     validate_http_bind,
 )
@@ -75,3 +76,58 @@ def test_streamable_http_suspicious_host_origin_rejected():
         )
 
     assert response.status_code in {403, 421}
+
+
+@pytest.mark.asyncio
+async def test_static_bearer_token_verifier_uses_redacted_access_token():
+    verifier = StaticBearerTokenVerifier("expected-token")
+
+    assert await verifier.verify_token("wrong-token") is None
+    access = await verifier.verify_token("expected-token")
+
+    assert access is not None
+    assert access.token == "<redacted>"
+    assert access.client_id == "local-http-client"
+
+
+def test_streamable_http_bearer_token_required_when_configured():
+    app = create_mcp(
+        host="127.0.0.1",
+        port=8765,
+        bearer_token="expected-token",
+    ).streamable_http_app()
+
+    with TestClient(app) as client:
+        missing = client.post(
+            "/mcp",
+            headers={
+                "host": "127.0.0.1:8765",
+                "origin": "http://127.0.0.1:8765",
+                "accept": "application/json, text/event-stream",
+            },
+            json={"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
+        )
+        wrong = client.post(
+            "/mcp",
+            headers={
+                "host": "127.0.0.1:8765",
+                "origin": "http://127.0.0.1:8765",
+                "accept": "application/json, text/event-stream",
+                "authorization": "Bearer wrong-token",
+            },
+            json={"jsonrpc": "2.0", "id": 2, "method": "initialize", "params": {}},
+        )
+        valid = client.post(
+            "/mcp",
+            headers={
+                "host": "127.0.0.1:8765",
+                "origin": "http://127.0.0.1:8765",
+                "accept": "application/json, text/event-stream",
+                "authorization": "Bearer expected-token",
+            },
+            json={"jsonrpc": "2.0", "id": 3, "method": "initialize", "params": {}},
+        )
+
+    assert missing.status_code == 401
+    assert wrong.status_code == 401
+    assert valid.status_code != 401
