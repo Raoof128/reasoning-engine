@@ -21,9 +21,9 @@ from reasoning_engine.server import (  # noqa: E402
     run_quality_gate_tool,
     run_research_pipeline_tool,
     sanitize_content,
+    scholar_search_tool,
     score_branch,
     select_next_branches,
-    scholar_search_tool,
     start_research_run,
 )
 
@@ -131,7 +131,9 @@ def test_plan_research_angles_tool():
 
 
 def test_verifiable_start_research_run_tool():
-    data = json.loads(start_research_run("Explain MCP prompt injection", mode="standard", profile="auto"))
+    data = json.loads(
+        start_research_run("Explain MCP prompt injection", mode="standard", profile="auto")
+    )
 
     assert data["run_id"].startswith("run_")
     assert data["profile"] == "security"
@@ -146,7 +148,9 @@ def test_classify_research_mode_tool():
 
 def test_verifiable_scholar_search_tool_uses_mock_by_default():
     run = json.loads(start_research_run("Scholar Gateway semantic search"))
-    data = json.loads(scholar_search_tool(run["run_id"], "Scholar Gateway semantic search", limit=1))
+    data = json.loads(
+        scholar_search_tool(run["run_id"], "Scholar Gateway semantic search", limit=1)
+    )
 
     assert data["evidence"][0]["source_adapter"] == "scholar_gateway"
     assert data["error"] is None

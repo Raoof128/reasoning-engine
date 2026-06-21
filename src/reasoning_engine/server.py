@@ -396,6 +396,8 @@ def run_quality_gate_tool(run_id: str) -> str:
 
 
 @mcp.tool()
-def export_run_pack_tool(query: str, draft: str, mode: str = "standard", profile: str = "auto") -> str:
+def export_run_pack_tool(
+    query: str, draft: str, mode: str = "standard", profile: str = "auto"
+) -> str:
     """Run the pipeline and return the exported run-pack path."""
     return run_research_pipeline_tool(query, draft, mode, profile)

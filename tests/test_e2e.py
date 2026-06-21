@@ -35,6 +35,13 @@ async def test_registered_mcp_tools_full_research_workflow(tmp_path, monkeypatch
         "sanitize_content",
         "plan_research_angles_tool",
         "evidence_gap_questions_tool",
+        "start_research_run",
+        "classify_research_mode_tool",
+        "scholar_search_tool",
+        "get_scholar_auth_status",
+        "run_research_pipeline_tool",
+        "run_quality_gate_tool",
+        "export_run_pack_tool",
     }
     tools = await server.mcp.list_tools()
     assert {tool.name for tool in tools} == expected_tools

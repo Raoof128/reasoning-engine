@@ -323,3 +323,15 @@ Return full session state including all active branches and scores. Useful for d
   "active_branches": [ { "id": "...", "q_score": 0.85, ... } ]
 }
 ```
+
+---
+
+## Verifiable Research MCP Tools
+
+- `start_research_run(query, mode="standard", profile="auto")`: creates a research run.
+- `classify_research_mode_tool(query, requested_mode="standard")`: classifies or escalates mode.
+- `scholar_search_tool(run_id, query, limit=10)`: retrieves normalized Scholar Gateway evidence.
+- `get_scholar_auth_status()`: reports live-token availability without exposing token values.
+- `run_research_pipeline_tool(query, draft, mode="standard", profile="auto")`: runs retrieval, claim extraction, verification, quality gate, run-pack export, and attestation verification.
+- `run_quality_gate_tool(run_id)`: evaluates persisted claims and verifications.
+- `export_run_pack_tool(query, draft, mode="standard", profile="auto")`: exports an attested run pack through the pipeline.

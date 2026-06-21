@@ -80,7 +80,7 @@ class ResearchRun:
     status: str = "active"
 
     @classmethod
-    def create(cls, query: str, profile: str, mode: str) -> "ResearchRun":
+    def create(cls, query: str, profile: str, mode: str) -> ResearchRun:
         return cls(
             run_id=f"run_{uuid.uuid4().hex[:12]}",
             query=query,

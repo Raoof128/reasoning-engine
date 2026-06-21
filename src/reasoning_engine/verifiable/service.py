@@ -48,7 +48,9 @@ class VerifiableResearchService:
         use_mock_empty: bool = False,
     ) -> dict[str, Any]:
         adapter = EmptyMockAdapter() if use_mock_empty else ScholarGatewayAdapter()
-        self.store.append_provenance(run_id, "scholar_search_requested", {"query": query, "limit": limit})
+        self.store.append_provenance(
+            run_id, "scholar_search_requested", {"query": query, "limit": limit}
+        )
         result = adapter.search(run_id=run_id, query=query, limit=limit)
         if result.error is not None:
             gap = EvidenceGap(

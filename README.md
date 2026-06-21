@@ -189,6 +189,34 @@ The key insight: a Claude Code skill can orchestrate this entire pipeline using 
 - [Security Policy](SECURITY.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md)
 
+## Verifiable Research Engine MVP
+
+Run a local verifiable research pipeline:
+
+```bash
+reasoning-engine research "Scholar Gateway exposes semantic search" \
+  --draft "Scholar Gateway exposes semantic search."
+```
+
+Run a Scholar Gateway search with mocked default retrieval:
+
+```bash
+reasoning-engine scholar search "MCP prompt injection" --limit 3
+```
+
+Live Scholar Gateway calls are opt-in:
+
+```bash
+export SCHOLAR_GATEWAY_LIVE=1
+export SCHOLAR_GATEWAY_ACCESS_TOKEN="<token>"
+reasoning-engine scholar search "literature synthesis evaluation" --limit 5
+```
+
+Tokens are read from environment or local credential mechanisms. Tokens are not
+stored in SQLite or run packs. MVP verification uses deterministic lexical
+overlap as a placeholder verifier, so it is suitable for pipeline testing and
+audit workflow validation rather than final semantic claim verification.
+
 ## License
 
 MIT

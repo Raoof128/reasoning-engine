@@ -29,13 +29,17 @@ def test_select_profile_defaults_to_general():
 
 
 def test_classify_mode_escalates_high_stakes_security():
-    mode = classify_research_mode("Can this vulnerability leak credentials?", requested_mode="standard")
+    mode = classify_research_mode(
+        "Can this vulnerability leak credentials?", requested_mode="standard"
+    )
 
     assert mode == "high_stakes"
 
 
 def test_requested_scholarly_mode_is_respected_for_low_risk_query():
-    mode = classify_research_mode("Compare literature synthesis methods", requested_mode="scholarly")
+    mode = classify_research_mode(
+        "Compare literature synthesis methods", requested_mode="scholarly"
+    )
 
     assert mode == "scholarly"
 

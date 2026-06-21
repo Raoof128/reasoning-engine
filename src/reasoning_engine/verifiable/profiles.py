@@ -59,7 +59,12 @@ PROFILES = {
     ),
     "law": ResearchProfile(
         name="law",
-        preferred_source_types=("legislation", "case_law", "regulator_guidance", "peer_reviewed_article"),
+        preferred_source_types=(
+            "legislation",
+            "case_law",
+            "regulator_guidance",
+            "peer_reviewed_article",
+        ),
         weak_source_types=("blog_post", "social_media"),
         minimum_evidence_count=2,
         recency_requirement="fast",
@@ -78,7 +83,9 @@ PROFILES = {
         citation_style="harvard_au",
         claim_strictness="high",
         high_risk_triggers=("investment", "valuation", "forecast", "revenue"),
-        required_caveats=("Business and financial conclusions depend on changing market conditions.",),
+        required_caveats=(
+            "Business and financial conclusions depend on changing market conditions.",
+        ),
         scoring_weights=BASE_WEIGHTS,
     ),
     "engineering": ResearchProfile(
@@ -142,13 +149,27 @@ PROFILES = {
         recency_requirement="fast",
         citation_style="harvard_au",
         claim_strictness="high",
-        high_risk_triggers=("exploit", "vulnerability", "malware", "credential", "prompt injection", "mcp"),
-        required_caveats=("Security findings may change quickly as patches and disclosures evolve.",),
+        high_risk_triggers=(
+            "exploit",
+            "vulnerability",
+            "malware",
+            "credential",
+            "prompt injection",
+            "mcp",
+        ),
+        required_caveats=(
+            "Security findings may change quickly as patches and disclosures evolve.",
+        ),
         scoring_weights=BASE_WEIGHTS,
     ),
     "ai_safety": ResearchProfile(
         name="ai_safety",
-        preferred_source_types=("peer_reviewed_article", "technical_report", "model_card", "standards_document"),
+        preferred_source_types=(
+            "peer_reviewed_article",
+            "technical_report",
+            "model_card",
+            "standards_document",
+        ),
         weak_source_types=("social_media",),
         minimum_evidence_count=2,
         recency_requirement="fast",
@@ -163,7 +184,15 @@ PROFILES = {
 }
 
 PROFILE_KEYWORDS = {
-    "security": ("security", "vulnerability", "malware", "credential", "prompt injection", "mcp", "exploit"),
+    "security": (
+        "security",
+        "vulnerability",
+        "malware",
+        "credential",
+        "prompt injection",
+        "mcp",
+        "exploit",
+    ),
     "ai_safety": ("ai safety", "alignment", "dangerous capability", "eval", "agent"),
     "medicine": ("medical", "clinical", "diagnosis", "treatment", "drug", "patient"),
     "law": ("legal", "law", "contract", "liability", "compliance", "jurisdiction"),

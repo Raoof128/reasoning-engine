@@ -70,7 +70,10 @@ def export_run_pack(
     _write_json(output / "claims.json", claims)
     _write_json(
         output / "claim_evidence_links.json",
-        [{"claim_id": claim["claim_id"], "evidence_ids": claim.get("evidence_ids", [])} for claim in claims],
+        [
+            {"claim_id": claim["claim_id"], "evidence_ids": claim.get("evidence_ids", [])}
+            for claim in claims
+        ],
     )
     _write_json(output / "claim_verifications.json", verifications)
     _write_json(output / "quality_gate.json", quality_gate)

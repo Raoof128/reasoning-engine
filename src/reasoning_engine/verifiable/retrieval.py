@@ -163,6 +163,8 @@ class ScholarGatewayAdapter:
         if not evidence:
             return RetrievalResult(
                 evidence=[],
-                error=RetrievalError("empty_result", "Scholar Gateway returned no results.", False, {}),
+                error=RetrievalError(
+                    "empty_result", "Scholar Gateway returned no results.", False, {}
+                ),
             )
         return RetrievalResult(evidence=evidence)
