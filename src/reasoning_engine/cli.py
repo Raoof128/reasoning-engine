@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 
 from reasoning_engine.db import init_db
+from reasoning_engine.transport import run_mcp, validate_http_bind
 from reasoning_engine.verifiable.service import VerifiableResearchService
 
 
@@ -28,6 +29,16 @@ def build_parser() -> argparse.ArgumentParser:
     research.add_argument("--mode", default="standard")
     research.add_argument("--profile", default="auto")
 
+    subparsers.add_parser("mcp")
+
+    serve = subparsers.add_parser("serve")
+    serve.add_argument("--transport", choices=["http"], default="http")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8765)
+    serve.add_argument("--path", default="/mcp")
+    serve.add_argument("--unsafe-bind-public", action="store_true")
+    serve.add_argument("--bearer-token-env", default="")
+
     scholar = subparsers.add_parser("scholar")
     scholar_sub = scholar.add_subparsers(dest="scholar_command", required=True)
     scholar_search = scholar_sub.add_parser("search")
@@ -40,6 +51,42 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    if args.command == "mcp":
+        run_mcp(transport="stdio")
+        return 0
+
+    if args.command == "serve":
+        validate_http_bind(
+            host=args.host,
+            port=args.port,
+            unsafe_bind_public=args.unsafe_bind_public,
+        )
+        bearer_token = None
+        if args.bearer_token_env:
+            bearer_token = os.environ.get(args.bearer_token_env)
+            if not bearer_token:
+                raise ValueError(f"{args.bearer_token_env} is not set or is empty")
+            print(
+                json.dumps(
+                    {
+                        "bearer_token_env": args.bearer_token_env,
+                        "has_bearer_token": True,
+                        "token_value": "<redacted>",
+                    },
+                    sort_keys=True,
+                )
+            )
+        run_mcp(
+            transport="streamable-http",
+            host=args.host,
+            port=args.port,
+            streamable_http_path=args.path,
+            unsafe_bind_public=args.unsafe_bind_public,
+            bearer_token=bearer_token,
+        )
+        return 0
+
     service = _service()
 
     if args.command == "research":

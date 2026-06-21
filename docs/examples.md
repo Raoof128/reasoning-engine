@@ -212,3 +212,35 @@ Expected output includes:
   "run_pack": "runs/run_<id>"
 }
 ```
+
+## Local HTTP MCP Server
+
+Start a local Streamable HTTP MCP endpoint:
+
+```bash
+reasoning-engine serve --transport http --host 127.0.0.1 --port 8765
+```
+
+Use this endpoint in compatible local MCP clients:
+
+```text
+http://127.0.0.1:8765/mcp
+```
+
+Public binding requires an explicit unsafe opt-in:
+
+```bash
+reasoning-engine serve --transport http --host 0.0.0.0 --unsafe-bind-public
+```
+
+For a Notion AI Custom MCP test through a temporary Cloudflare HTTPS tunnel:
+
+```bash
+./run-notion-mcp-laptop.sh
+```
+
+The script prints the public Notion MCP URL and stores the bearer token in:
+
+```text
+~/.reasoning-engine/notion-http.env
+```

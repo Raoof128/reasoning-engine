@@ -335,3 +335,34 @@ Return full session state including all active branches and scores. Useful for d
 - `run_research_pipeline_tool(query, draft, mode="standard", profile="auto")`: runs retrieval, claim extraction, verification, quality gate, run-pack export, and attestation verification.
 - `run_quality_gate_tool(run_id)`: evaluates persisted claims and verifications.
 - `export_run_pack_tool(query, draft, mode="standard", profile="auto")`: exports an attested run pack through the pipeline.
+
+---
+
+## Local HTTP MCP Transport
+
+Start STDIO MCP:
+
+```bash
+reasoning-engine mcp
+```
+
+Start local Streamable HTTP MCP:
+
+```bash
+reasoning-engine serve --transport http --host 127.0.0.1 --port 8765
+```
+
+Default endpoint:
+
+```text
+http://127.0.0.1:8765/mcp
+```
+
+Security behavior:
+
+- Host defaults to `127.0.0.1`.
+- Public bind addresses are rejected unless `--unsafe-bind-public` is passed.
+- FastMCP Host/Origin protection is exercised in tests.
+- `--bearer-token-env NAME` enables bearer-token authentication and requires
+  `NAME` to be set.
+- Bearer token environment values are never printed by the CLI.
