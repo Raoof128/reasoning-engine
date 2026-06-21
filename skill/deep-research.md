@@ -34,17 +34,19 @@ digraph pipeline {
 
 1. Call `mcp__reasoning-engine__recall_memory_tool` with the user's query.
 2. Call `mcp__reasoning-engine__init_research_session` with the user's query.
-3. Read `difficulty`, `strategy`, `budget`.
-4. Report: "Research session initialized. Difficulty: {difficulty:.2f}, Strategy: {strategy}, Budget: {budget.total_branches} branches, {budget.max_steps} max steps."
+3. Call `mcp__reasoning-engine__plan_research_angles_tool` with the user's query and `max_angles = budget.total_branches`.
+4. Read `difficulty`, `strategy`, `budget`, and prioritized research angles.
+5. Report: "Research session initialized. Difficulty: {difficulty:.2f}, Strategy: {strategy}, Budget: {budget.total_branches} branches, {budget.max_steps} max steps."
 
 ## Phase 2: GENERATE (Actor)
 
-Spawn `budget.total_branches` **parallel** agents, each with a DIFFERENT angle.
+Spawn `budget.total_branches` **parallel** agents, each with a DIFFERENT angle from `plan_research_angles_tool`.
 
 **Agent prompt:**
 ```
 You are a research agent investigating: "{query}"
 Your specific angle: {angle}
+Starter questions: {starter_questions}
 
 - Budget: {tokens_per_branch} tokens. Be concise.
 - Use Crawl4AI MCP tools (mcp__crawl4ai__crawl, mcp__crawl4ai__md, mcp__crawl4ai__ask) for web evidence.
@@ -111,7 +113,9 @@ Call `mcp__reasoning-engine__check_termination`.
 ## Phase 7: SYNTHESIZE
 
 1. Call `mcp__reasoning-engine__consensus_candidates` (top_k=3).
-2. Spawn Synthesis agent:
+2. Extract the main claims from the candidate traces and call `mcp__reasoning-engine__evidence_gap_questions_tool`.
+3. Resolve every important evidence-gap question before final writing. Prefer primary sources, independent corroboration, and exact-claim citations.
+4. Spawn Synthesis agent:
 
 ```
 Synthesize {K} research paths on "{query}".
@@ -127,12 +131,13 @@ Create:
 4. Contradictions and Tensions
 5. Open Questions
 6. Sources (complete citations)
+7. Evidence Gaps Resolved (one line per important claim)
 
 Write in clear, academic prose. Cite sources inline.
 ```
 
-3. Call `mcp__reasoning-engine__save_to_memory` with learnings and domain tags.
-4. Save synthesis to `{topic}.md` in the working directory.
+5. Call `mcp__reasoning-engine__save_to_memory` with learnings and domain tags.
+6. Save synthesis to `{topic}.md` in the working directory.
 
 ## Phase 8: SLOP AUDIT
 
@@ -205,6 +210,8 @@ Generate a publication-quality `.docx` document using the **docx** skill.
 ## Rules
 
 - ALWAYS sanitize Crawl4AI content before use.
+- ALWAYS use planned research angles for actor coverage.
+- ALWAYS run evidence-gap questions before synthesis.
 - ALWAYS pass budget constraints to spawned agents.
 - NEVER skip the Critic — every branch must be scored.
 - NEVER skip the Planner — DORA decides what continues.

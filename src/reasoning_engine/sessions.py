@@ -2,13 +2,16 @@
 
 import json
 import uuid
+from collections.abc import Iterable
 
 from reasoning_engine.db import get_connection
 from reasoning_engine.difficulty import estimate_difficulty
 from reasoning_engine.dora import allocate_budget
+from reasoning_engine.sanitizer import sanitize_content
 
 TERMINATION_Q_THRESHOLD = 0.85
 TERMINATION_CONFIDENCE_THRESHOLD = 0.80
+VALID_BRANCH_STATUSES = {"active", "reflecting", "pruned", "completed"}
 
 
 def create_session(db_path: str, query: str) -> dict:
@@ -60,6 +63,21 @@ def get_session(db_path: str, session_id: str) -> dict:
     return dict(row)
 
 
+def _require_branch_for_session(conn, branch_id: str, session_id: str) -> dict:
+    row = conn.execute(
+        "SELECT * FROM branches WHERE id = ? AND session_id = ?",
+        (branch_id, session_id),
+    ).fetchone()
+    if not row:
+        raise ValueError(f"Branch {branch_id} not found in session {session_id}")
+    return dict(row)
+
+
+def get_branch_for_session(db_path: str, branch_id: str, session_id: str) -> dict:
+    with get_connection(db_path) as conn:
+        return _require_branch_for_session(conn, branch_id, session_id)
+
+
 def register_branch(
     db_path: str,
     session_id: str,
@@ -70,10 +88,25 @@ def register_branch(
 ) -> dict:
     branch_id = str(uuid.uuid4())
     with get_connection(db_path) as conn:
+        session = conn.execute(
+            "SELECT budget_max_depth FROM sessions WHERE id = ?", (session_id,)
+        ).fetchone()
+        if not session:
+            raise ValueError(f"Session {session_id} not found")
+        if depth > session["budget_max_depth"]:
+            raise ValueError(f"depth exceeds session max depth {session['budget_max_depth']}")
+        if parent_id is not None:
+            _require_branch_for_session(conn, parent_id, session_id)
         conn.execute(
             """INSERT INTO branches (id, session_id, parent_id, depth, trace, status)
                VALUES (?, ?, ?, ?, ?, 'active')""",
-            (branch_id, session_id, parent_id, depth, json.dumps(trace)),
+            (
+                branch_id,
+                session_id,
+                parent_id,
+                depth,
+                json.dumps([sanitize_content(step) for step in trace]),
+            ),
         )
         for source in sources or []:
             conn.execute(
@@ -83,8 +116,8 @@ def register_branch(
                     str(uuid.uuid4()),
                     branch_id,
                     source.get("url", ""),
-                    source.get("title", ""),
-                    source.get("excerpt", ""),
+                    sanitize_content(source.get("title", "")),
+                    sanitize_content(source.get("excerpt", "")),
                     source.get("relevance_score", 0.0),
                 ),
             )
@@ -100,24 +133,70 @@ def get_branch(db_path: str, branch_id: str) -> dict:
 
 
 def score_branch(
-    db_path: str, branch_id: str, q_score: float, advantage: float, critique: str, confidence: float
+    db_path: str,
+    branch_id: str,
+    q_score: float,
+    advantage: float,
+    critique: str,
+    confidence: float,
+    session_id: str | None = None,
 ) -> None:
     with get_connection(db_path) as conn:
+        if session_id is not None:
+            _require_branch_for_session(conn, branch_id, session_id)
         conn.execute(
             """UPDATE branches SET q_score=?, advantage=?, critique=?, confidence=?, visits=visits+1 WHERE id=?""",
-            (q_score, advantage, critique, confidence, branch_id),
+            (q_score, advantage, sanitize_content(critique), confidence, branch_id),
         )
+        if conn.total_changes == 0:
+            raise ValueError(f"Branch {branch_id} not found")
 
 
 def update_branch_status(db_path: str, branch_id: str, status: str) -> None:
+    if status not in VALID_BRANCH_STATUSES:
+        raise ValueError(f"Invalid branch status: {status}")
     with get_connection(db_path) as conn:
         conn.execute("UPDATE branches SET status=? WHERE id=?", (status, branch_id))
+        if conn.total_changes == 0:
+            raise ValueError(f"Branch {branch_id} not found")
+
+
+def apply_planning_result(
+    db_path: str,
+    session_id: str,
+    branches_to_reflect: Iterable[str],
+    branches_to_prune: Iterable[str],
+    budget_remaining: int,
+) -> None:
+    with get_connection(db_path) as conn:
+        session = conn.execute("SELECT id FROM sessions WHERE id = ?", (session_id,)).fetchone()
+        if not session:
+            raise ValueError(f"Session {session_id} not found")
+        for branch_id in branches_to_reflect:
+            _require_branch_for_session(conn, branch_id, session_id)
+            conn.execute("UPDATE branches SET status='reflecting' WHERE id=?", (branch_id,))
+        for branch_id in branches_to_prune:
+            _require_branch_for_session(conn, branch_id, session_id)
+            conn.execute("UPDATE branches SET status='pruned' WHERE id=?", (branch_id,))
+        status = "completed" if budget_remaining <= 0 else "active"
+        conn.execute(
+            "UPDATE sessions SET budget_remaining_steps=?, status=? WHERE id=?",
+            (max(0, budget_remaining), status, session_id),
+        )
 
 
 def get_active_branches(db_path: str, session_id: str) -> list[dict]:
     with get_connection(db_path) as conn:
         rows = conn.execute(
             "SELECT * FROM branches WHERE session_id=? AND status='active'", (session_id,)
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_session_branches(db_path: str, session_id: str) -> list[dict]:
+    with get_connection(db_path) as conn:
+        rows = conn.execute(
+            "SELECT * FROM branches WHERE session_id=? ORDER BY created_at, id", (session_id,)
         ).fetchall()
     return [dict(r) for r in rows]
 

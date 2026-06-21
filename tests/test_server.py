@@ -4,117 +4,120 @@ import tempfile
 
 import pytest
 
-# Set temp DB before importing server
+# Set temp DB before importing server.
 _tmp_db = tempfile.NamedTemporaryFile(suffix=".db", delete=False)  # noqa: SIM115
 _tmp_db.close()
 os.environ["REASONING_ENGINE_DB"] = _tmp_db.name
 
-from fastmcp import Client  # noqa: E402
-
-from reasoning_engine.server import mcp  # noqa: E402
-
-
-def _text(result):
-    """Extract text from a CallToolResult."""
-    return result.content[0].text
-
-
-@pytest.fixture
-def client():
-    return Client(mcp)
+from reasoning_engine.server import (  # noqa: E402
+    check_termination,
+    get_session_state,
+    init_research_session,
+    plan_research_angles_tool,
+    register_branch,
+    sanitize_content,
+    score_branch,
+    select_next_branches,
+)
 
 
-@pytest.mark.asyncio
-async def test_init_research_session(client):
-    async with client:
-        result = await client.call_tool(
-            "init_research_session", {"query": "How do process reward models work?"}
+def test_init_research_session():
+    data = json.loads(init_research_session("How do process reward models work?"))
+    assert data["session_id"]
+    assert data["difficulty"] >= 0.0
+    assert data["strategy"]
+    assert data["budget"]
+
+
+def test_full_workflow():
+    session = json.loads(init_research_session("Simple test query"))
+    sid = session["session_id"]
+
+    branch = json.loads(
+        register_branch(
+            sid,
+            trace=json.dumps(["Step 1: researched X"]),
+            sources=json.dumps([{"url": "https://example.com", "title": "Ex"}]),
         )
-        data = json.loads(_text(result))
-        assert data["session_id"]
-        assert data["difficulty"] >= 0.0
-        assert data["strategy"]
-        assert data["budget"]
+    )
+
+    score_branch(
+        sid,
+        branch["branch_id"],
+        q_score=0.9,
+        advantage=0.4,
+        critique="Strong analysis",
+        confidence=0.85,
+    )
+
+    term = json.loads(check_termination(sid))
+    assert term["should_terminate"] is True
 
 
-@pytest.mark.asyncio
-async def test_full_workflow(client):
-    async with client:
-        # Init
-        init_result = await client.call_tool(
-            "init_research_session", {"query": "Simple test query"}
-        )
-        session = json.loads(_text(init_result))
-        sid = session["session_id"]
+def test_sanitize_content():
+    cleaned = json.loads(sanitize_content("Hello <script>bad</script> world"))
+    assert "<script>" not in cleaned["cleaned"]
+    assert "world" in cleaned["cleaned"]
 
-        # Register branch
-        branch_result = await client.call_tool(
-            "register_branch",
-            {
-                "session_id": sid,
-                "trace": json.dumps(["Step 1: researched X"]),
-                "sources": json.dumps([{"url": "https://example.com", "title": "Ex"}]),
-            },
-        )
-        branch = json.loads(_text(branch_result))
 
-        # Score branch
-        await client.call_tool(
-            "score_branch",
-            {
-                "session_id": sid,
-                "branch_id": branch["branch_id"],
-                "q_score": 0.9,
-                "advantage": 0.4,
-                "critique": "Strong analysis",
-                "confidence": 0.85,
-            },
+def test_select_next_branches():
+    session = json.loads(init_research_session("Compare beam search and MCTS for reasoning tasks"))
+    sid = session["session_id"]
+
+    for trace in [["Path A"], ["Path B"], ["Path C"]]:
+        branch = json.loads(register_branch(sid, trace=json.dumps(trace)))
+        score_branch(
+            sid,
+            branch["branch_id"],
+            q_score=0.5,
+            advantage=0.2,
+            critique="OK",
+            confidence=0.6,
         )
 
-        # Check termination
-        term_result = await client.call_tool("check_termination", {"session_id": sid})
-        term = json.loads(_text(term_result))
-        assert term["should_terminate"] is True
+    data = json.loads(select_next_branches(sid))
+    assert "branches_to_continue" in data
+    assert "kappa" in data
 
 
-@pytest.mark.asyncio
-async def test_sanitize_content(client):
-    async with client:
-        result = await client.call_tool(
-            "sanitize_content", {"raw_text": "Hello <script>bad</script> world"}
+def test_score_branch_rejects_invalid_score():
+    session = json.loads(init_research_session("Simple test query"))
+    branch = json.loads(register_branch(session["session_id"], trace=json.dumps(["Step 1"])))
+
+    with pytest.raises(ValueError, match="q_score"):
+        score_branch(
+            session["session_id"],
+            branch["branch_id"],
+            q_score=1.5,
+            advantage=0.2,
+            critique="Invalid",
+            confidence=0.6,
         )
-        cleaned = json.loads(_text(result))
-        assert "<script>" not in cleaned["cleaned"]
-        assert "world" in cleaned["cleaned"]
 
 
-@pytest.mark.asyncio
-async def test_select_next_branches(client):
-    async with client:
-        init = await client.call_tool(
-            "init_research_session", {"query": "Compare beam search and MCTS for reasoning tasks"}
-        )
-        session = json.loads(_text(init))
-        sid = session["session_id"]
+def test_planning_persists_budget():
+    session = json.loads(init_research_session("Simple"))
+    sid = session["session_id"]
+    branch = json.loads(register_branch(sid, trace=json.dumps(["Step 1"])))
+    score_branch(
+        sid,
+        branch["branch_id"],
+        q_score=0.5,
+        advantage=0.2,
+        critique="OK",
+        confidence=0.6,
+    )
 
-        for trace in [["Path A"], ["Path B"], ["Path C"]]:
-            br = await client.call_tool(
-                "register_branch", {"session_id": sid, "trace": json.dumps(trace)}
-            )
-            branch = json.loads(_text(br))
-            await client.call_tool(
-                "score_branch",
-                {
-                    "session_id": sid,
-                    "branch_id": branch["branch_id"],
-                    "q_score": 0.5,
-                    "advantage": 0.2,
-                    "critique": "OK",
-                    "confidence": 0.6,
-                },
-            )
+    for _ in range(session["budget"]["max_steps"]):
+        select_next_branches(sid)
 
-        result = await client.call_tool("select_next_branches", {"session_id": sid})
-        data = json.loads(_text(result))
-        assert "branches_to_continue" in data
-        assert "kappa" in data
+    state = json.loads(get_session_state(sid))
+    assert state["session"]["budget_remaining_steps"] == 0
+
+
+def test_plan_research_angles_tool():
+    angles = json.loads(
+        plan_research_angles_tool("Compare MCP security evaluation methods", max_angles=3)
+    )
+    assert len(angles) == 3
+    assert "name" in angles[0]

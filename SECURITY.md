@@ -27,9 +27,17 @@ The `sanitize_content` tool strips HTML, script tags, and known prompt injection
 
 This is a defense-in-depth measure. It reduces risk but does not guarantee complete protection against adversarial inputs.
 
+Externally sourced text is also sanitized before branch traces, source excerpts, critiques, reflections, or episodic memories are persisted. Treat all retrieved content as untrusted, and keep primary-source URLs attached so claims remain independently verifiable.
+
+### MCP Tool Input Validation
+
+All MCP tool inputs are validated at the server boundary. Numeric scores must be in the documented `0.0` to `1.0` range, list and text payloads have bounded sizes, branch mutations are checked against the requested session, and planning updates persist budget state atomically with branch status changes.
+
 ### Database
 
 SQLite stores session state, branch scores, and episodic memory. The database file may contain research queries, reasoning traces, and source excerpts. It is excluded from version control via `.gitignore`. Treat it as sensitive data.
+
+The database uses foreign-key checks, WAL mode, a busy timeout, and restrictive permissions for newly created files where the operating system supports them.
 
 ### MCP Transport
 
@@ -37,4 +45,4 @@ The server communicates over stdio transport. No network ports are opened. No da
 
 ### Dependencies
 
-The project depends on FastMCP and NetworkX. Keep dependencies updated. Run `pip audit` periodically to check for known vulnerabilities.
+The project depends on the official MCP Python SDK. Keep dependencies updated. Run `pip audit` periodically to check for known vulnerabilities.

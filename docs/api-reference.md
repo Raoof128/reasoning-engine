@@ -260,6 +260,51 @@ Strip HTML, script tags, and prompt injection patterns from web-crawled content.
 
 ---
 
+## plan_research_angles_tool
+
+Create prioritized research angles and starter questions for a query.
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `query` | string | Yes | Research question |
+| `max_angles` | integer | No | Number of angles to return. Range: `1-12`. Default: `6` |
+
+**Returns:**
+
+JSON array of angle objects:
+
+```json
+[
+  {
+    "name": "empirical evidence",
+    "objective": "Find measurements, benchmarks, replications, and negative results.",
+    "priority": 1,
+    "starter_questions": ["..."]
+  }
+]
+```
+
+---
+
+## evidence_gap_questions_tool
+
+Generate verification questions for claims before final synthesis.
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `query` | string | Yes | Research question |
+| `claims` | string | Yes | JSON array of claim strings |
+
+**Returns:**
+
+JSON array of claim-check objects with primary-source, recency, corroboration, and exact-claim verification questions.
+
+---
+
 ## get_session_state
 
 Return full session state including all active branches and scores. Useful for debugging.

@@ -4,6 +4,7 @@ import json
 import uuid
 
 from reasoning_engine.db import get_connection
+from reasoning_engine.sanitizer import sanitize_content
 
 
 def save_memory(
@@ -11,10 +12,19 @@ def save_memory(
 ) -> dict:
     memory_id = str(uuid.uuid4())
     with get_connection(db_path) as conn:
+        session = conn.execute("SELECT id FROM sessions WHERE id = ?", (session_id,)).fetchone()
+        if not session:
+            raise ValueError(f"Session {session_id} not found")
         conn.execute(
             """INSERT INTO episodic_memory (id, session_id, query, key_learnings, domain_tags)
                VALUES (?, ?, ?, ?, ?)""",
-            (memory_id, session_id, query, json.dumps(key_learnings), json.dumps(domain_tags)),
+            (
+                memory_id,
+                session_id,
+                sanitize_content(query),
+                json.dumps([sanitize_content(learning) for learning in key_learnings]),
+                json.dumps([sanitize_content(tag) for tag in domain_tags]),
+            ),
         )
     return {"id": memory_id}
 
@@ -57,6 +67,12 @@ def record_reflection(
 ) -> dict:
     reflection_id = str(uuid.uuid4())
     with get_connection(db_path) as conn:
+        branch = conn.execute(
+            "SELECT id FROM branches WHERE id = ? AND session_id = ?",
+            (branch_id, session_id),
+        ).fetchone()
+        if not branch:
+            raise ValueError(f"Branch {branch_id} not found in session {session_id}")
         conn.execute(
             """INSERT INTO reflections (id, branch_id, session_id, original_critique, revision_summary, score_before, score_after)
                VALUES (?, ?, ?, ?, ?, ?, ?)""",
@@ -64,10 +80,14 @@ def record_reflection(
                 reflection_id,
                 branch_id,
                 session_id,
-                original_critique,
-                revision_summary,
+                sanitize_content(original_critique),
+                sanitize_content(revision_summary),
                 score_before,
                 score_after,
             ),
+        )
+        conn.execute(
+            "UPDATE branches SET status='active' WHERE id=? AND session_id=?",
+            (branch_id, session_id),
         )
     return {"id": reflection_id, "score_before": score_before, "score_after": score_after}

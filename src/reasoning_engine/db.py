@@ -5,13 +5,29 @@ from contextlib import contextmanager
 from pathlib import Path
 
 DEFAULT_DB_PATH = Path(__file__).parent / "reasoning.db"
+DB_FILE_MODE = 0o600
+
+
+def _prepare_db_path(path: str) -> Path:
+    db_path = Path(path).expanduser()
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    return db_path
+
+
+def _harden_connection(conn: sqlite3.Connection) -> None:
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA busy_timeout = 5000")
+    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA synchronous = NORMAL")
 
 
 def init_db(db_path: str | None = None) -> str:
     """Create all tables. Idempotent — safe to call multiple times."""
-    path = db_path or str(DEFAULT_DB_PATH)
+    path = _prepare_db_path(db_path or str(DEFAULT_DB_PATH))
+    existed = path.exists()
     conn = sqlite3.connect(path)
     try:
+        _harden_connection(conn)
         conn.executescript("""
             CREATE TABLE IF NOT EXISTS sessions (
                 id TEXT PRIMARY KEY,
@@ -78,17 +94,21 @@ def init_db(db_path: str | None = None) -> str:
             CREATE INDEX IF NOT EXISTS idx_sources_branch ON sources(branch_id);
             CREATE INDEX IF NOT EXISTS idx_memory_query ON episodic_memory(query);
         """)
+        conn.execute("PRAGMA user_version = 1")
+        conn.commit()
     finally:
         conn.close()
-    return path
+    if not existed:
+        path.chmod(DB_FILE_MODE)
+    return str(path)
 
 
 def get_conn(db_path: str | None = None) -> sqlite3.Connection:
     """Get a connection with row_factory set to sqlite3.Row."""
-    path = db_path or str(DEFAULT_DB_PATH)
+    path = _prepare_db_path(db_path or str(DEFAULT_DB_PATH))
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
+    _harden_connection(conn)
     return conn
 
 

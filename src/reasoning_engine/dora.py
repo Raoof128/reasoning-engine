@@ -44,8 +44,9 @@ def allocate_budget(difficulty: float) -> BudgetAllocation:
 
 
 def select_branches(scores: dict[str, float], budget_remaining: int) -> AllocationResult:
-    if not scores:
-        return AllocationResult([], [], [], "breadth", 0.0, budget_remaining)
+    budget_remaining = max(0, budget_remaining)
+    if not scores or budget_remaining == 0:
+        return AllocationResult([], [], list(scores), "budget_exhausted", 0.0, budget_remaining)
 
     score_values = list(scores.values())
     kappa = (max(score_values) - min(score_values)) if len(score_values) > 1 else 0.0
@@ -73,7 +74,18 @@ def select_branches(scores: dict[str, float], budget_remaining: int) -> Allocati
             else:
                 to_prune.append(branch_id)
 
+    action_budget = budget_remaining
+    if len(to_continue) + len(to_reflect) > action_budget:
+        allowed = set((to_continue + to_reflect)[:action_budget])
+        to_prune.extend(
+            branch_id
+            for branch_id in list(to_continue) + list(to_reflect)
+            if branch_id not in allowed and branch_id not in to_prune
+        )
+        to_continue = [branch_id for branch_id in to_continue if branch_id in allowed]
+        to_reflect = [branch_id for branch_id in to_reflect if branch_id in allowed]
+
     steps_used = len(to_continue) + len(to_reflect)
     return AllocationResult(
-        to_continue, to_reflect, to_prune, allocation, kappa, budget_remaining - steps_used
+        to_continue, to_reflect, to_prune, allocation, kappa, max(0, budget_remaining - steps_used)
     )

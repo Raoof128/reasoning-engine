@@ -28,6 +28,7 @@ Reasoning Engine MCP Server (deterministic Python backend)
   - DORA budget allocation (explore vs exploit)
   - UCB branch selection
   - Dual-signal PRM scoring (Promise + Progress)
+  - Research angle planning and evidence-gap checks
   - Tree state management (SQLite)
   - Episodic memory for cross-session learning
   - Content sanitization (prompt injection protection)
@@ -84,7 +85,7 @@ Add to your project's `.mcp.json`:
 {
   "mcpServers": {
     "reasoning-engine": {
-      "command": "/path/to/reasoning-engine/.venv/bin/fastmcp",
+      "command": "/path/to/reasoning-engine/.venv/bin/mcp",
       "args": ["run", "/path/to/reasoning-engine/src/reasoning_engine/server.py"],
       "env": {
         "REASONING_ENGINE_DB": "/path/to/reasoning-engine/reasoning.db"
@@ -146,6 +147,8 @@ The stop-slop and docx skills are third-party — see their repos for installati
 | `save_to_memory` | Persist episodic memory for future recall |
 | `sanitize_content` | Strip HTML, scripts, and prompt injection patterns |
 | `get_session_state` | Full session state for debugging |
+| `plan_research_angles_tool` | Create prioritized research angles and starter questions |
+| `evidence_gap_questions_tool` | Generate verification questions for claims before synthesis |
 
 ## Project Structure
 
@@ -159,6 +162,7 @@ reasoning-engine/
     ucb.py          # UCB1 explore/exploit selection
     sessions.py     # Session and branch lifecycle management
     memory.py       # Episodic memory for Reflexion learnings
+    research.py     # Research angle and evidence-gap planning
     sanitizer.py    # Content sanitization for web data
   tests/            # 38 tests, all passing
   skill/            # Claude Code skill file
@@ -172,6 +176,7 @@ This project implements ideas from three research documents on AI reasoning arch
 - **DORA (Direction-Oriented Resource Allocation)** uses score variance to dynamically switch between exploring many paths and exploiting the best one.
 - **Reflexion** injects textual critiques back into the prompt, enabling self-correction without weight updates.
 - **UCB1 selection** balances trying promising branches against exploring undervisited ones.
+- **ReAct / Self-RAG style evidence checks** keep retrieval and verification explicit before synthesis.
 
 The key insight: a Claude Code skill can orchestrate this entire pipeline using parallel agent spawning on a Max subscription, with a lightweight Python MCP server handling the deterministic math. No separate API key needed.
 
