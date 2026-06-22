@@ -17,5 +17,5 @@ def test_clickable_notion_launcher_delegates_to_shell_script():
     script = Path("run-notion-mcp-laptop.command").read_text()
 
     assert "#!/usr/bin/env bash" in script
-    assert "cd \"$SCRIPT_DIR\"" in script
+    assert 'cd "$SCRIPT_DIR"' in script
     assert "exec ./run-notion-mcp-laptop.sh" in script
