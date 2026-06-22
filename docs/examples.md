@@ -31,8 +31,8 @@ Low difficulty. One branch, no reflexion.
 ```
 register_branch(
   session_id="abc-123",
-  trace='["Step 1: PRMs score individual reasoning steps", "Step 2: Dense per-step feedback"]',
-  sources='[{"url": "https://arxiv.org/abs/2305.20050", "title": "Lets Verify Step by Step"}]'
+  trace=["Step 1: PRMs score individual reasoning steps", "Step 2: Dense per-step feedback"],
+  sources=[{"url": "https://arxiv.org/abs/2305.20050", "title": "Lets Verify Step by Step"}]
 )
 ```
 

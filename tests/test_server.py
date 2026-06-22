@@ -12,6 +12,7 @@ os.environ["REASONING_ENGINE_DB"] = _tmp_db.name
 from reasoning_engine.server import (  # noqa: E402
     check_termination,
     classify_research_mode_tool,
+    evidence_gap_questions_tool,
     export_run_pack_tool,
     get_scholar_auth_status,
     get_session_state,
@@ -21,6 +22,7 @@ from reasoning_engine.server import (  # noqa: E402
     run_quality_gate_tool,
     run_research_pipeline_tool,
     sanitize_content,
+    save_to_memory,
     scholar_search_tool,
     score_branch,
     select_next_branches,
@@ -59,6 +61,21 @@ def test_full_workflow():
 
     term = json.loads(check_termination(sid))
     assert term["should_terminate"] is True
+
+
+def test_register_branch_accepts_native_json_arrays():
+    session = json.loads(init_research_session("Native array test query"))
+    sid = session["session_id"]
+
+    branch = json.loads(
+        register_branch(
+            sid,
+            trace=["Step 1: researched native arrays"],
+            sources=[{"url": "https://example.com", "title": "Example"}],
+        )
+    )
+
+    assert branch["branch_id"]
 
 
 def test_sanitize_content():
@@ -162,6 +179,42 @@ def test_get_scholar_auth_status_does_not_expose_token(monkeypatch):
 
     assert data["has_env_token"] is True
     assert "secret-token" not in json.dumps(data)
+
+
+def test_get_scholar_auth_status_accepts_dummy_argument(monkeypatch):
+    monkeypatch.delenv("SCHOLAR_GATEWAY_ACCESS_TOKEN", raising=False)
+
+    data = json.loads(get_scholar_auth_status({"dummy": True}))
+
+    assert data["has_env_token"] is False
+    assert data["token_storage"] == "environment_or_keyring"
+
+
+def test_evidence_gap_questions_accepts_native_claim_array():
+    gaps = json.loads(
+        evidence_gap_questions_tool(
+            "MCP research reliability",
+            ["MCP tools should validate inputs."],
+        )
+    )
+
+    assert len(gaps) == 1
+    assert gaps[0]["claim"] == "MCP tools should validate inputs."
+
+
+def test_save_to_memory_accepts_native_json_arrays():
+    session = json.loads(init_research_session("Memory native array query"))
+
+    saved = json.loads(
+        save_to_memory(
+            session["session_id"],
+            "Memory native array query",
+            ["Native MCP arrays are easier for Notion"],
+            ["notion", "mcp"],
+        )
+    )
+
+    assert saved["id"]
 
 
 def test_run_research_pipeline_tool_exports_pack():
