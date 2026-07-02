@@ -10,7 +10,10 @@ from reasoning_engine.verifiable.claims import extract_claims, verify_claims
 from reasoning_engine.verifiable.models import EvidenceGap, ResearchRun, utc_now
 from reasoning_engine.verifiable.profiles import classify_research_mode, select_profile
 from reasoning_engine.verifiable.quality import run_quality_gate
-from reasoning_engine.verifiable.retrieval import MockScholarGatewayAdapter, ScholarGatewayAdapter
+from reasoning_engine.verifiable.retrieval import (
+    MockScholarGatewayAdapter,
+    default_search_adapter,
+)
 from reasoning_engine.verifiable.runpack import export_run_pack, verify_run_pack_attestation
 from reasoning_engine.verifiable.store import ResearchStore
 
@@ -48,7 +51,7 @@ class VerifiableResearchService:
         limit: int = 10,
         use_mock_empty: bool = False,
     ) -> dict[str, Any]:
-        adapter = EmptyMockAdapter() if use_mock_empty else ScholarGatewayAdapter()
+        adapter = EmptyMockAdapter() if use_mock_empty else default_search_adapter()
         self.store.append_provenance(
             run_id, "scholar_search_requested", {"query": query, "limit": limit}
         )
