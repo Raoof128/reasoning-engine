@@ -20,8 +20,8 @@ Two components work together:
 
 ```
 Claude Code (LLM-powered orchestrator)
-  |  spawns parallel agents for generation, critique, reflexion
-  |  calls MCP tools for algorithmic decisions
+  |  runs the ACPR loop sequentially in one context — no subagents
+  |  calls MCP tools for algorithmic decisions and evidence retrieval
   v
 Reasoning Engine MCP Server (deterministic Python backend)
   - Difficulty estimation
@@ -29,12 +29,16 @@ Reasoning Engine MCP Server (deterministic Python backend)
   - UCB branch selection
   - Dual-signal PRM scoring (Promise + Progress)
   - Research angle planning and evidence-gap checks
+  - Real academic search: OpenAlex, Crossref, arXiv, Semantic Scholar,
+    Europe PMC, DOAJ, DBLP (free, no auth), deduplicated and ranked
+  - Verifiable pipeline: claim extraction, evidence verification,
+    quality gate, attested run-pack export
   - Tree state management (SQLite)
   - Episodic memory for cross-session learning
   - Content sanitization (prompt injection protection)
 ```
 
-No API key required. Runs on your Claude Code Max subscription.
+No API key required for the reasoning loop or academic search. Runs on your Claude Code Max subscription.
 
 ## How It Works
 
@@ -43,12 +47,15 @@ No API key required. Runs on your Claude Code Max subscription.
 | Phase | What Happens |
 |-------|-------------|
 | **Initialize** | Estimate difficulty, allocate budget, recall past learnings |
-| **Generate** | Spawn parallel Actor agents, each exploring a different research angle |
-| **Evaluate** | Critic agents score each path on Promise (will it succeed?) and Progress (is it advancing?) |
+| **Generate** | Investigate each research angle sequentially, gathering evidence via real academic search |
+| **Evaluate** | Self-critique each path on Promise (will it succeed?) and Progress (is it advancing?) |
 | **Plan** | DORA computes score variance (kappa) and decides: explore broadly or exploit the best path |
 | **Reflect** | Low-scoring paths get textual critique injected back for self-correction |
 | **Loop** | Repeat until budget exhausted or high-confidence result found |
 | **Synthesize** | Top paths merged into a coherent research report |
+| **Verify** | Machine-check the drafted claims against real evidence; blocks on unsupported claims |
+
+The entire loop runs sequentially in one Claude Code conversation — no subagent spawning required.
 
 ### Difficulty-Adaptive Scaling
 
@@ -85,14 +92,17 @@ Add to your project's `.mcp.json`:
 {
   "mcpServers": {
     "reasoning-engine": {
-      "command": "/path/to/reasoning-engine/.venv/bin/mcp",
-      "args": ["run", "/path/to/reasoning-engine/src/reasoning_engine/server.py"],
-      "env": {
-        "REASONING_ENGINE_DB": "/path/to/reasoning-engine/reasoning.db"
-      }
+      "command": "/path/to/reasoning-engine/.venv/bin/reasoning-engine",
+      "args": ["mcp"]
     }
   }
 }
+```
+
+Or register it for every project at once:
+
+```bash
+claude mcp add reasoning-engine -s user -- /path/to/reasoning-engine/.venv/bin/reasoning-engine mcp
 ```
 
 ### 4. Install the skill (optional)
@@ -107,16 +117,17 @@ This agent works with the following Claude Code components:
 
 | MCP Server | Purpose | How to Get |
 |-----------|---------|-----------|
-| **reasoning-engine** | Core reasoning backend (this repo) | Install from this repo |
-| **crawl4ai** | Web crawling for live research | Built-in Claude Code MCP |
+| **reasoning-engine** | Core reasoning backend, plus built-in academic search (this repo) | Install from this repo |
+
+No external web-crawling MCP server is required — evidence retrieval uses the reasoning engine's own `scholar_search_tool`, backed by OpenAlex, Crossref, arXiv, Semantic Scholar, Europe PMC, DOAJ, and DBLP.
 
 ### Required Skills (for full pipeline)
 
 | Skill | Purpose | Pipeline Phase | Source |
 |-------|---------|---------------|--------|
-| **deep-research** | Orchestrates the ACPR reasoning loop | Phases 1-7 | Included in this repo |
-| **[stop-slop](https://github.com/hardikpandya/stop-slop)** | Removes AI writing patterns from synthesis | Phase 8 | by [Hardik Pandya](https://github.com/hardikpandya/stop-slop) |
-| **[docx](https://github.com/anthropics/skills/tree/main/skills/docx)** | Generates publication-quality Word documents | Phase 9 | by [Anthropic](https://github.com/anthropics/skills/tree/main/skills/docx) |
+| **deep-research** | Orchestrates the ACPR reasoning loop | Phases 1-8 | Included in this repo |
+| **[stop-slop](https://github.com/hardikpandya/stop-slop)** | Removes AI writing patterns from synthesis | Phase 9 | by [Hardik Pandya](https://github.com/hardikpandya/stop-slop) |
+| **[docx](https://github.com/anthropics/skills/tree/main/skills/docx)** | Generates publication-quality Word documents | Phase 10 | by [Anthropic](https://github.com/anthropics/skills/tree/main/skills/docx) |
 
 ### Optional Skills
 
@@ -149,13 +160,22 @@ The stop-slop and docx skills are third-party — see their repos for installati
 | `get_session_state` | Full session state for debugging |
 | `plan_research_angles_tool` | Create prioritized research angles and starter questions |
 | `evidence_gap_questions_tool` | Generate verification questions for claims before synthesis |
+| `start_research_run` | Create a verifiable research run (classifies mode + profile) |
+| `classify_research_mode_tool` | Classify or escalate a query's research mode (e.g. `high_stakes`) |
+| `scholar_search_tool` | Real academic search across 7 free sources, deduplicated and ranked |
+| `get_scholar_auth_status` | Report optional live-token availability without exposing values |
+| `run_research_pipeline_tool` | Full pipeline: search, extract claims, verify, quality gate, export run pack |
+| `run_quality_gate_tool` | Evaluate persisted claims and verifications for a run |
+| `export_run_pack_tool` | Run the pipeline and return the exported, attested run-pack path |
 
 ## Project Structure
 
 ```
 reasoning-engine/
   src/reasoning_engine/
-    server.py       # FastMCP server wiring all tools
+    server.py       # MCP server wiring all tools
+    cli.py          # reasoning-engine CLI (mcp, serve, research, scholar)
+    transport.py    # MCP transport factory and local HTTP safety checks
     db.py           # SQLite schema and connections
     difficulty.py   # Heuristic difficulty estimator
     dora.py         # DORA budget allocation + branch selection
@@ -164,7 +184,12 @@ reasoning-engine/
     memory.py       # Episodic memory for Reflexion learnings
     research.py     # Research angle and evidence-gap planning
     sanitizer.py    # Content sanitization for web data
-  tests/            # 38 tests, all passing
+    validation.py   # Shared MCP tool input validation helpers
+    verifiable/      # Claim extraction, verification, quality gate, run-pack export
+      aggregator.py  # Fan-out academic search across all sources, dedup + rank
+      sources/       # OpenAlex, Crossref, arXiv, Semantic Scholar, Europe PMC,
+                      #   DOAJ, DBLP, and optional Scholar Gateway adapters
+  tests/            # 143 tests, all passing
   skill/            # Claude Code skill file
 ```
 
@@ -178,7 +203,7 @@ This project implements ideas from three research documents on AI reasoning arch
 - **UCB1 selection** balances trying promising branches against exploring undervisited ones.
 - **ReAct / Self-RAG style evidence checks** keep retrieval and verification explicit before synthesis.
 
-The key insight: a Claude Code skill can orchestrate this entire pipeline using parallel agent spawning on a Max subscription, with a lightweight Python MCP server handling the deterministic math. No separate API key needed.
+The key insight: a Claude Code skill can orchestrate this entire pipeline sequentially in a single conversation on a Max subscription, with a lightweight Python MCP server handling the deterministic math and real academic retrieval. No separate API key needed.
 
 ## Documentation
 
@@ -191,20 +216,33 @@ The key insight: a Claude Code skill can orchestrate this entire pipeline using 
 
 ## Verifiable Research Engine MVP
 
-Run a local verifiable research pipeline:
-
-```bash
-reasoning-engine research "Scholar Gateway exposes semantic search" \
-  --draft "Scholar Gateway exposes semantic search."
-```
-
-Run a Scholar Gateway search with mocked default retrieval:
+Academic search is **live by default** — no API key needed. It fans out
+concurrently across seven free sources (OpenAlex, Crossref, arXiv, Semantic
+Scholar, Europe PMC, DOAJ, DBLP), deduplicates by DOI/title, and ranks the
+results:
 
 ```bash
 reasoning-engine scholar search "MCP prompt injection" --limit 3
 ```
 
-Live Scholar Gateway calls are opt-in:
+Run the full verifiable research pipeline (search, claim extraction,
+verification, quality gate, attested run-pack export):
+
+```bash
+reasoning-engine research "Retrieval augmented generation reduces hallucination" \
+  --draft "Retrieval augmented generation reduces hallucination in large language models."
+```
+
+Useful environment variables:
+
+| Variable | Effect |
+|----------|--------|
+| `REASONING_ENGINE_OFFLINE=1` | Force deterministic mock evidence (tests, CI, no network) |
+| `REASONING_ENGINE_SOURCES=openalex,crossref` | Narrow which free sources are enabled |
+| `REASONING_ENGINE_CONTACT_EMAIL` | Contact address sent to OpenAlex/Crossref's "polite pool" |
+| `S2_API_KEY` | Optional Semantic Scholar key for higher rate limits |
+
+The paid Scholar Gateway connector remains available as one more source when configured:
 
 ```bash
 export SCHOLAR_GATEWAY_LIVE=1
@@ -212,10 +250,10 @@ export SCHOLAR_GATEWAY_ACCESS_TOKEN="<token>"
 reasoning-engine scholar search "literature synthesis evaluation" --limit 5
 ```
 
-Tokens are read from environment or local credential mechanisms. Tokens are not
-stored in SQLite or run packs. MVP verification uses deterministic lexical
-overlap as a placeholder verifier, so it is suitable for pipeline testing and
-audit workflow validation rather than final semantic claim verification.
+Tokens are read from environment or local credential mechanisms and are never
+stored in SQLite or run packs. Claim verification uses deterministic lexical
+overlap as an MVP placeholder verifier, so it is suitable for pipeline testing
+and audit workflow validation rather than final semantic claim verification.
 
 ## Local HTTP MCP
 

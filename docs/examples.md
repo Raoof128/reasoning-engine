@@ -74,15 +74,15 @@ Response:
 }
 ```
 
-### Step 2: Spawn 5 Actor agents with different angles
+### Step 2: Investigate 5 angles sequentially
 
-- Agent 1: Theoretical comparison (search topology properties)
-- Agent 2: Empirical benchmarks (MATH, GSM8K results)
-- Agent 3: Compute cost analysis (parallel vs sequential)
-- Agent 4: PRM integration differences
-- Agent 5: Practical implementation patterns
+- Angle 1: Theoretical comparison (search topology properties)
+- Angle 2: Empirical benchmarks (MATH, GSM8K results)
+- Angle 3: Compute cost analysis (parallel vs sequential)
+- Angle 4: PRM integration differences
+- Angle 5: Practical implementation patterns
 
-Register each as a branch.
+For each angle, call `scholar_search_tool` for evidence, then register it as a branch — one at a time, no subagents.
 
 ### Step 3: Score all 5 branches
 
@@ -107,7 +107,7 @@ High kappa (0.36) means scores are spread. DORA explores broadly. Branch 2 (0.45
 
 Critic said: "Missing concrete code examples. Claims about implementation ease are unverified."
 
-Reflexion agent crawls implementation guides, adds code snippets, re-registers as child branch. Re-scored at 0.71.
+Reflexion step calls `scholar_search_tool` for implementation-focused evidence, adds code snippets, re-registers as a child branch. Re-scored at 0.71.
 
 ### Step 6: Continue and converge
 
@@ -132,7 +132,7 @@ After 2 more loops, top branch reaches q=0.87, conf=0.82. Terminates. Synthesis 
 
 Forest strategy. 8 branches, 3 reflexion rounds, 50 step budget.
 
-### Step 2: Spawn 8 Actor agents
+### Step 2: Investigate 8 angles sequentially
 
 - PRM architecture and training
 - MCTS algorithms and search strategies
@@ -159,19 +159,19 @@ Results: [0.82, 0.75, 0.69, 0.88, 0.71, 0.63, 0.45, 0.77]
 }
 ```
 
-Agent 7 (practical architectures, 0.45) pruned. Agents 3 and 6 go to Reflexion. High kappa means broad exploration continues.
+Branch 7 (practical architectures, 0.45) pruned. Branches 3 and 6 go to Reflexion. High kappa means broad exploration continues.
 
 ### Step 5: Reflexion rounds
 
-Agent 3 critique: "Test-time compute theory is too abstract. Needs concrete allocation formulas."
+Branch 3 critique: "Test-time compute theory is too abstract. Needs concrete allocation formulas."
 After reflexion: score improves 0.69 -> 0.78.
 
-Agent 6 critique: "Reflexion coverage is shallow. Missing episodic memory component."
+Branch 6 critique: "Reflexion coverage is shallow. Missing episodic memory component."
 After reflexion: score improves 0.63 -> 0.74.
 
 ### Step 6: Second generation — extend top branches
 
-Spawn deeper Actor agents on the 5 continuing branches. Each goes one level deeper into their angle.
+Investigate the 5 continuing branches again, one at a time, each going one level deeper into its angle.
 
 ### Step 7: Re-evaluate, DORA switches to depth
 

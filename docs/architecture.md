@@ -6,45 +6,57 @@
 +------------------------------------------------------------------+
 |                        Claude Code (Max)                          |
 |                                                                   |
-|  /deep-research skill                                            |
+|  /deep-research skill (runs sequentially, no subagents)          |
 |  +------------------------------------------------------------+  |
 |  |  Phase 1: INIT         -> recall memory, estimate difficulty|  |
-|  |  Phase 2: GENERATE     -> spawn N parallel Actor agents     |  |
-|  |  Phase 3: EVALUATE     -> spawn N parallel Critic agents    |  |
+|  |  Phase 2: GENERATE     -> investigate each angle in turn    |  |
+|  |  Phase 3: EVALUATE     -> self-critique each branch         |  |
 |  |  Phase 4: PLAN         -> call DORA allocation              |  |
-|  |  Phase 5: REFLECT      -> spawn Reflexion agents            |  |
+|  |  Phase 5: REFLECT      -> revise flagged branches in turn   |  |
 |  |  Phase 6: LOOP/TERM    -> check termination conditions      |  |
 |  |  Phase 7: SYNTHESIZE   -> merge top paths into report       |  |
-|  |  Phase 8: SLOP AUDIT   -> remove AI writing patterns        |  |
-|  |  Phase 9: DOCX OUTPUT  -> generate Word document            |  |
+|  |  Phase 8: VERIFY       -> machine-check claims vs evidence  |  |
+|  |  Phase 9: SLOP AUDIT   -> remove AI writing patterns        |  |
+|  |  Phase 10: DOCX OUTPUT -> generate Word document            |  |
 |  +-----------------------------+------------------------------+  |
 |                                |                                  |
-|         MCP tool calls         |    Crawl4AI MCP calls           |
-+--------------------------------+---------+-----------------------+
-                                 |         |
-              +------------------v--+    +-v-----------------+
-              |  reasoning-engine   |    |    Crawl4AI        |
-              |  MCP Server         |    |    MCP Server      |
-              |                     |    |                    |
-              |  - Difficulty est.  |    |  - Web crawling    |
-              |  - DORA allocation  |    |  - Markdown extract|
-              |  - UCB selection    |    |  - Content Q&A     |
-              |  - Score tracking   |    +--------------------+
-              |  - Tree state (SQL) |
-              |  - Episodic memory  |
-              |  - Sanitization     |
-              +----------+----------+
-                         |
-                  +------v------+
-                  |   SQLite    |
-                  |             |
-                  | sessions    |
-                  | branches    |
-                  | reflections |
-                  | episodic_   |
-                  |   memory    |
-                  | sources     |
-                  +-------------+
+|                          MCP tool calls                           |
++--------------------------------+----------------------------------+
+                                 |
+                    +------------v-------------+
+                    |    reasoning-engine       |
+                    |    MCP Server             |
+                    |                           |
+                    |  - Difficulty est.        |
+                    |  - DORA allocation        |
+                    |  - UCB selection          |
+                    |  - Score tracking         |
+                    |  - Tree state (SQL)       |
+                    |  - Episodic memory        |
+                    |  - Sanitization           |
+                    |  - Academic search        |----> OpenAlex, Crossref,
+                    |    (aggregator, 7 sources)|      arXiv, Semantic Scholar,
+                    |  - Verifiable pipeline    |      Europe PMC, DOAJ, DBLP
+                    |    (claims, quality gate, |      (free, HTTPS, no auth)
+                    |     attested run packs)   |
+                    +-------------+-------------+
+                                  |
+                           +------v------+
+                           |   SQLite    |
+                           |             |
+                           | sessions    |
+                           | branches    |
+                           | reflections |
+                           | episodic_   |
+                           |   memory    |
+                           | sources     |
+                           | research_   |
+                           |   runs      |
+                           | evidence_*  |
+                           | claims,     |
+                           |   verif.    |
+                           | provenance  |
+                           +-------------+
 ```
 
 ## Components
@@ -53,9 +65,9 @@
 
 The orchestration layer. A prompt-based skill that turns Claude Code into a reasoning engine by:
 
-- Spawning parallel agents for research (Actor), evaluation (Critic), and self-correction (Reflexion)
-- Calling MCP tools for all algorithmic decisions
-- Managing the state machine across 9 phases
+- Running research (Actor), evaluation (Critic), and self-correction (Reflexion) sequentially in the current conversation — no subagent spawning
+- Calling MCP tools for all algorithmic decisions and evidence retrieval
+- Managing the state machine across 10 phases
 
 Runs entirely on the user's Max subscription. No separate API key.
 
@@ -67,18 +79,34 @@ A Python FastMCP server handling all deterministic logic. Claude Code calls it v
 
 | Module | Responsibility |
 |--------|---------------|
-| `server.py` | FastMCP wiring, JSON parsing, logging |
+| `server.py` | MCP tool wiring, JSON parsing, logging |
+| `cli.py` | `reasoning-engine` CLI: `mcp`, `serve`, `research`, `scholar search` |
+| `transport.py` | MCP transport factory, local HTTP bind safety checks |
 | `db.py` | SQLite schema, connection management |
 | `difficulty.py` | Heuristic query difficulty estimation |
 | `dora.py` | Budget allocation + explore/exploit switching |
 | `ucb.py` | UCB1 branch selection for tree search |
 | `sessions.py` | Session and branch lifecycle CRUD |
 | `memory.py` | Episodic memory for cross-session learning |
+| `research.py` | Research angle planning and evidence-gap questions |
 | `sanitizer.py` | Prompt injection and HTML stripping |
+| `validation.py` | Shared MCP tool input validation and bounds |
 
-### Crawl4AI MCP Server
+### Verifiable Research Service (`verifiable/`)
 
-A built-in Claude Code MCP server for web research. Actor and Reflexion agents use it to crawl URLs, extract markdown, and ask questions about page content. All crawled content passes through `sanitize_content` before entering the reasoning pipeline.
+A self-contained subsystem for evidence-backed claim verification, used by `scholar_search_tool`, `run_research_pipeline_tool`, and the skill's VERIFY phase.
+
+| Module | Responsibility |
+|--------|---------------|
+| `aggregator.py` | Fans out to enabled academic sources concurrently, dedups by DOI/title, ranks, tolerates partial failure |
+| `sources/` | One adapter per provider — `openalex.py`, `crossref.py`, `arxiv.py`, `semantic_scholar.py`, `europepmc.py`, `doaj.py`, `dblp.py`, plus the optional `scholar_gateway.py` connector and a `mock.py` fixture for offline/CI runs |
+| `claims.py` | Extracts factual claims from a draft and verifies them against retrieved evidence |
+| `quality.py` | Quality gate: blocks on unsupported/contradicted claims |
+| `runpack.py` | Exports a hashed, tamper-evident run pack (claims, verifications, sources.bib, provenance, attestation) |
+| `store.py` | SQLite persistence for runs, evidence, claims, verifications, and the provenance ledger |
+| `profiles.py` | Domain profiles and high-stakes mode escalation |
+
+All seven free sources (OpenAlex, Crossref, arXiv, Semantic Scholar, Europe PMC, DOAJ, DBLP) are live by default over HTTPS with no API key. `REASONING_ENGINE_OFFLINE=1` swaps in deterministic mock evidence. arXiv responses are parsed with `defusedxml`, since Atom feeds are untrusted network input.
 
 ## Data Flow
 
@@ -92,15 +120,15 @@ User query
 [DORA Budget Allocator] -> strategy, branches, depth, steps
     |
     v
-[Actor Agents] --crawl4ai--> web sources
-    |                          |
-    |                    [Sanitizer]
-    |                          |
-    v                          v
-[Branch Registry] <--- trace + clean sources
+[Sequential investigation, one angle at a time] --scholar_search_tool--> academic sources
+    |                                                    |
+    |                                              [Sanitizer]
+    |                                                    |
+    v                                                    v
+[Branch Registry] <--------------------------- trace + clean sources
     |
     v
-[Critic Agents] -> q_score (Promise) + advantage (Progress) + critique
+[Self-Critique] -> q_score (Promise) + advantage (Progress) + critique
     |
     v
 [Score Branch] -> stored in SQLite
@@ -112,20 +140,26 @@ User query
     +-- kappa < 0.15 --> DEPTH: focus on top 1-2
     |
     v
-[Reflexion] -> inject critique, revise, re-score
+[Reflexion] -> inject critique, gather targeted evidence, revise, re-score
     |
     v
 [Termination Check]
     |
     +-- q > 0.85 AND conf > 0.80 --> STOP
     +-- budget exhausted ----------> STOP
-    +-- else ----------------------> LOOP back to Actors
+    +-- else ----------------------> LOOP back to Generate
     |
     v
 [Consensus] -> top-K branches
     |
     v
-[Synthesis Agent] -> merged report
+[Synthesis] -> merged report draft
+    |
+    v
+[Verifiable Pipeline] -> extract claims, verify against evidence, quality gate
+    |
+    +-- blocked -----> gather more evidence or revise claim, retry
+    +-- pass --------> attested run pack (sources.bib, provenance, attestation)
     |
     v
 [Episodic Memory] -> save learnings for future sessions
@@ -133,7 +167,9 @@ User query
 
 ## Database Schema
 
-Five tables in SQLite:
+Thirteen tables in SQLite: five for the ACPR reasoning loop, eight for the verifiable research pipeline.
+
+### ACPR reasoning tables
 
 **sessions** — One row per research session. Stores query, difficulty score, strategy, budget allocation, and status.
 
@@ -144,6 +180,24 @@ Five tables in SQLite:
 **episodic_memory** — Cross-session learning store. Stores key learnings and domain tags from completed sessions. Queried by keyword overlap on future sessions.
 
 **sources** — Web sources linked to branches. Stores URL, title, sanitized excerpt, and relevance score.
+
+### Verifiable research tables
+
+**research_runs** — One row per verifiable research run. Stores query, profile, mode, and status.
+
+**evidence_records** — Retrieved academic evidence, one row per item, with a content hash for tamper detection.
+
+**evidence_gaps** — Recorded when a search returns no evidence or a retrieval error, one per failed/empty search.
+
+**claims** — Factual claims extracted from a draft, with type, domain, importance, risk level, and citation requirement.
+
+**claim_verifications** — Verification outcome per claim (support status, rationale, confidence, evidence links).
+
+**quality_gate_results** — Pass/blocked/pass-with-warnings outcome for a run, with blocking failures and warnings.
+
+**provenance_events** — Append-only ledger of pipeline events (run created, profile/mode selected, searches, gaps), ordered by insertion sequence (`rowid`) for a trustworthy audit trail.
+
+**attestation_manifests** — Hash of every exported run-pack artifact plus a combined run-pack hash, for tamper-evident verification.
 
 ## Key Algorithms
 
@@ -186,9 +240,12 @@ This mirrors the AgentPRM framework from the research literature, enabling the P
 
 | Decision | Chosen | Rationale |
 |----------|--------|-----------|
-| No API key | Claude Code agent spawning | Max subscription covers all LLM compute |
+| No API key | Sequential execution in one Claude Code conversation | Max subscription covers all LLM compute; no subagent orchestration overhead |
+| No API key for evidence | Free academic sources (OpenAlex, Crossref, arXiv, etc.) | Real citations without a paid connector or credentials |
 | SQLite | Persistent state | Zero-config, single-file, fast for small datasets |
 | Text-based traces | Full reasoning text stored per branch | Claude reconstructs context from text (no encrypted tokens) |
 | Heuristic difficulty | Keyword/structure analysis | No LLM call needed, sub-millisecond |
 | Score range for kappa | max - min of Q-scores | Simpler and more interpretable than statistical variance |
 | Content sanitization | Regex-based stripping | Defense-in-depth against prompt injection from web crawls |
+| Concurrent source fan-out | `ThreadPoolExecutor` over 7 adapters | I/O-bound network calls; deterministic since dedup/rank run after collection |
+| Provenance ordering | SQLite `rowid` (insertion order) | `created_at` is only second-granular and ties broke on a hash, scrambling the ledger |

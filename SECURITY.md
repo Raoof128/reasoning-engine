@@ -41,7 +41,9 @@ The database uses foreign-key checks, WAL mode, a busy timeout, and restrictive 
 
 ### MCP Transport
 
-The server communicates over stdio transport. No network ports are opened. No data leaves the local machine unless Crawl4AI is invoked. Authentication and authorization are handled by the Claude Code MCP framework.
+The default stdio transport opens no network ports; the optional local HTTP transport binds to `127.0.0.1` unless explicitly overridden with `--unsafe-bind-public`. Authentication and authorization for stdio are handled by the Claude Code MCP framework; the HTTP transport supports an optional static bearer token.
+
+`scholar_search_tool` makes outbound HTTPS requests to academic APIs (OpenAlex, Crossref, arXiv, Semantic Scholar, Europe PMC, DOAJ, DBLP, and optionally Scholar Gateway) to retrieve evidence — queries and, for OpenAlex/Crossref, a configurable contact email are sent to these third-party services. Set `REASONING_ENGINE_OFFLINE=1` to disable all outbound calls and use deterministic mock evidence instead. arXiv responses are parsed with `defusedxml` to guard against XXE and billion-laughs payloads from this untrusted network input.
 
 ### Dependencies
 
