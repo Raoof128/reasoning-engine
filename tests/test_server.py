@@ -78,6 +78,43 @@ def test_register_branch_accepts_native_json_arrays():
     assert branch["branch_id"]
 
 
+def test_register_branch_accepts_string_integer_depth():
+    # Notion-style MCP clients pass every scalar as a string.
+    session = json.loads(init_research_session("String integer coercion query"))
+    sid = session["session_id"]
+
+    branch = json.loads(
+        register_branch(
+            sid,
+            trace=["Step 1: string depth"],
+            depth="0",
+        )
+    )
+
+    assert branch["branch_id"]
+
+
+def test_scholar_search_tool_accepts_string_limit():
+    run = json.loads(start_research_run("Scholar Gateway semantic search"))
+    data = json.loads(
+        scholar_search_tool(run["run_id"], "Scholar Gateway semantic search", limit="2")
+    )
+
+    assert len(data["evidence"]) == 2
+
+
+def test_register_branch_rejects_non_integer_depth():
+    session = json.loads(init_research_session("Bad depth query"))
+    with pytest.raises(ValueError, match="depth"):
+        register_branch(session["session_id"], trace=["Step 1"], depth="not-a-number")
+
+
+def test_plan_research_angles_tool_accepts_long_query():
+    long_query = "MCP security evaluation " * 40  # > 500 chars, well under 8000
+    angles = json.loads(plan_research_angles_tool(long_query, max_angles=2))
+    assert len(angles) == 2
+
+
 def test_sanitize_content():
     cleaned = json.loads(sanitize_content("Hello <script>bad</script> world"))
     assert "<script>" not in cleaned["cleaned"]

@@ -330,8 +330,8 @@ Return full session state including all active branches and scores. Useful for d
 
 - `start_research_run(query, mode="standard", profile="auto")`: creates a research run.
 - `classify_research_mode_tool(query, requested_mode="standard")`: classifies or escalates mode.
-- `scholar_search_tool(run_id, query, limit=10)`: retrieves normalized Scholar Gateway evidence.
-- `get_scholar_auth_status(dummy=null)`: reports live-token availability without exposing token values. Clients that reject empty arguments may pass `{"dummy": true}`.
+- `scholar_search_tool(run_id, query, limit=10)`: real academic search fanned out concurrently across OpenAlex, Crossref, arXiv, Semantic Scholar, Europe PMC, DOAJ, and DBLP (free, no auth), deduplicated by DOI/title and ranked. Live by default; set `REASONING_ENGINE_OFFLINE=1` for deterministic mock evidence, or `REASONING_ENGINE_SOURCES` to narrow the enabled sources. The paid Scholar Gateway connector participates automatically when its token is configured.
+- `get_scholar_auth_status(dummy=null)`: reports optional Scholar Gateway live-token availability without exposing token values. Clients that reject empty arguments may pass `{"dummy": true}`.
 - `run_research_pipeline_tool(query, draft, mode="standard", profile="auto")`: runs retrieval, claim extraction, verification, quality gate, run-pack export, and attestation verification.
 - `run_quality_gate_tool(run_id)`: evaluates persisted claims and verifications.
 - `export_run_pack_tool(query, draft, mode="standard", profile="auto")`: exports an attested run pack through the pipeline.
@@ -356,8 +356,10 @@ JSON-encoded array strings remain supported for older clients:
 }
 ```
 
-Scholar search reports `live_enabled: false` until `SCHOLAR_GATEWAY_LIVE=1` and
-`SCHOLAR_GATEWAY_ACCESS_TOKEN` are configured on the server.
+`get_scholar_auth_status` reports `live_enabled: false` until `SCHOLAR_GATEWAY_LIVE=1`
+and `SCHOLAR_GATEWAY_ACCESS_TOKEN` are configured — this only gates the optional
+paid connector. The seven free academic sources are always live regardless of
+this flag.
 
 ---
 

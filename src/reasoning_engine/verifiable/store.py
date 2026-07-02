@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 from typing import Any
 
 from reasoning_engine.db import get_connection
@@ -132,7 +133,11 @@ class ResearchStore:
             "timestamp": utc_now(),
             **payload,
         }
-        event_id = stable_json_hash(event_payload)
+        # Suffix a unique token so genuinely distinct events that share the same
+        # type, payload, and (second-granular) timestamp are all retained rather
+        # than collapsed by INSERT OR REPLACE. The content hash keeps the id
+        # tamper-evident for the payload it records.
+        event_id = f"{stable_json_hash(event_payload)}:{uuid.uuid4().hex[:12]}"
         with get_connection(self.db_path) as conn:
             conn.execute(
                 """
@@ -143,9 +148,13 @@ class ResearchStore:
             )
 
     def list_provenance(self, run_id: str) -> list[dict[str, Any]]:
+        # Order by rowid (implicit insertion sequence) rather than created_at,
+        # which is only second-granular: a full pipeline emits every event in
+        # the same second, so created_at ties fall back to the hash-based
+        # event_id and scramble the ledger. rowid preserves chronological order.
         with get_connection(self.db_path) as conn:
             rows = conn.execute(
-                "SELECT payload FROM provenance_events WHERE run_id = ? ORDER BY created_at, event_id",
+                "SELECT payload FROM provenance_events WHERE run_id = ? ORDER BY rowid",
                 (run_id,),
             ).fetchall()
         return [json.loads(row["payload"]) for row in rows]

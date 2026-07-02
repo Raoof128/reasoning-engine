@@ -6,7 +6,12 @@ import re
 from dataclasses import asdict, dataclass
 
 from reasoning_engine.difficulty import estimate_difficulty
-from reasoning_engine.validation import MAX_QUESTION_CHARS, unique_ordered, validate_text
+from reasoning_engine.validation import (
+    MAX_QUERY_CHARS,
+    MAX_TRACE_STEP_CHARS,
+    unique_ordered,
+    validate_text,
+)
 
 ANGLE_LIBRARY = [
     ("conceptual foundations", "Define core concepts, assumptions, and terminology."),
@@ -52,7 +57,7 @@ class ResearchAngle:
 
 
 def plan_research_angles(query: str, max_angles: int = 6) -> list[dict]:
-    query = validate_text(query, "query", MAX_QUESTION_CHARS)
+    query = validate_text(query, "query", MAX_QUERY_CHARS)
     words = set(re.findall(r"[a-z0-9-]+", query.lower()))
     selected_names = []
     for word in words:
@@ -96,10 +101,10 @@ def plan_research_angles(query: str, max_angles: int = 6) -> list[dict]:
 
 
 def evidence_gap_questions(query: str, claims: list[str]) -> list[dict]:
-    query = validate_text(query, "query", MAX_QUESTION_CHARS)
+    query = validate_text(query, "query", MAX_QUERY_CHARS)
     gaps = []
     for index, claim in enumerate(claims, start=1):
-        normalized = validate_text(claim, f"claims[{index - 1}]", MAX_QUESTION_CHARS)
+        normalized = validate_text(claim, f"claims[{index - 1}]", MAX_TRACE_STEP_CHARS)
         gaps.append(
             {
                 "claim_id": index,

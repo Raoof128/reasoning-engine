@@ -64,3 +64,19 @@ def test_store_round_trips_run_evidence_gap_and_claim(db_path):
     assert store.list_evidence(run.run_id)[0]["snippet_hash"].startswith("sha256:")
     assert store.list_gaps(run.run_id)[0]["reason"] == gap.reason
     assert store.list_claims(run.run_id)[0]["status"] == "supported"
+
+
+def test_append_provenance_retains_identical_same_second_events(db_path):
+    init_db(db_path)
+    store = ResearchStore(db_path)
+    run = ResearchRun.create("Identical events", profile="general", mode="standard")
+    store.save_run(run)
+
+    # Same type and payload, emitted back-to-back (same wall-clock second):
+    # both must be retained, not collapsed by INSERT OR REPLACE.
+    store.append_provenance(run.run_id, "scholar_search_requested", {"query": "q", "limit": 10})
+    store.append_provenance(run.run_id, "scholar_search_requested", {"query": "q", "limit": 10})
+
+    events = store.list_provenance(run.run_id)
+    assert len(events) == 2
+    assert all(event["event_type"] == "scholar_search_requested" for event in events)
