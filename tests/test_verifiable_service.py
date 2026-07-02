@@ -33,3 +33,40 @@ def test_service_runs_pipeline_and_exports_attested_pack(tmp_path, db_path):
     assert result["run_pack"]
     assert result["attestation"]["valid"] is True
     assert result["evidence"][0]["snippet"] in result["verified_against_snippets"]
+
+
+def test_repeated_empty_searches_record_distinct_gaps(tmp_path, db_path):
+    init_db(db_path)
+    service = VerifiableResearchService(db_path=db_path, runs_dir=tmp_path)
+
+    run = service.start_run(query="No evidence exists", mode="standard", profile="general")
+    service.scholar_search(run.run_id, run.query, use_mock_empty=True)
+    service.scholar_search(run.run_id, run.query, use_mock_empty=True)
+
+    gaps = service.store.list_gaps(run.run_id)
+    assert len(gaps) == 2
+    assert len({gap["gap_id"] for gap in gaps}) == 2
+
+
+def test_service_records_provenance_in_chronological_order(tmp_path, db_path):
+    init_db(db_path)
+    service = VerifiableResearchService(db_path=db_path, runs_dir=tmp_path)
+
+    run = service.start_run(
+        query="Scholar Gateway exposes semantic search",
+        mode="standard",
+        profile="general",
+    )
+    service.scholar_search(run.run_id, run.query)
+
+    events = [event["event_type"] for event in service.store.list_provenance(run.run_id)]
+
+    # All events land in the same wall-clock second; ordering must still follow
+    # insertion order, with run_created first, not the hash-based event_id.
+    assert events == [
+        "run_created",
+        "profile_selected",
+        "mode_selected",
+        "scholar_search_requested",
+        "scholar_search_completed",
+    ]

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -54,7 +55,7 @@ class VerifiableResearchService:
         result = adapter.search(run_id=run_id, query=query, limit=limit)
         if result.error is not None:
             gap = EvidenceGap(
-                gap_id=f"gap_{run_id}",
+                gap_id=f"gap_{run_id}_{uuid.uuid4().hex[:8]}",
                 run_id=run_id,
                 query=query,
                 reason=result.error.message,
@@ -70,7 +71,7 @@ class VerifiableResearchService:
             }
         if not result.evidence:
             gap = EvidenceGap(
-                gap_id=f"gap_{run_id}",
+                gap_id=f"gap_{run_id}_{uuid.uuid4().hex[:8]}",
                 run_id=run_id,
                 query=query,
                 reason="No evidence found.",
