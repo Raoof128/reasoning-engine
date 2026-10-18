@@ -22,6 +22,28 @@ INJECTION_PATTERNS = [
     re.compile(r"tool\s*call\s*:", re.IGNORECASE),
 ]
 
+# Removing one injection phrase can splice its surroundings into another
+# ("ignore previous ignore previous instructions instructions"), so the
+# removal pass repeats until the text stops changing.
+MAX_INJECTION_PASSES = 8
+
+
+def _remove_injection_patterns(text: str) -> str:
+    for pattern in INJECTION_PATTERNS:
+        text = pattern.sub("", text)
+    return text
+
+
+def _strip_injections(text: str) -> str:
+    for _ in range(MAX_INJECTION_PASSES):
+        cleaned = _remove_injection_patterns(text)
+        if cleaned == text:
+            return cleaned
+        text = cleaned
+    if any(pattern.search(text) for pattern in INJECTION_PATTERNS):
+        text = _remove_injection_patterns(text)
+    return text
+
 
 def sanitize_content(raw: str) -> str:
     if not raw or not raw.strip():
@@ -33,7 +55,6 @@ def sanitize_content(raw: str) -> str:
     text = STYLE_RE.sub("", text)
     text = MARKDOWN_LINK_RE.sub(r"\1 (\2)", text)
     text = HTML_TAG_RE.sub("", text)
-    for pattern in INJECTION_PATTERNS:
-        text = pattern.sub("", text)
+    text = _strip_injections(text)
     text = re.sub(r"\s+", " ", text).strip()
     return text

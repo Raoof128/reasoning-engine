@@ -14,7 +14,7 @@ use re_core::ucb::{BranchStats, select_best_ucb, ucb_score};
 #[test]
 fn sanitize_content_matches_python() {
     let cases = section("sanitize_content");
-    assert_eq!(cases.len(), 8);
+    assert_eq!(cases.len(), 12);
     for case in cases {
         let raw = as_str(&case["raw"]);
         let expected = as_str(&case["clean"]);

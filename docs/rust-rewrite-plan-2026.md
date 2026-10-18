@@ -467,10 +467,14 @@ adapters for SID, Magiran and ISC, and reports rendered in either language.
 - **Sanitizer nested-payload bypass (found in Phase 1, affects the live Python
   code).** Each injection pattern is applied once, so
   `ignore previous ignore previous instructions instructions` sanitizes to
-  `ignore previous instructions`. Fix in both implementations together:
-  repeat the injection loop until no pattern matches (bounded, e.g. 8
-  passes), then add a golden vector for the nested case. Until then the
-  Rust port reproduces the bypass for parity and documents it.
+  `ignore previous instructions`. **Fixed in both implementations** on
+  `rust/phase-1-core`: the injection pass repeats until the text stops
+  changing, bounded at 8 passes plus one final pass, with four nested golden
+  vectors. **Residual:** nesting ten or more levels deep still survives
+  (verified). Unbounded repetition would close it and always terminates,
+  because every pattern removes at least one character per match; the cost
+  is quadratic only on adversarial input. Decide before Phase 4 exposes the
+  tool.
 - Sanitizer: keep all current regexes; add NFKC normalisation before matching,
   strip Unicode confusables used to smuggle "ignore previous instructions", and
   bound input length before regex execution (ReDoS guard). Add a
