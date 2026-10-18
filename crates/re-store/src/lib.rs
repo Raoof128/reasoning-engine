@@ -10,6 +10,7 @@
 mod conn;
 mod error;
 pub mod memory;
+pub mod research;
 pub mod schema;
 pub mod sessions;
 

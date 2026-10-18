@@ -132,6 +132,83 @@ fn writes_the_same_bytes_python_writes() {
     );
 }
 
+#[test]
+fn research_ledger_bytes_and_hashes_match_python() {
+    use re_core::hashing::stable_json_hash;
+    use re_model::records::{
+        ClaimRecord, EvidenceGap, EvidenceRecord, ResearchRun, VerificationRecord,
+    };
+
+    let dir = tempfile::tempdir().unwrap();
+    let manifest = make_python_db(&dir.path().join("python.db"));
+    let rows = &manifest["rows"];
+    let store = Store::open(dir.path().join("rust.db")).unwrap();
+
+    let parse = |text: &serde_json::Value| -> serde_json::Value {
+        serde_json::from_str(text.as_str().unwrap()).unwrap()
+    };
+    let run: ResearchRun = serde_json::from_value(rows["research_runs"][0].clone()).unwrap();
+    store.save_run(&run).unwrap();
+    assert_eq!(
+        serde_json::to_value(store.get_run(&run.run_id).unwrap()).unwrap(),
+        rows["research_runs"][0]
+    );
+
+    // Re-save Python's records from their payloads; the stored text must be
+    // byte-identical, including escaped non-ASCII and the 1e-05 float.
+    let evidence: EvidenceRecord =
+        serde_json::from_value(parse(&rows["evidence_records"][0]["payload"])).unwrap();
+    store.save_evidence(&evidence).unwrap();
+    for row in rows["claims"].as_array().unwrap() {
+        let claim: ClaimRecord = serde_json::from_value(parse(&row["payload"])).unwrap();
+        store.save_claim(&claim).unwrap();
+    }
+    for row in rows["claim_verifications"].as_array().unwrap() {
+        let v: VerificationRecord = serde_json::from_value(parse(&row["payload"])).unwrap();
+        store.save_verification(&run.run_id, &v).unwrap();
+    }
+    let gap: EvidenceGap =
+        serde_json::from_value(parse(&rows["evidence_gaps"][0]["payload"])).unwrap();
+    store.save_gap(&gap).unwrap();
+
+    let conn = rusqlite::Connection::open(store.path()).unwrap();
+    for (table, key) in [
+        ("evidence_records", "evidence_id"),
+        ("claims", "claim_id"),
+        ("claim_verifications", "verification_id"),
+        ("evidence_gaps", "gap_id"),
+    ] {
+        for row in rows[table].as_array().unwrap() {
+            let id = row[key].as_str().unwrap();
+            let ours: String = conn
+                .query_row(
+                    &format!("SELECT payload FROM {table} WHERE {key} = ?"),
+                    [id],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            assert_eq!(ours, row["payload"].as_str().unwrap(), "{table} {id}");
+        }
+    }
+    let ours_hash: String = conn
+        .query_row("SELECT snippet_hash FROM evidence_records", [], |r| {
+            r.get(0)
+        })
+        .unwrap();
+    assert_eq!(
+        ours_hash,
+        rows["evidence_records"][0]["snippet_hash"]
+            .as_str()
+            .unwrap()
+    );
+
+    // Python's provenance IDs are stable_json_hash(event) + ":" + random hex.
+    for row in rows["provenance_events"].as_array().unwrap() {
+        let (hash, _suffix) = row["event_id"].as_str().unwrap().rsplit_once(':').unwrap();
+        assert_eq!(stable_json_hash(&parse(&row["payload"])), hash);
+    }
+}
+
 // Mirrors tests/test_db.py.
 
 #[test]
