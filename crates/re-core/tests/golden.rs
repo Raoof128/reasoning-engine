@@ -8,6 +8,42 @@ use common::{golden, section};
 use indexmap::IndexMap;
 use re_core::difficulty::estimate_difficulty;
 use re_core::dora::{AllocationResult, BudgetAllocation, allocate_budget, select_branches};
+use re_core::ucb::{BranchStats, select_best_ucb, ucb_score};
+
+#[test]
+fn ucb_score_matches_python() {
+    let cases = section("ucb_score");
+    assert_eq!(cases.len(), 4);
+    for case in cases {
+        let q = as_f64(&case["q"]);
+        let parent = case["parent_visits"].as_u64().expect("int");
+        let node = case["node_visits"].as_u64().expect("int");
+        let expected = as_f64(&case["score"]);
+        assert_eq!(ucb_score(q, parent, node), expected, "{case}");
+    }
+}
+
+#[test]
+fn ucb_unvisited_is_infinite_matches_python() {
+    assert_eq!(
+        golden()["ucb_unvisited_is_infinite"],
+        serde_json::Value::Bool(true)
+    );
+    assert_eq!(ucb_score(0.5, 10, 0), f64::INFINITY);
+}
+
+#[test]
+fn select_best_ucb_matches_python() {
+    let cases = section("select_best_ucb");
+    assert_eq!(cases.len(), 3);
+    for case in cases {
+        let branches: IndexMap<String, BranchStats> =
+            serde_json::from_value(case["branches"].clone()).expect("branches parse");
+        let total = case["total_visits"].as_u64().expect("int");
+        let expected = case["best"].as_str().map(str::to_string);
+        assert_eq!(select_best_ucb(&branches, total), expected, "{case}");
+    }
+}
 
 #[test]
 fn allocate_budget_matches_python() {
