@@ -63,8 +63,10 @@ def angle_vectors() -> list[dict]:
     distinct: list[list[str]] = [[] for _ in cases]
     for seed in ANGLE_SEEDS:
         env = {**os.environ, "PYTHONHASHSEED": str(seed)}
+        # Not -I: it implies -E, which ignores PYTHONHASHSEED. -s skips user
+        # site-packages and -P keeps the working directory off sys.path.
         result = subprocess.run(
-            [sys.executable, "-I", "-c", _ANGLE_WORKER, str(SRC)],
+            [sys.executable, "-s", "-P", "-c", _ANGLE_WORKER, str(SRC)],
             input=json.dumps(cases),
             capture_output=True,
             text=True,

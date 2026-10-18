@@ -1069,7 +1069,7 @@
         }
       ],
       "max_angles": 3,
-      "python_distinct_outputs": 24,
+      "python_distinct_outputs": 22,
       "query": "compare the latest security benchmark results",
       "seed_stable": false
     },
@@ -1131,7 +1131,7 @@
         }
       ],
       "max_angles": 6,
-      "python_distinct_outputs": 24,
+      "python_distinct_outputs": 22,
       "query": "compare the latest security benchmark results",
       "seed_stable": false
     },
@@ -1229,7 +1229,7 @@
         }
       ],
       "max_angles": 12,
-      "python_distinct_outputs": 24,
+      "python_distinct_outputs": 22,
       "query": "compare the latest security benchmark results",
       "seed_stable": false
     },
@@ -1507,7 +1507,7 @@
         }
       ],
       "max_angles": 3,
-      "python_distinct_outputs": 23,
+      "python_distinct_outputs": 20,
       "query": "recent eval vs implementation trade-offs",
       "seed_stable": false
     },
@@ -1569,7 +1569,7 @@
         }
       ],
       "max_angles": 6,
-      "python_distinct_outputs": 23,
+      "python_distinct_outputs": 20,
       "query": "recent eval vs implementation trade-offs",
       "seed_stable": false
     },
@@ -1667,7 +1667,7 @@
         }
       ],
       "max_angles": 12,
-      "python_distinct_outputs": 23,
+      "python_distinct_outputs": 20,
       "query": "recent eval vs implementation trade-offs",
       "seed_stable": false
     },
