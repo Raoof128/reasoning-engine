@@ -8,3 +8,9 @@ dist/
 build/
 .pytest_cache/
 runs/
+
+# Rust
+target/
+models/
+*.onnx
+junit.xml
