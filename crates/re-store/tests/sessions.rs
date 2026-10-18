@@ -19,7 +19,7 @@ fn strings(items: &[&str]) -> Vec<String> {
 fn create_session() {
     let (_d, s) = store();
     let session = s.create_session("What is attention?").unwrap();
-    assert!(!session.id.is_empty());
+    assert_ne!(session.id, "");
     assert_eq!(session.query, "What is attention?");
     assert!(session.difficulty >= 0.0);
     assert!(
@@ -60,7 +60,7 @@ fn register_and_get_branch() {
             0,
         )
         .unwrap();
-    assert!(!branch.id.is_empty());
+    assert_ne!(branch.id, "");
     assert_eq!(branch.session_id, session.id);
     assert_eq!(branch.depth, 0);
 
@@ -308,7 +308,7 @@ fn save_and_recall_memory() {
     )
     .unwrap();
     let results = s.recall_memory("process reward models", 5).unwrap();
-    assert!(!results.is_empty());
+    assert_ne!(results, Vec::new());
     assert!(
         results[0]
             .key_learnings
@@ -324,10 +324,10 @@ fn save_and_recall_memory() {
 #[test]
 fn recall_empty() {
     let (_d, s) = store();
-    assert!(
+    assert_eq!(
         s.recall_memory("completely unrelated query xyz", 5)
-            .unwrap()
-            .is_empty()
+            .unwrap(),
+        Vec::new()
     );
 }
 
@@ -371,7 +371,7 @@ fn record_and_retrieve_reflection() {
             0.7,
         )
         .unwrap();
-    assert!(!reflection.id.is_empty());
+    assert_ne!(reflection.id, "");
     assert!(reflection.score_after > reflection.score_before);
     assert_eq!(s.get_branch(&branch.id).unwrap().status, "active");
     let other = s.create_session("Other").unwrap();

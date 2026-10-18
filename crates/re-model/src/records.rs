@@ -414,7 +414,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(claim.status, "needs_more_evidence");
-        assert!(claim.evidence_ids.is_empty());
+        assert_eq!(claim.evidence_ids, Vec::<String>::new());
         assert_eq!(
             ClaimRecord::new("c", "r", "t", "vibes", "g", "m", "l", true, "d")
                 .unwrap_err()
