@@ -8,7 +8,19 @@ use common::{golden, section};
 use indexmap::IndexMap;
 use re_core::difficulty::estimate_difficulty;
 use re_core::dora::{AllocationResult, BudgetAllocation, allocate_budget, select_branches};
+use re_core::sanitize::sanitize_content;
 use re_core::ucb::{BranchStats, select_best_ucb, ucb_score};
+
+#[test]
+fn sanitize_content_matches_python() {
+    let cases = section("sanitize_content");
+    assert_eq!(cases.len(), 8);
+    for case in cases {
+        let raw = as_str(&case["raw"]);
+        let expected = as_str(&case["clean"]);
+        assert_eq!(sanitize_content(raw), expected, "raw {raw:?}");
+    }
+}
 
 #[test]
 fn ucb_score_matches_python() {

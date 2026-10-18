@@ -51,7 +51,6 @@ the accuracy ceilings the Python MVP documents about itself.
 | `rmcp` (official MCP SDK) | 3.5.1, MSRV 1.88 | 2026-10-05 | Implements MCP 2026-07-28, stays compatible with 2025-11-25 and earlier. Stdio via `transport-io`; Streamable HTTP as a Tower service via `transport-streamable-http-server`. API moved 3.3 -> 3.5 within one month, so pin exactly. |
 | `tokio` | 1.53.3 | 2026-10-13 | Runtime. |
 | `reqwest` | 0.13.5 | 2026-09-08 | HTTP client with pooling, HTTP/2, per-request timeouts. Features verified on crates.io: `default-features = false, features = ["rustls", "json", "http2", "gzip"]` (the feature is `rustls`, not `rustls-tls`). |
-| `html-escape` | 0.3.0 | 2026-10-12 | `decode_html_entities` to match Python `html.unescape` in the sanitizer. |
 | `indexmap` | 2.14.2 | 2026-09-05 | Insertion-ordered maps so DORA/UCB tie-breaking matches Python dict order. |
 | `subtle` | 2.6.1 | 2024-06-24 | Constant-time bearer token comparison. |
 | `hyperfine` (tool) | 2.0.0 | 2026-10-07 | Cold-start benchmark Python vs Rust. |
@@ -295,10 +294,11 @@ server with injected latency, verifier on 20 claims x 50 snippets.
    non-decreasing when words that are neither keywords nor conjunctions are
    appended; DORA's three output lists are pairwise disjoint and together
    cover every input branch; `budget_remaining` never goes negative;
-   `sanitize` output contains no `<`-delimited tags and matches no injection
-   pattern, and its length is at most input length plus the number of
-   markdown links (each `[t](u)` becomes `t (u)`); `normalize_doi` is
-   idempotent. `sanitize` is **not** idempotent (a second pass decodes
+   `sanitize` output contains no `<`-delimited tags, a single injection
+   phrase is always removed, and output length in characters never exceeds
+   input length (each `[t](u)` becomes the shorter `t (u)`); `normalize_doi`
+   is idempotent. "Output matches no injection pattern" is **false**: nested
+   payloads survive (section 7). `sanitize` is **not** idempotent (a second pass decodes
    entities the first pass produced, verified: `A &amp;lt;b&amp;gt;` becomes
    `A &lt;b&gt;` then `A`); preserve that for parity, document it, and
    never call it twice on the same text.
@@ -464,6 +464,13 @@ adapters for SID, Magiran and ISC, and reports rendered in either language.
 
 ## 7. Security posture carried over and tightened
 
+- **Sanitizer nested-payload bypass (found in Phase 1, affects the live Python
+  code).** Each injection pattern is applied once, so
+  `ignore previous ignore previous instructions instructions` sanitizes to
+  `ignore previous instructions`. Fix in both implementations together:
+  repeat the injection loop until no pattern matches (bounded, e.g. 8
+  passes), then add a golden vector for the nested case. Until then the
+  Rust port reproduces the bypass for parity and documents it.
 - Sanitizer: keep all current regexes; add NFKC normalisation before matching,
   strip Unicode confusables used to smuggle "ignore previous instructions", and
   bound input length before regex execution (ReDoS guard). Add a
@@ -552,7 +559,7 @@ Verified against the Python code and `golden_vectors.json` on 2026-10-18.
 | JSON float parsing | `json.loads` is correctly rounded. | Enable `serde_json` feature `float_roundtrip`. Without it serde_json read `0.24062499999999998` as `0.240625` (found in Phase 1 Task 3). |
 | `round(x, 4)` | Python rounds the exact binary value, ties to even. | Implement `py_round` and test it against every `relevance_score` golden vector; add tie cases to the generator if any disagree. |
 | `float("inf")` | UCB returns infinity for unvisited nodes; `max(total_visits, 1)` guards `log(0)`. | `f64::INFINITY`; the golden file stores the infinity case as a boolean because JSON has no infinity. |
-| HTML entities | `html.unescape` decodes named, decimal and hex references, HTML5 table. | `html_escape::decode_html_entities`; cross-check the eight sanitizer vectors. |
+| HTML entities | `html.unescape` decodes named, decimal and hex references with the HTML5 table, legacy names without `;` (`&copy`), `&#0;` to U+FFFD, and the Windows-1252 remap (`&#x80;` to `€`). | `html-escape` gets all three wrong (found in Phase 1 Task 6). Use `re_core::html_unescape`, an exact port of the CPython algorithm with tables generated from CPython by `scripts/gen_html_entities.py`. |
 | Regex semantics | Python `re` on `str`: `\b`, `\s`, `\w` are Unicode-aware; `re.DOTALL` on script/style patterns. | `regex` crate defaults are Unicode-aware; use `(?s)` for the script/style patterns; `[​-‏]` becomes `[\x{200b}-\x{200f}]`. |
 | Sanitize twice | Not idempotent (section 5). | Call once per field; keep the behaviour. |
 | Claim IDs | `claim_0001` zero-padded, sentence split on `(?<=[.!?])\s+` (lookbehind). | `regex` has no lookbehind: split on `[.!?]\s+` while keeping the terminator, then `trim_end_matches(['.', '!', '?'])`. |
@@ -579,6 +586,9 @@ Line-by-line review of this plan. Each row was fixed in place.
 | Progressive widening rule `visits > depth^2` was invented. | Standard `children < ceil(C * visits^alpha)`. |
 | Docker image would silently lose `serve` once `local-host` is opt-in. | Phase 6 builds the image with the feature and starts with `--http`. |
 | Open decisions would block an autonomous agent. | Converted to defaults with an override path. |
+| *Phase 1 execution:* serde_json misparsed a golden float by one ULP. | `float_roundtrip` feature; hazard row added. |
+| *Phase 1 execution:* `html-escape` is not `html.unescape`. | Exact CPython port with generated tables; crate dropped. |
+| *Phase 1 execution:* "sanitize output matches no injection pattern" is false; nested payloads bypass the live Python sanitizer. | Property corrected; fix specified in section 7. |
 | No list of Python-vs-Rust parity traps. | Section 11 added, with verified examples. |
 
 ## References (Harvard, Australian style)

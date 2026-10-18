@@ -11,6 +11,9 @@ pub mod claims;
 pub mod difficulty;
 pub mod dora;
 pub mod gate;
+#[rustfmt::skip]
+mod html_entities;
+pub mod html_unescape;
 pub mod planning;
 pub mod profiles;
 pub mod sanitize;

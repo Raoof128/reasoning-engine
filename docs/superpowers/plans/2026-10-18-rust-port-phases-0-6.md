@@ -6,7 +6,7 @@
 
 **Architecture:** Cargo workspace with `re-core` (pure algorithms), `re-store` (SQLite), `re-retrieval` (HTTP adapters + aggregator), `re-verify` (claims, gate, run packs), `re-mcp` (rmcp server), `re-ui` (feature `local-host`), `re-cli` (binary). Python stays in `src/` untouched until Task 24.
 
-**Tech Stack:** Rust stable (edition 2024, `rust-version = "1.88"`), rmcp 3.5.1, tokio 1.53, reqwest 0.13 (`rustls`), rusqlite 0.40 (`bundled`), serde/serde_json (`preserve_order`), schemars 1.2, indexmap, html-escape, regex, proptest, insta, criterion, cargo-nextest, cargo-deny, wiremock. Python 3.12+ with `.venv` for golden generation and the parity harness.
+**Tech Stack:** Rust stable (edition 2024, `rust-version = "1.88"`), rmcp 3.5.1, tokio 1.53, reqwest 0.13 (`rustls`), rusqlite 0.40 (`bundled`), serde/serde_json (`preserve_order`), schemars 1.2, indexmap, regex, proptest, insta, criterion, cargo-nextest, cargo-deny, wiremock. Python 3.12+ with `.venv` for golden generation and the parity harness.
 
 ---
 
@@ -113,9 +113,9 @@ Steps:
 Steps:
 
 - [ ] Golden tests for the 8 sanitizer vectors.
-- [ ] Decode entities with `html_escape::decode_html_entities` first (matches `html.unescape`), then apply the regexes in the exact Python order: zero-width, control chars to space, `(?is)<script...>`, `(?is)<style...>`, markdown links to `text (url)`, tags, each injection pattern, whitespace collapse, trim.
+- [x] Decode entities with `re_core::html_unescape::unescape` first (an exact port of CPython's `html.unescape`; `html-escape` was tried and differs on `&copy`, `&#0;` and `&#x80;`), then apply the regexes in the exact Python order: zero-width, control chars to space, `(?is)<script...>`, `(?is)<style...>`, markdown links to `text (url)`, tags, each injection pattern, whitespace collapse, trim.
 - [ ] Add a `MAX_SANITIZE_INPUT` guard (1 MiB) that truncates before regex execution and document it (new behaviour, not in Python, allowed because inputs are already bounded at the MCP layer).
-- [ ] Property tests: output has no `<...>` tag; output matches no injection pattern; `len(output) <= len(input) + markdown_link_count`.
+- [x] Property tests: output has no `<...>` tag; a single injection phrase is removed; output never has more characters than input. (Nested payloads survive in Python too; see plan section 7.)
 - [ ] Add a unit test documenting non-idempotence with the verified example.
 - [ ] Commit `feat(core): port content sanitizer`.
 
