@@ -111,6 +111,208 @@
       "difficulty": 1.0
     }
   ],
+  "claim_type": [
+    {
+      "claim_type": "quantitative",
+      "text": "RAG reduces hallucination by 30 percent"
+    },
+    {
+      "claim_type": "causal",
+      "text": "Retrieval causes better grounding"
+    },
+    {
+      "claim_type": "causal",
+      "text": "This leads to fewer errors"
+    },
+    {
+      "claim_type": "causal",
+      "text": "Because of caching, latency drops"
+    },
+    {
+      "claim_type": "normative",
+      "text": "Teams should adopt PRMs"
+    },
+    {
+      "claim_type": "normative",
+      "text": "You must validate inputs"
+    },
+    {
+      "claim_type": "normative",
+      "text": "We ought to test more"
+    },
+    {
+      "claim_type": "hypothesis",
+      "text": "PRMs may help search"
+    },
+    {
+      "claim_type": "hypothesis",
+      "text": "This might fail at scale"
+    },
+    {
+      "claim_type": "hypothesis",
+      "text": "It could improve recall"
+    },
+    {
+      "claim_type": "hypothesis",
+      "text": "Scaling is likely to continue"
+    },
+    {
+      "claim_type": "empirical",
+      "text": "Transformers use attention"
+    }
+  ],
+  "classify_research_mode": [
+    {
+      "mode": "standard",
+      "query": "What is a Process Reward Model?",
+      "requested": "standard"
+    },
+    {
+      "mode": "quick",
+      "query": "What is a Process Reward Model?",
+      "requested": "quick"
+    },
+    {
+      "mode": "high_stakes",
+      "query": "What is a Process Reward Model?",
+      "requested": "high_stakes"
+    },
+    {
+      "mode": "high_stakes",
+      "query": "MCP prompt injection exploit chains",
+      "requested": "standard"
+    },
+    {
+      "mode": "high_stakes",
+      "query": "MCP prompt injection exploit chains",
+      "requested": "quick"
+    },
+    {
+      "mode": "high_stakes",
+      "query": "MCP prompt injection exploit chains",
+      "requested": "high_stakes"
+    },
+    {
+      "mode": "high_stakes",
+      "query": "Clinical treatment guidelines for diabetes",
+      "requested": "standard"
+    },
+    {
+      "mode": "high_stakes",
+      "query": "Clinical treatment guidelines for diabetes",
+      "requested": "quick"
+    },
+    {
+      "mode": "high_stakes",
+      "query": "Clinical treatment guidelines for diabetes",
+      "requested": "high_stakes"
+    },
+    {
+      "mode": "high_stakes",
+      "query": "Contract liability under Australian law",
+      "requested": "standard"
+    },
+    {
+      "mode": "high_stakes",
+      "query": "Contract liability under Australian law",
+      "requested": "quick"
+    },
+    {
+      "mode": "high_stakes",
+      "query": "Contract liability under Australian law",
+      "requested": "high_stakes"
+    },
+    {
+      "mode": "standard",
+      "query": "Market valuation of AI startups",
+      "requested": "standard"
+    },
+    {
+      "mode": "quick",
+      "query": "Market valuation of AI startups",
+      "requested": "quick"
+    },
+    {
+      "mode": "high_stakes",
+      "query": "Market valuation of AI startups",
+      "requested": "high_stakes"
+    },
+    {
+      "mode": "high_stakes",
+      "query": "System design for safety-critical load testing",
+      "requested": "standard"
+    },
+    {
+      "mode": "high_stakes",
+      "query": "System design for safety-critical load testing",
+      "requested": "quick"
+    },
+    {
+      "mode": "high_stakes",
+      "query": "System design for safety-critical load testing",
+      "requested": "high_stakes"
+    },
+    {
+      "mode": "standard",
+      "query": "Replication crisis in psychology experiments",
+      "requested": "standard"
+    },
+    {
+      "mode": "quick",
+      "query": "Replication crisis in psychology experiments",
+      "requested": "quick"
+    },
+    {
+      "mode": "high_stakes",
+      "query": "Replication crisis in psychology experiments",
+      "requested": "high_stakes"
+    },
+    {
+      "mode": "standard",
+      "query": "Translation of Persian literature archives",
+      "requested": "standard"
+    },
+    {
+      "mode": "quick",
+      "query": "Translation of Persian literature archives",
+      "requested": "quick"
+    },
+    {
+      "mode": "high_stakes",
+      "query": "Translation of Persian literature archives",
+      "requested": "high_stakes"
+    },
+    {
+      "mode": "high_stakes",
+      "query": "Public health regulation and election policy",
+      "requested": "standard"
+    },
+    {
+      "mode": "high_stakes",
+      "query": "Public health regulation and election policy",
+      "requested": "quick"
+    },
+    {
+      "mode": "high_stakes",
+      "query": "Public health regulation and election policy",
+      "requested": "high_stakes"
+    },
+    {
+      "mode": "standard",
+      "query": "Agent alignment eval methodology",
+      "requested": "standard"
+    },
+    {
+      "mode": "quick",
+      "query": "Agent alignment eval methodology",
+      "requested": "quick"
+    },
+    {
+      "mode": "high_stakes",
+      "query": "Agent alignment eval methodology",
+      "requested": "high_stakes"
+    }
+  ],
   "difficulty": [
     {
       "difficulty": 0.0,
@@ -137,6 +339,220 @@
       "query": "Is MCP prompt injection a real threat? What mitigations exist? How should we deploy?"
     }
   ],
+  "evidence_gap_questions": [
+    {
+      "claims": [
+        "PRMs improve search",
+        "  MCTS needs PRMs  "
+      ],
+      "gaps": [
+        {
+          "claim": "PRMs improve search",
+          "claim_id": 1,
+          "minimum_evidence": "At least one primary source plus one independent corroborating source for important claims.",
+          "query_context": "PRM reliability",
+          "questions": [
+            "What primary source directly supports claim 1 for this query?",
+            "Is there a newer source or replication that contradicts it?",
+            "What citation would let a reader independently verify the claim?",
+            "Does the source prove the exact claim, or only a weaker related point?"
+          ]
+        },
+        {
+          "claim": "MCTS needs PRMs",
+          "claim_id": 2,
+          "minimum_evidence": "At least one primary source plus one independent corroborating source for important claims.",
+          "query_context": "PRM reliability",
+          "questions": [
+            "What primary source directly supports claim 2 for this query?",
+            "Is there a newer source or replication that contradicts it?",
+            "What citation would let a reader independently verify the claim?",
+            "Does the source prove the exact claim, or only a weaker related point?"
+          ]
+        }
+      ],
+      "query": "PRM reliability"
+    },
+    {
+      "claims": [
+        "one claim"
+      ],
+      "gaps": [
+        {
+          "claim": "one claim",
+          "claim_id": 1,
+          "minimum_evidence": "At least one primary source plus one independent corroborating source for important claims.",
+          "query_context": "single",
+          "questions": [
+            "What primary source directly supports claim 1 for this query?",
+            "Is there a newer source or replication that contradicts it?",
+            "What citation would let a reader independently verify the claim?",
+            "Does the source prove the exact claim, or only a weaker related point?"
+          ]
+        }
+      ],
+      "query": "single"
+    },
+    {
+      "claims": [],
+      "gaps": [],
+      "query": "empty list"
+    }
+  ],
+  "extract_claims": [
+    {
+      "claims": [
+        {
+          "claim_id": "claim_0001",
+          "claim_type": "empirical",
+          "importance": "medium",
+          "requires_citation": true,
+          "risk_level": "low",
+          "text": "Retrieval augmented generation reduces hallucination"
+        },
+        {
+          "claim_id": "claim_0002",
+          "claim_type": "quantitative",
+          "importance": "high",
+          "requires_citation": true,
+          "risk_level": "low",
+          "text": "It was tested in 2023"
+        },
+        {
+          "claim_id": "claim_0003",
+          "claim_type": "normative",
+          "importance": "medium",
+          "requires_citation": false,
+          "risk_level": "low",
+          "text": "Should teams adopt it"
+        },
+        {
+          "claim_id": "claim_0004",
+          "claim_type": "hypothesis",
+          "importance": "medium",
+          "requires_citation": false,
+          "risk_level": "low",
+          "text": "It may help"
+        },
+        {
+          "claim_id": "claim_0005",
+          "claim_type": "empirical",
+          "importance": "medium",
+          "requires_citation": true,
+          "risk_level": "low",
+          "text": "Trailing claim"
+        }
+      ],
+      "domain": "general",
+      "draft": "Retrieval augmented generation reduces hallucination. It was tested in 2023! Should teams adopt it? It may help.  Trailing claim..."
+    },
+    {
+      "claims": [
+        {
+          "claim_id": "claim_0001",
+          "claim_type": "empirical",
+          "importance": "medium",
+          "requires_citation": true,
+          "risk_level": "medium",
+          "text": "Retrieval augmented generation reduces hallucination"
+        },
+        {
+          "claim_id": "claim_0002",
+          "claim_type": "quantitative",
+          "importance": "high",
+          "requires_citation": true,
+          "risk_level": "medium",
+          "text": "It was tested in 2023"
+        },
+        {
+          "claim_id": "claim_0003",
+          "claim_type": "normative",
+          "importance": "medium",
+          "requires_citation": false,
+          "risk_level": "medium",
+          "text": "Should teams adopt it"
+        },
+        {
+          "claim_id": "claim_0004",
+          "claim_type": "hypothesis",
+          "importance": "medium",
+          "requires_citation": false,
+          "risk_level": "medium",
+          "text": "It may help"
+        },
+        {
+          "claim_id": "claim_0005",
+          "claim_type": "empirical",
+          "importance": "medium",
+          "requires_citation": true,
+          "risk_level": "medium",
+          "text": "Trailing claim"
+        }
+      ],
+      "domain": "security",
+      "draft": "Retrieval augmented generation reduces hallucination. It was tested in 2023! Should teams adopt it? It may help.  Trailing claim..."
+    },
+    {
+      "claims": [
+        {
+          "claim_id": "claim_0001",
+          "claim_type": "empirical",
+          "importance": "medium",
+          "requires_citation": true,
+          "risk_level": "low",
+          "text": "First claim"
+        },
+        {
+          "claim_id": "claim_0002",
+          "claim_type": "empirical",
+          "importance": "medium",
+          "requires_citation": true,
+          "risk_level": "low",
+          "text": "Second claim!Third stays joined"
+        },
+        {
+          "claim_id": "claim_0003",
+          "claim_type": "empirical",
+          "importance": "medium",
+          "requires_citation": true,
+          "risk_level": "low",
+          "text": "Fourth"
+        }
+      ],
+      "domain": "general",
+      "draft": "  First claim.\n\nSecond claim!Third stays joined.  Fourth?  "
+    },
+    {
+      "claims": [
+        {
+          "claim_id": "claim_0001",
+          "claim_type": "empirical",
+          "importance": "medium",
+          "requires_citation": true,
+          "risk_level": "medium",
+          "text": "First claim"
+        },
+        {
+          "claim_id": "claim_0002",
+          "claim_type": "empirical",
+          "importance": "medium",
+          "requires_citation": true,
+          "risk_level": "medium",
+          "text": "Second claim!Third stays joined"
+        },
+        {
+          "claim_id": "claim_0003",
+          "claim_type": "empirical",
+          "importance": "medium",
+          "requires_citation": true,
+          "risk_level": "medium",
+          "text": "Fourth"
+        }
+      ],
+      "domain": "security",
+      "draft": "  First claim.\n\nSecond claim!Third stays joined.  Fourth?  "
+    }
+  ],
   "normalize_doi": [
     {
       "doi": null,
@@ -157,6 +573,1998 @@
     {
       "doi": "doi:10.1000/Abc ",
       "normalized": "10.1000/abc"
+    }
+  ],
+  "plan_research_angles": [
+    {
+      "expected": [],
+      "max_angles": 0,
+      "python_distinct_outputs": 1,
+      "query": "What is a Process Reward Model?",
+      "seed_stable": true
+    },
+    {
+      "expected": [
+        {
+          "name": "conceptual foundations",
+          "objective": "Define core concepts, assumptions, and terminology.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the conceptual foundations angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 1,
+      "python_distinct_outputs": 1,
+      "query": "What is a Process Reward Model?",
+      "seed_stable": true
+    },
+    {
+      "expected": [
+        {
+          "name": "conceptual foundations",
+          "objective": "Define core concepts, assumptions, and terminology.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the conceptual foundations angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "empirical evidence",
+          "objective": "Find measurements, benchmarks, replications, and negative results.",
+          "priority": 2,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the empirical evidence angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "implementation practice",
+          "objective": "Translate findings into design or operational guidance.",
+          "priority": 3,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the implementation practice angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 3,
+      "python_distinct_outputs": 1,
+      "query": "What is a Process Reward Model?",
+      "seed_stable": true
+    },
+    {
+      "expected": [
+        {
+          "name": "conceptual foundations",
+          "objective": "Define core concepts, assumptions, and terminology.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the conceptual foundations angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "empirical evidence",
+          "objective": "Find measurements, benchmarks, replications, and negative results.",
+          "priority": 2,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the empirical evidence angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "implementation practice",
+          "objective": "Translate findings into design or operational guidance.",
+          "priority": 3,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the implementation practice angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "mechanisms",
+          "objective": "Explain causal mechanisms, algorithms, or system internals.",
+          "priority": 4,
+          "starter_questions": [
+            "Which assumptions are unresolved?",
+            "What does the mechanisms angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "comparative analysis",
+          "objective": "Compare alternatives, baselines, and trade-offs.",
+          "priority": 5,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the comparative analysis angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "limitations and failure modes",
+          "objective": "Identify boundary conditions, risks, and known failures.",
+          "priority": 6,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the limitations and failure modes angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 6,
+      "python_distinct_outputs": 1,
+      "query": "What is a Process Reward Model?",
+      "seed_stable": true
+    },
+    {
+      "expected": [
+        {
+          "name": "conceptual foundations",
+          "objective": "Define core concepts, assumptions, and terminology.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the conceptual foundations angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "empirical evidence",
+          "objective": "Find measurements, benchmarks, replications, and negative results.",
+          "priority": 2,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the empirical evidence angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "implementation practice",
+          "objective": "Translate findings into design or operational guidance.",
+          "priority": 3,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the implementation practice angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "mechanisms",
+          "objective": "Explain causal mechanisms, algorithms, or system internals.",
+          "priority": 4,
+          "starter_questions": [
+            "Which assumptions are unresolved?",
+            "What does the mechanisms angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "comparative analysis",
+          "objective": "Compare alternatives, baselines, and trade-offs.",
+          "priority": 5,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the comparative analysis angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "limitations and failure modes",
+          "objective": "Identify boundary conditions, risks, and known failures.",
+          "priority": 6,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the limitations and failure modes angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "recent developments",
+          "objective": "Look for current work, releases, and active debates.",
+          "priority": 7,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the recent developments angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "contrarian perspective",
+          "objective": "Test whether the dominant claim is overstated or incomplete.",
+          "priority": 8,
+          "starter_questions": [
+            "Which assumptions are unresolved?",
+            "What does the contrarian perspective angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "security and abuse cases",
+          "objective": "Review misuse, adversarial, privacy, and safety angles.",
+          "priority": 9,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the security and abuse cases angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "evaluation methodology",
+          "objective": "Define metrics, datasets, and validation criteria.",
+          "priority": 10,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the evaluation methodology angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 12,
+      "python_distinct_outputs": 1,
+      "query": "What is a Process Reward Model?",
+      "seed_stable": true
+    },
+    {
+      "expected": [],
+      "max_angles": 0,
+      "python_distinct_outputs": 1,
+      "query": "How should we deploy this?",
+      "seed_stable": true
+    },
+    {
+      "expected": [
+        {
+          "name": "implementation practice",
+          "objective": "Translate findings into design or operational guidance.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the implementation practice angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 1,
+      "python_distinct_outputs": 1,
+      "query": "How should we deploy this?",
+      "seed_stable": true
+    },
+    {
+      "expected": [
+        {
+          "name": "implementation practice",
+          "objective": "Translate findings into design or operational guidance.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the implementation practice angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "conceptual foundations",
+          "objective": "Define core concepts, assumptions, and terminology.",
+          "priority": 2,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the conceptual foundations angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "empirical evidence",
+          "objective": "Find measurements, benchmarks, replications, and negative results.",
+          "priority": 3,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the empirical evidence angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 3,
+      "python_distinct_outputs": 1,
+      "query": "How should we deploy this?",
+      "seed_stable": true
+    },
+    {
+      "expected": [
+        {
+          "name": "implementation practice",
+          "objective": "Translate findings into design or operational guidance.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the implementation practice angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "conceptual foundations",
+          "objective": "Define core concepts, assumptions, and terminology.",
+          "priority": 2,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the conceptual foundations angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "empirical evidence",
+          "objective": "Find measurements, benchmarks, replications, and negative results.",
+          "priority": 3,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the empirical evidence angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "mechanisms",
+          "objective": "Explain causal mechanisms, algorithms, or system internals.",
+          "priority": 4,
+          "starter_questions": [
+            "Which assumptions are unresolved?",
+            "What does the mechanisms angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "comparative analysis",
+          "objective": "Compare alternatives, baselines, and trade-offs.",
+          "priority": 5,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the comparative analysis angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "limitations and failure modes",
+          "objective": "Identify boundary conditions, risks, and known failures.",
+          "priority": 6,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the limitations and failure modes angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 6,
+      "python_distinct_outputs": 1,
+      "query": "How should we deploy this?",
+      "seed_stable": true
+    },
+    {
+      "expected": [
+        {
+          "name": "implementation practice",
+          "objective": "Translate findings into design or operational guidance.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the implementation practice angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "conceptual foundations",
+          "objective": "Define core concepts, assumptions, and terminology.",
+          "priority": 2,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the conceptual foundations angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "empirical evidence",
+          "objective": "Find measurements, benchmarks, replications, and negative results.",
+          "priority": 3,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the empirical evidence angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "mechanisms",
+          "objective": "Explain causal mechanisms, algorithms, or system internals.",
+          "priority": 4,
+          "starter_questions": [
+            "Which assumptions are unresolved?",
+            "What does the mechanisms angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "comparative analysis",
+          "objective": "Compare alternatives, baselines, and trade-offs.",
+          "priority": 5,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the comparative analysis angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "limitations and failure modes",
+          "objective": "Identify boundary conditions, risks, and known failures.",
+          "priority": 6,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the limitations and failure modes angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "recent developments",
+          "objective": "Look for current work, releases, and active debates.",
+          "priority": 7,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the recent developments angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "contrarian perspective",
+          "objective": "Test whether the dominant claim is overstated or incomplete.",
+          "priority": 8,
+          "starter_questions": [
+            "Which assumptions are unresolved?",
+            "What does the contrarian perspective angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "security and abuse cases",
+          "objective": "Review misuse, adversarial, privacy, and safety angles.",
+          "priority": 9,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the security and abuse cases angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "evaluation methodology",
+          "objective": "Define metrics, datasets, and validation criteria.",
+          "priority": 10,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the evaluation methodology angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 12,
+      "python_distinct_outputs": 1,
+      "query": "How should we deploy this?",
+      "seed_stable": true
+    },
+    {
+      "expected": [],
+      "max_angles": 0,
+      "python_distinct_outputs": 1,
+      "query": "compare the latest security benchmark results",
+      "seed_stable": true
+    },
+    {
+      "expected": [
+        {
+          "name": "comparative analysis",
+          "objective": "Compare alternatives, baselines, and trade-offs.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the comparative analysis angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 1,
+      "python_distinct_outputs": 4,
+      "query": "compare the latest security benchmark results",
+      "seed_stable": false
+    },
+    {
+      "expected": [
+        {
+          "name": "comparative analysis",
+          "objective": "Compare alternatives, baselines, and trade-offs.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the comparative analysis angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "recent developments",
+          "objective": "Look for current work, releases, and active debates.",
+          "priority": 2,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the recent developments angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "security and abuse cases",
+          "objective": "Review misuse, adversarial, privacy, and safety angles.",
+          "priority": 3,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the security and abuse cases angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 3,
+      "python_distinct_outputs": 24,
+      "query": "compare the latest security benchmark results",
+      "seed_stable": false
+    },
+    {
+      "expected": [
+        {
+          "name": "comparative analysis",
+          "objective": "Compare alternatives, baselines, and trade-offs.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the comparative analysis angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "recent developments",
+          "objective": "Look for current work, releases, and active debates.",
+          "priority": 2,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the recent developments angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "security and abuse cases",
+          "objective": "Review misuse, adversarial, privacy, and safety angles.",
+          "priority": 3,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the security and abuse cases angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "evaluation methodology",
+          "objective": "Define metrics, datasets, and validation criteria.",
+          "priority": 4,
+          "starter_questions": [
+            "Which assumptions are unresolved?",
+            "What does the evaluation methodology angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "conceptual foundations",
+          "objective": "Define core concepts, assumptions, and terminology.",
+          "priority": 5,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the conceptual foundations angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "empirical evidence",
+          "objective": "Find measurements, benchmarks, replications, and negative results.",
+          "priority": 6,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the empirical evidence angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 6,
+      "python_distinct_outputs": 24,
+      "query": "compare the latest security benchmark results",
+      "seed_stable": false
+    },
+    {
+      "expected": [
+        {
+          "name": "comparative analysis",
+          "objective": "Compare alternatives, baselines, and trade-offs.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the comparative analysis angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "recent developments",
+          "objective": "Look for current work, releases, and active debates.",
+          "priority": 2,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the recent developments angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "security and abuse cases",
+          "objective": "Review misuse, adversarial, privacy, and safety angles.",
+          "priority": 3,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the security and abuse cases angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "evaluation methodology",
+          "objective": "Define metrics, datasets, and validation criteria.",
+          "priority": 4,
+          "starter_questions": [
+            "Which assumptions are unresolved?",
+            "What does the evaluation methodology angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "conceptual foundations",
+          "objective": "Define core concepts, assumptions, and terminology.",
+          "priority": 5,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the conceptual foundations angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "empirical evidence",
+          "objective": "Find measurements, benchmarks, replications, and negative results.",
+          "priority": 6,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the empirical evidence angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "implementation practice",
+          "objective": "Translate findings into design or operational guidance.",
+          "priority": 7,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the implementation practice angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "mechanisms",
+          "objective": "Explain causal mechanisms, algorithms, or system internals.",
+          "priority": 8,
+          "starter_questions": [
+            "Which assumptions are unresolved?",
+            "What does the mechanisms angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "limitations and failure modes",
+          "objective": "Identify boundary conditions, risks, and known failures.",
+          "priority": 9,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the limitations and failure modes angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "contrarian perspective",
+          "objective": "Test whether the dominant claim is overstated or incomplete.",
+          "priority": 10,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the contrarian perspective angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 12,
+      "python_distinct_outputs": 24,
+      "query": "compare the latest security benchmark results",
+      "seed_stable": false
+    },
+    {
+      "expected": [],
+      "max_angles": 0,
+      "python_distinct_outputs": 1,
+      "query": "Deploy MCP safely: what are the security implications and how do we evaluate them?",
+      "seed_stable": true
+    },
+    {
+      "expected": [
+        {
+          "name": "implementation practice",
+          "objective": "Translate findings into design or operational guidance.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the implementation practice angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 1,
+      "python_distinct_outputs": 2,
+      "query": "Deploy MCP safely: what are the security implications and how do we evaluate them?",
+      "seed_stable": false
+    },
+    {
+      "expected": [
+        {
+          "name": "implementation practice",
+          "objective": "Translate findings into design or operational guidance.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the implementation practice angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "security and abuse cases",
+          "objective": "Review misuse, adversarial, privacy, and safety angles.",
+          "priority": 2,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the security and abuse cases angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "conceptual foundations",
+          "objective": "Define core concepts, assumptions, and terminology.",
+          "priority": 3,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the conceptual foundations angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 3,
+      "python_distinct_outputs": 2,
+      "query": "Deploy MCP safely: what are the security implications and how do we evaluate them?",
+      "seed_stable": false
+    },
+    {
+      "expected": [
+        {
+          "name": "implementation practice",
+          "objective": "Translate findings into design or operational guidance.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the implementation practice angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "security and abuse cases",
+          "objective": "Review misuse, adversarial, privacy, and safety angles.",
+          "priority": 2,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the security and abuse cases angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "conceptual foundations",
+          "objective": "Define core concepts, assumptions, and terminology.",
+          "priority": 3,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the conceptual foundations angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "empirical evidence",
+          "objective": "Find measurements, benchmarks, replications, and negative results.",
+          "priority": 4,
+          "starter_questions": [
+            "Which assumptions are unresolved?",
+            "What does the empirical evidence angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "mechanisms",
+          "objective": "Explain causal mechanisms, algorithms, or system internals.",
+          "priority": 5,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the mechanisms angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "comparative analysis",
+          "objective": "Compare alternatives, baselines, and trade-offs.",
+          "priority": 6,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the comparative analysis angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 6,
+      "python_distinct_outputs": 2,
+      "query": "Deploy MCP safely: what are the security implications and how do we evaluate them?",
+      "seed_stable": false
+    },
+    {
+      "expected": [
+        {
+          "name": "implementation practice",
+          "objective": "Translate findings into design or operational guidance.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the implementation practice angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "security and abuse cases",
+          "objective": "Review misuse, adversarial, privacy, and safety angles.",
+          "priority": 2,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the security and abuse cases angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "conceptual foundations",
+          "objective": "Define core concepts, assumptions, and terminology.",
+          "priority": 3,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the conceptual foundations angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "empirical evidence",
+          "objective": "Find measurements, benchmarks, replications, and negative results.",
+          "priority": 4,
+          "starter_questions": [
+            "Which assumptions are unresolved?",
+            "What does the empirical evidence angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "mechanisms",
+          "objective": "Explain causal mechanisms, algorithms, or system internals.",
+          "priority": 5,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the mechanisms angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "comparative analysis",
+          "objective": "Compare alternatives, baselines, and trade-offs.",
+          "priority": 6,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the comparative analysis angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "limitations and failure modes",
+          "objective": "Identify boundary conditions, risks, and known failures.",
+          "priority": 7,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the limitations and failure modes angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "recent developments",
+          "objective": "Look for current work, releases, and active debates.",
+          "priority": 8,
+          "starter_questions": [
+            "Which assumptions are unresolved?",
+            "What does the recent developments angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "contrarian perspective",
+          "objective": "Test whether the dominant claim is overstated or incomplete.",
+          "priority": 9,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the contrarian perspective angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "evaluation methodology",
+          "objective": "Define metrics, datasets, and validation criteria.",
+          "priority": 10,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the evaluation methodology angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 12,
+      "python_distinct_outputs": 2,
+      "query": "Deploy MCP safely: what are the security implications and how do we evaluate them?",
+      "seed_stable": false
+    },
+    {
+      "expected": [],
+      "max_angles": 0,
+      "python_distinct_outputs": 1,
+      "query": "recent eval vs implementation trade-offs",
+      "seed_stable": true
+    },
+    {
+      "expected": [
+        {
+          "name": "recent developments",
+          "objective": "Look for current work, releases, and active debates.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the recent developments angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 1,
+      "python_distinct_outputs": 4,
+      "query": "recent eval vs implementation trade-offs",
+      "seed_stable": false
+    },
+    {
+      "expected": [
+        {
+          "name": "recent developments",
+          "objective": "Look for current work, releases, and active debates.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the recent developments angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "evaluation methodology",
+          "objective": "Define metrics, datasets, and validation criteria.",
+          "priority": 2,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the evaluation methodology angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "comparative analysis",
+          "objective": "Compare alternatives, baselines, and trade-offs.",
+          "priority": 3,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the comparative analysis angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 3,
+      "python_distinct_outputs": 23,
+      "query": "recent eval vs implementation trade-offs",
+      "seed_stable": false
+    },
+    {
+      "expected": [
+        {
+          "name": "recent developments",
+          "objective": "Look for current work, releases, and active debates.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the recent developments angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "evaluation methodology",
+          "objective": "Define metrics, datasets, and validation criteria.",
+          "priority": 2,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the evaluation methodology angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "comparative analysis",
+          "objective": "Compare alternatives, baselines, and trade-offs.",
+          "priority": 3,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the comparative analysis angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "implementation practice",
+          "objective": "Translate findings into design or operational guidance.",
+          "priority": 4,
+          "starter_questions": [
+            "Which assumptions are unresolved?",
+            "What does the implementation practice angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "conceptual foundations",
+          "objective": "Define core concepts, assumptions, and terminology.",
+          "priority": 5,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the conceptual foundations angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "empirical evidence",
+          "objective": "Find measurements, benchmarks, replications, and negative results.",
+          "priority": 6,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the empirical evidence angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 6,
+      "python_distinct_outputs": 23,
+      "query": "recent eval vs implementation trade-offs",
+      "seed_stable": false
+    },
+    {
+      "expected": [
+        {
+          "name": "recent developments",
+          "objective": "Look for current work, releases, and active debates.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the recent developments angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "evaluation methodology",
+          "objective": "Define metrics, datasets, and validation criteria.",
+          "priority": 2,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the evaluation methodology angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "comparative analysis",
+          "objective": "Compare alternatives, baselines, and trade-offs.",
+          "priority": 3,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the comparative analysis angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "implementation practice",
+          "objective": "Translate findings into design or operational guidance.",
+          "priority": 4,
+          "starter_questions": [
+            "Which assumptions are unresolved?",
+            "What does the implementation practice angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "conceptual foundations",
+          "objective": "Define core concepts, assumptions, and terminology.",
+          "priority": 5,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the conceptual foundations angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "empirical evidence",
+          "objective": "Find measurements, benchmarks, replications, and negative results.",
+          "priority": 6,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the empirical evidence angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "mechanisms",
+          "objective": "Explain causal mechanisms, algorithms, or system internals.",
+          "priority": 7,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the mechanisms angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "limitations and failure modes",
+          "objective": "Identify boundary conditions, risks, and known failures.",
+          "priority": 8,
+          "starter_questions": [
+            "Which assumptions are unresolved?",
+            "What does the limitations and failure modes angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "contrarian perspective",
+          "objective": "Test whether the dominant claim is overstated or incomplete.",
+          "priority": 9,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the contrarian perspective angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "security and abuse cases",
+          "objective": "Review misuse, adversarial, privacy, and safety angles.",
+          "priority": 10,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the security and abuse cases angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 12,
+      "python_distinct_outputs": 23,
+      "query": "recent eval vs implementation trade-offs",
+      "seed_stable": false
+    },
+    {
+      "expected": [],
+      "max_angles": 0,
+      "python_distinct_outputs": 1,
+      "query": "  padded query with   spaces  ",
+      "seed_stable": true
+    },
+    {
+      "expected": [
+        {
+          "name": "conceptual foundations",
+          "objective": "Define core concepts, assumptions, and terminology.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the conceptual foundations angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 1,
+      "python_distinct_outputs": 1,
+      "query": "  padded query with   spaces  ",
+      "seed_stable": true
+    },
+    {
+      "expected": [
+        {
+          "name": "conceptual foundations",
+          "objective": "Define core concepts, assumptions, and terminology.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the conceptual foundations angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "empirical evidence",
+          "objective": "Find measurements, benchmarks, replications, and negative results.",
+          "priority": 2,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the empirical evidence angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "implementation practice",
+          "objective": "Translate findings into design or operational guidance.",
+          "priority": 3,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the implementation practice angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 3,
+      "python_distinct_outputs": 1,
+      "query": "  padded query with   spaces  ",
+      "seed_stable": true
+    },
+    {
+      "expected": [
+        {
+          "name": "conceptual foundations",
+          "objective": "Define core concepts, assumptions, and terminology.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the conceptual foundations angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "empirical evidence",
+          "objective": "Find measurements, benchmarks, replications, and negative results.",
+          "priority": 2,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the empirical evidence angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "implementation practice",
+          "objective": "Translate findings into design or operational guidance.",
+          "priority": 3,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the implementation practice angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "mechanisms",
+          "objective": "Explain causal mechanisms, algorithms, or system internals.",
+          "priority": 4,
+          "starter_questions": [
+            "Which assumptions are unresolved?",
+            "What does the mechanisms angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "comparative analysis",
+          "objective": "Compare alternatives, baselines, and trade-offs.",
+          "priority": 5,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the comparative analysis angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "limitations and failure modes",
+          "objective": "Identify boundary conditions, risks, and known failures.",
+          "priority": 6,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the limitations and failure modes angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 6,
+      "python_distinct_outputs": 1,
+      "query": "  padded query with   spaces  ",
+      "seed_stable": true
+    },
+    {
+      "expected": [
+        {
+          "name": "conceptual foundations",
+          "objective": "Define core concepts, assumptions, and terminology.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the conceptual foundations angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "empirical evidence",
+          "objective": "Find measurements, benchmarks, replications, and negative results.",
+          "priority": 2,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the empirical evidence angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "implementation practice",
+          "objective": "Translate findings into design or operational guidance.",
+          "priority": 3,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the implementation practice angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "mechanisms",
+          "objective": "Explain causal mechanisms, algorithms, or system internals.",
+          "priority": 4,
+          "starter_questions": [
+            "Which assumptions are unresolved?",
+            "What does the mechanisms angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "comparative analysis",
+          "objective": "Compare alternatives, baselines, and trade-offs.",
+          "priority": 5,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the comparative analysis angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "limitations and failure modes",
+          "objective": "Identify boundary conditions, risks, and known failures.",
+          "priority": 6,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the limitations and failure modes angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "recent developments",
+          "objective": "Look for current work, releases, and active debates.",
+          "priority": 7,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the recent developments angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "contrarian perspective",
+          "objective": "Test whether the dominant claim is overstated or incomplete.",
+          "priority": 8,
+          "starter_questions": [
+            "Which assumptions are unresolved?",
+            "What does the contrarian perspective angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "security and abuse cases",
+          "objective": "Review misuse, adversarial, privacy, and safety angles.",
+          "priority": 9,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the security and abuse cases angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "evaluation methodology",
+          "objective": "Define metrics, datasets, and validation criteria.",
+          "priority": 10,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the evaluation methodology angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 12,
+      "python_distinct_outputs": 1,
+      "query": "  padded query with   spaces  ",
+      "seed_stable": true
+    },
+    {
+      "expected": [],
+      "max_angles": 0,
+      "python_distinct_outputs": 1,
+      "query": "Compare and contrast DPO versus PPO versus GRPO for RLHF; what are the implications for reward hacking and how do they interact with process reward models?",
+      "seed_stable": true
+    },
+    {
+      "expected": [
+        {
+          "name": "comparative analysis",
+          "objective": "Compare alternatives, baselines, and trade-offs.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the comparative analysis angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 1,
+      "python_distinct_outputs": 1,
+      "query": "Compare and contrast DPO versus PPO versus GRPO for RLHF; what are the implications for reward hacking and how do they interact with process reward models?",
+      "seed_stable": true
+    },
+    {
+      "expected": [
+        {
+          "name": "comparative analysis",
+          "objective": "Compare alternatives, baselines, and trade-offs.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the comparative analysis angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "conceptual foundations",
+          "objective": "Define core concepts, assumptions, and terminology.",
+          "priority": 2,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the conceptual foundations angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "empirical evidence",
+          "objective": "Find measurements, benchmarks, replications, and negative results.",
+          "priority": 3,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the empirical evidence angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 3,
+      "python_distinct_outputs": 1,
+      "query": "Compare and contrast DPO versus PPO versus GRPO for RLHF; what are the implications for reward hacking and how do they interact with process reward models?",
+      "seed_stable": true
+    },
+    {
+      "expected": [
+        {
+          "name": "comparative analysis",
+          "objective": "Compare alternatives, baselines, and trade-offs.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the comparative analysis angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "conceptual foundations",
+          "objective": "Define core concepts, assumptions, and terminology.",
+          "priority": 2,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the conceptual foundations angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "empirical evidence",
+          "objective": "Find measurements, benchmarks, replications, and negative results.",
+          "priority": 3,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the empirical evidence angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "limitations and failure modes",
+          "objective": "Identify boundary conditions, risks, and known failures.",
+          "priority": 4,
+          "starter_questions": [
+            "Which assumptions are unresolved?",
+            "What does the limitations and failure modes angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "evaluation methodology",
+          "objective": "Define metrics, datasets, and validation criteria.",
+          "priority": 5,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the evaluation methodology angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "mechanisms",
+          "objective": "Explain causal mechanisms, algorithms, or system internals.",
+          "priority": 6,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the mechanisms angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 6,
+      "python_distinct_outputs": 1,
+      "query": "Compare and contrast DPO versus PPO versus GRPO for RLHF; what are the implications for reward hacking and how do they interact with process reward models?",
+      "seed_stable": true
+    },
+    {
+      "expected": [
+        {
+          "name": "comparative analysis",
+          "objective": "Compare alternatives, baselines, and trade-offs.",
+          "priority": 1,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the comparative analysis angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "conceptual foundations",
+          "objective": "Define core concepts, assumptions, and terminology.",
+          "priority": 2,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the conceptual foundations angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "empirical evidence",
+          "objective": "Find measurements, benchmarks, replications, and negative results.",
+          "priority": 3,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the empirical evidence angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "limitations and failure modes",
+          "objective": "Identify boundary conditions, risks, and known failures.",
+          "priority": 4,
+          "starter_questions": [
+            "Which assumptions are unresolved?",
+            "What does the limitations and failure modes angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "evaluation methodology",
+          "objective": "Define metrics, datasets, and validation criteria.",
+          "priority": 5,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the evaluation methodology angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "mechanisms",
+          "objective": "Explain causal mechanisms, algorithms, or system internals.",
+          "priority": 6,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the mechanisms angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "implementation practice",
+          "objective": "Translate findings into design or operational guidance.",
+          "priority": 7,
+          "starter_questions": [
+            "Which sources are primary, current, and independently corroborated?",
+            "What does the implementation practice angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "recent developments",
+          "objective": "Look for current work, releases, and active debates.",
+          "priority": 8,
+          "starter_questions": [
+            "Which assumptions are unresolved?",
+            "What does the recent developments angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "contrarian perspective",
+          "objective": "Test whether the dominant claim is overstated or incomplete.",
+          "priority": 9,
+          "starter_questions": [
+            "What is the strongest evidence for this claim?",
+            "What does the contrarian perspective angle add that other paths might miss?"
+          ]
+        },
+        {
+          "name": "security and abuse cases",
+          "objective": "Review misuse, adversarial, privacy, and safety angles.",
+          "priority": 10,
+          "starter_questions": [
+            "What would change the conclusion?",
+            "What does the security and abuse cases angle add that other paths might miss?"
+          ]
+        }
+      ],
+      "max_angles": 12,
+      "python_distinct_outputs": 1,
+      "query": "Compare and contrast DPO versus PPO versus GRPO for RLHF; what are the implications for reward hacking and how do they interact with process reward models?",
+      "seed_stable": true
+    }
+  ],
+  "profiles": [
+    {
+      "citation_style": "harvard_au",
+      "claim_strictness": "high",
+      "high_risk_triggers": [
+        "alignment",
+        "eval",
+        "dangerous capability",
+        "misuse",
+        "agent"
+      ],
+      "minimum_evidence_count": 2,
+      "name": "ai_safety",
+      "preferred_source_types": [
+        "peer_reviewed_article",
+        "technical_report",
+        "model_card",
+        "standards_document"
+      ],
+      "recency_requirement": "fast",
+      "required_caveats": [
+        "AI safety findings can change quickly as model capabilities and evaluations evolve."
+      ],
+      "scoring_weights": {
+        "citation_support": 0.3,
+        "contradiction_handling": 0.2,
+        "provenance_completeness": 0.1,
+        "recency": 0.15,
+        "source_quality": 0.25
+      },
+      "weak_source_types": [
+        "social_media"
+      ]
+    },
+    {
+      "citation_style": "harvard_au",
+      "claim_strictness": "high",
+      "high_risk_triggers": [
+        "investment",
+        "valuation",
+        "forecast",
+        "revenue"
+      ],
+      "minimum_evidence_count": 2,
+      "name": "business",
+      "preferred_source_types": [
+        "market_report",
+        "financial_filing",
+        "peer_reviewed_article"
+      ],
+      "recency_requirement": "normal",
+      "required_caveats": [
+        "Business and financial conclusions depend on changing market conditions."
+      ],
+      "scoring_weights": {
+        "citation_support": 0.3,
+        "contradiction_handling": 0.2,
+        "provenance_completeness": 0.1,
+        "recency": 0.15,
+        "source_quality": 0.25
+      },
+      "weak_source_types": [
+        "social_media"
+      ]
+    },
+    {
+      "citation_style": "ieee",
+      "claim_strictness": "high",
+      "high_risk_triggers": [
+        "safety",
+        "failure",
+        "load",
+        "certification"
+      ],
+      "minimum_evidence_count": 2,
+      "name": "engineering",
+      "preferred_source_types": [
+        "standards_document",
+        "technical_report",
+        "peer_reviewed_article"
+      ],
+      "recency_requirement": "normal",
+      "required_caveats": [
+        "Engineering claims require context-specific validation."
+      ],
+      "scoring_weights": {
+        "citation_support": 0.3,
+        "contradiction_handling": 0.2,
+        "provenance_completeness": 0.1,
+        "recency": 0.15,
+        "source_quality": 0.25
+      },
+      "weak_source_types": [
+        "social_media"
+      ]
+    },
+    {
+      "citation_style": "harvard_au",
+      "claim_strictness": "medium",
+      "high_risk_triggers": [],
+      "minimum_evidence_count": 1,
+      "name": "general",
+      "preferred_source_types": [
+        "peer_reviewed_article",
+        "standards_document",
+        "book",
+        "primary_source"
+      ],
+      "recency_requirement": "normal",
+      "required_caveats": [],
+      "scoring_weights": {
+        "citation_support": 0.3,
+        "contradiction_handling": 0.2,
+        "provenance_completeness": 0.1,
+        "recency": 0.15,
+        "source_quality": 0.25
+      },
+      "weak_source_types": [
+        "social_media"
+      ]
+    },
+    {
+      "citation_style": "chicago",
+      "claim_strictness": "medium",
+      "high_risk_triggers": [
+        "attribution",
+        "translation",
+        "archive"
+      ],
+      "minimum_evidence_count": 1,
+      "name": "humanities",
+      "preferred_source_types": [
+        "book",
+        "peer_reviewed_article",
+        "primary_source"
+      ],
+      "recency_requirement": "normal",
+      "required_caveats": [],
+      "scoring_weights": {
+        "citation_support": 0.3,
+        "contradiction_handling": 0.2,
+        "provenance_completeness": 0.1,
+        "recency": 0.15,
+        "source_quality": 0.25
+      },
+      "weak_source_types": [
+        "social_media"
+      ]
+    },
+    {
+      "citation_style": "legal",
+      "claim_strictness": "maximum",
+      "high_risk_triggers": [
+        "liability",
+        "compliance",
+        "contract",
+        "statute",
+        "jurisdiction"
+      ],
+      "minimum_evidence_count": 2,
+      "name": "law",
+      "preferred_source_types": [
+        "legislation",
+        "case_law",
+        "regulator_guidance",
+        "peer_reviewed_article"
+      ],
+      "recency_requirement": "fast",
+      "required_caveats": [
+        "Legal findings require jurisdiction-specific professional review."
+      ],
+      "scoring_weights": {
+        "citation_support": 0.3,
+        "contradiction_handling": 0.2,
+        "provenance_completeness": 0.1,
+        "recency": 0.15,
+        "source_quality": 0.25
+      },
+      "weak_source_types": [
+        "blog_post",
+        "social_media"
+      ]
+    },
+    {
+      "citation_style": "vancouver",
+      "claim_strictness": "maximum",
+      "high_risk_triggers": [
+        "diagnosis",
+        "treatment",
+        "drug",
+        "dose",
+        "clinical"
+      ],
+      "minimum_evidence_count": 2,
+      "name": "medicine",
+      "preferred_source_types": [
+        "peer_reviewed_article",
+        "clinical_guideline",
+        "systematic_review"
+      ],
+      "recency_requirement": "fast",
+      "required_caveats": [
+        "Medical findings require professional clinical review."
+      ],
+      "scoring_weights": {
+        "citation_support": 0.3,
+        "contradiction_handling": 0.2,
+        "provenance_completeness": 0.1,
+        "recency": 0.15,
+        "source_quality": 0.25
+      },
+      "weak_source_types": [
+        "blog_post",
+        "social_media"
+      ]
+    },
+    {
+      "citation_style": "harvard_au",
+      "claim_strictness": "high",
+      "high_risk_triggers": [
+        "public health",
+        "national security",
+        "regulation",
+        "election"
+      ],
+      "minimum_evidence_count": 2,
+      "name": "policy",
+      "preferred_source_types": [
+        "government_report",
+        "regulator_guidance",
+        "peer_reviewed_article"
+      ],
+      "recency_requirement": "fast",
+      "required_caveats": [
+        "Policy conclusions depend on jurisdiction and timing."
+      ],
+      "scoring_weights": {
+        "citation_support": 0.3,
+        "contradiction_handling": 0.2,
+        "provenance_completeness": 0.1,
+        "recency": 0.15,
+        "source_quality": 0.25
+      },
+      "weak_source_types": [
+        "social_media"
+      ]
+    },
+    {
+      "citation_style": "harvard_au",
+      "claim_strictness": "high",
+      "high_risk_triggers": [
+        "causal",
+        "replication",
+        "statistically significant"
+      ],
+      "minimum_evidence_count": 2,
+      "name": "science",
+      "preferred_source_types": [
+        "peer_reviewed_article",
+        "preprint",
+        "dataset"
+      ],
+      "recency_requirement": "normal",
+      "required_caveats": [],
+      "scoring_weights": {
+        "citation_support": 0.3,
+        "contradiction_handling": 0.2,
+        "provenance_completeness": 0.1,
+        "recency": 0.15,
+        "source_quality": 0.25
+      },
+      "weak_source_types": [
+        "blog_post",
+        "social_media"
+      ]
+    },
+    {
+      "citation_style": "harvard_au",
+      "claim_strictness": "high",
+      "high_risk_triggers": [
+        "exploit",
+        "vulnerability",
+        "malware",
+        "credential",
+        "prompt injection",
+        "mcp"
+      ],
+      "minimum_evidence_count": 2,
+      "name": "security",
+      "preferred_source_types": [
+        "peer_reviewed_article",
+        "conference_paper",
+        "standards_document",
+        "vendor_advisory"
+      ],
+      "recency_requirement": "fast",
+      "required_caveats": [
+        "Security findings may change quickly as patches and disclosures evolve."
+      ],
+      "scoring_weights": {
+        "citation_support": 0.3,
+        "contradiction_handling": 0.2,
+        "provenance_completeness": 0.1,
+        "recency": 0.15,
+        "source_quality": 0.25
+      },
+      "weak_source_types": [
+        "blog_post",
+        "social_media"
+      ]
+    }
+  ],
+  "quality_gate": [
+    {
+      "claims": [
+        {
+          "claim_id": "c1",
+          "requires_citation": true
+        }
+      ],
+      "gaps": [],
+      "name": "all_supported",
+      "result": {
+        "blocking_failures": [],
+        "gate_id": "gate_run_test",
+        "result": "pass",
+        "run_id": "run_test",
+        "warnings": []
+      },
+      "verifications": [
+        {
+          "claim_id": "c1",
+          "support_status": "supported"
+        }
+      ]
+    },
+    {
+      "claims": [
+        {
+          "claim_id": "c1",
+          "requires_citation": true
+        },
+        {
+          "claim_id": "c2",
+          "requires_citation": true
+        }
+      ],
+      "gaps": [],
+      "name": "unsupported_blocks",
+      "result": {
+        "blocking_failures": [
+          "unsupported factual claims remain"
+        ],
+        "gate_id": "gate_run_test",
+        "result": "blocked",
+        "run_id": "run_test",
+        "warnings": []
+      },
+      "verifications": [
+        {
+          "claim_id": "c1",
+          "support_status": "supported"
+        },
+        {
+          "claim_id": "c2",
+          "support_status": "contradicted"
+        }
+      ]
+    },
+    {
+      "claims": [
+        {
+          "claim_id": "c1",
+          "requires_citation": true
+        }
+      ],
+      "gaps": [],
+      "name": "missing_verification_blocks",
+      "result": {
+        "blocking_failures": [
+          "unsupported factual claims remain"
+        ],
+        "gate_id": "gate_run_test",
+        "result": "blocked",
+        "run_id": "run_test",
+        "warnings": []
+      },
+      "verifications": []
+    },
+    {
+      "claims": [
+        {
+          "claim_id": "c1",
+          "requires_citation": true
+        },
+        {
+          "claim_id": "c2",
+          "requires_citation": false
+        }
+      ],
+      "gaps": [
+        {
+          "gap_id": "g1",
+          "reason": "No evidence found."
+        }
+      ],
+      "name": "gaps_warn_and_uncited_ignored",
+      "result": {
+        "blocking_failures": [],
+        "gate_id": "gate_run_test",
+        "result": "pass_with_warnings",
+        "run_id": "run_test",
+        "warnings": [
+          "unresolved evidence gaps are present"
+        ]
+      },
+      "verifications": [
+        {
+          "claim_id": "c1",
+          "support_status": "partially_supported"
+        },
+        {
+          "claim_id": "c2",
+          "support_status": "unsupported"
+        }
+      ]
+    },
+    {
+      "claims": [
+        {
+          "claim_id": "c1",
+          "requires_citation": true
+        }
+      ],
+      "gaps": [],
+      "name": "later_verification_wins",
+      "result": {
+        "blocking_failures": [
+          "unsupported factual claims remain"
+        ],
+        "gate_id": "gate_run_test",
+        "result": "blocked",
+        "run_id": "run_test",
+        "warnings": []
+      },
+      "verifications": [
+        {
+          "claim_id": "c1",
+          "support_status": "supported"
+        },
+        {
+          "claim_id": "c1",
+          "support_status": "needs_more_evidence"
+        }
+      ]
     }
   ],
   "relevance_score": [
@@ -866,6 +3274,108 @@
       }
     }
   ],
+  "select_profile": [
+    {
+      "profile": "general",
+      "query": "What is a Process Reward Model?",
+      "requested": "auto"
+    },
+    {
+      "profile": "law",
+      "query": "What is a Process Reward Model?",
+      "requested": "law"
+    },
+    {
+      "profile": "security",
+      "query": "MCP prompt injection exploit chains",
+      "requested": "auto"
+    },
+    {
+      "profile": "law",
+      "query": "MCP prompt injection exploit chains",
+      "requested": "law"
+    },
+    {
+      "profile": "medicine",
+      "query": "Clinical treatment guidelines for diabetes",
+      "requested": "auto"
+    },
+    {
+      "profile": "law",
+      "query": "Clinical treatment guidelines for diabetes",
+      "requested": "law"
+    },
+    {
+      "profile": "law",
+      "query": "Contract liability under Australian law",
+      "requested": "auto"
+    },
+    {
+      "profile": "law",
+      "query": "Contract liability under Australian law",
+      "requested": "law"
+    },
+    {
+      "profile": "business",
+      "query": "Market valuation of AI startups",
+      "requested": "auto"
+    },
+    {
+      "profile": "law",
+      "query": "Market valuation of AI startups",
+      "requested": "law"
+    },
+    {
+      "profile": "engineering",
+      "query": "System design for safety-critical load testing",
+      "requested": "auto"
+    },
+    {
+      "profile": "law",
+      "query": "System design for safety-critical load testing",
+      "requested": "law"
+    },
+    {
+      "profile": "science",
+      "query": "Replication crisis in psychology experiments",
+      "requested": "auto"
+    },
+    {
+      "profile": "law",
+      "query": "Replication crisis in psychology experiments",
+      "requested": "law"
+    },
+    {
+      "profile": "humanities",
+      "query": "Translation of Persian literature archives",
+      "requested": "auto"
+    },
+    {
+      "profile": "law",
+      "query": "Translation of Persian literature archives",
+      "requested": "law"
+    },
+    {
+      "profile": "policy",
+      "query": "Public health regulation and election policy",
+      "requested": "auto"
+    },
+    {
+      "profile": "law",
+      "query": "Public health regulation and election policy",
+      "requested": "law"
+    },
+    {
+      "profile": "ai_safety",
+      "query": "Agent alignment eval methodology",
+      "requested": "auto"
+    },
+    {
+      "profile": "law",
+      "query": "Agent alignment eval methodology",
+      "requested": "law"
+    }
+  ],
   "ucb_score": [
     {
       "node_visits": 2,
@@ -892,5 +3402,31 @@
       "score": 3.1231457356431997
     }
   ],
-  "ucb_unvisited_is_infinite": true
+  "ucb_unvisited_is_infinite": true,
+  "validation_errors": [
+    {
+      "case": "angles_empty_query",
+      "error": "query must not be empty"
+    },
+    {
+      "case": "angles_long_query",
+      "error": "query exceeds 8000 characters"
+    },
+    {
+      "case": "gaps_empty_claim",
+      "error": "claims[1] must not be empty"
+    },
+    {
+      "case": "gaps_long_claim",
+      "error": "claims[0] exceeds 4000 characters"
+    },
+    {
+      "case": "mode_unknown",
+      "error": "unknown research mode: bogus"
+    },
+    {
+      "case": "profile_unknown",
+      "error": "unknown profile: nonexistent"
+    }
+  ]
 }
