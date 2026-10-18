@@ -5,7 +5,43 @@
 mod common;
 
 use common::{golden, section};
+use indexmap::IndexMap;
 use re_core::difficulty::estimate_difficulty;
+use re_core::dora::{AllocationResult, BudgetAllocation, allocate_budget, select_branches};
+
+#[test]
+fn allocate_budget_matches_python() {
+    let cases = section("allocate_budget");
+    assert_eq!(cases.len(), 10);
+    for case in cases {
+        let difficulty = as_f64(&case["difficulty"]);
+        let expected: BudgetAllocation =
+            serde_json::from_value(case["budget"].clone()).expect("budget parses");
+        assert_eq!(
+            allocate_budget(difficulty),
+            expected,
+            "difficulty {difficulty}"
+        );
+    }
+}
+
+#[test]
+fn select_branches_matches_python() {
+    let cases = section("select_branches");
+    assert_eq!(cases.len(), 30);
+    for case in cases {
+        let scores: IndexMap<String, f64> =
+            serde_json::from_value(case["scores"].clone()).expect("scores parse");
+        let budget = case["budget_remaining"].as_i64().expect("budget int");
+        let expected: AllocationResult =
+            serde_json::from_value(case["result"].clone()).expect("result parses");
+        assert_eq!(
+            select_branches(&scores, budget),
+            expected,
+            "scores {scores:?} budget {budget}"
+        );
+    }
+}
 
 fn as_f64(v: &serde_json::Value) -> f64 {
     v.as_f64()
