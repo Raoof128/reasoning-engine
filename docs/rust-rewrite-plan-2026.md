@@ -7,14 +7,21 @@ the accuracy ceilings the Python MVP documents about itself.
 
 ## 1. TL;DR
 
-- **Do it as a 6-crate Cargo workspace** on Rust 1.99 / edition 2024, using the
-  official `rmcp` 3.5.1 SDK (which implements MCP `2026-07-28`), `tokio`,
-  `reqwest`, `rusqlite` (bundled, WAL), `schemars` for tool schemas.
-- **Speed wins are real but specific.** Expect ~10x faster cold start, ~5-10x
-  lower RSS, and much better fan-out behaviour (per-source deadlines, connection
-  reuse, backpressure). The deterministic maths is already fast in Python; the
-  slow parts are process start, blocking `urllib` fan-out with a 25 s timeout,
-  and opening a fresh SQLite connection per call.
+- **Do it as a 7-crate Cargo workspace** on Rust stable (1.99 today, MSRV
+  1.88 set by rmcp) / edition 2024, using the official `rmcp` 3.5.1 SDK (which
+  implements MCP `2026-07-28`), `tokio`, `reqwest`, `rusqlite` (bundled, WAL),
+  `schemars` for tool schemas.
+- **Speed wins are real but specific.** Hypothesis to be measured in Phase 1
+  (`hyperfine`, `criterion`): roughly 10x faster cold start, 5-10x lower RSS,
+  and much better fan-out behaviour (per-source deadlines, connection reuse,
+  backpressure). The deterministic maths is already fast in Python; the slow
+  parts are process start, blocking `urllib` fan-out with a 25 s timeout, and
+  opening a fresh SQLite connection per call. No number here is a promise
+  until the bench job prints it.
+- **Executable plans live next to this one.**
+  `docs/superpowers/plans/2026-10-18-rust-port-phases-0-6.md` and
+  `docs/superpowers/plans/2026-10-18-rust-beast-phases-7-12.md` are the
+  task-by-task versions an agent runs. This document is the rationale.
 - **Accuracy is where the big upgrade lives.** The current verifier is lexical
   overlap and can never emit `contradicted`. The Rust port should ship a tiered
   verifier: BM25 + embeddings to shortlist evidence, then an NLI cross-encoder
@@ -43,7 +50,11 @@ the accuracy ceilings the Python MVP documents about itself.
 | Rust stable | 1.99.1 (beta 1.100 due 12 Nov 2026) | Oct 2026 | Edition 2024: async closures, `AsyncFn` in prelude, RPIT capture rules. `cargo 1.97` is installed in this container. |
 | `rmcp` (official MCP SDK) | 3.5.1, MSRV 1.88 | 2026-10-05 | Implements MCP 2026-07-28, stays compatible with 2025-11-25 and earlier. Stdio via `transport-io`; Streamable HTTP as a Tower service via `transport-streamable-http-server`. API moved 3.3 -> 3.5 within one month, so pin exactly. |
 | `tokio` | 1.53.3 | 2026-10-13 | Runtime. |
-| `reqwest` | 0.13.5 | 2026-09-08 | HTTP client with pooling, HTTP/2, per-request timeouts. Use `rustls`. |
+| `reqwest` | 0.13.5 | 2026-09-08 | HTTP client with pooling, HTTP/2, per-request timeouts. Features verified on crates.io: `default-features = false, features = ["rustls", "json", "http2", "gzip"]` (the feature is `rustls`, not `rustls-tls`). |
+| `html-escape` | 0.3.0 | 2026-10-12 | `decode_html_entities` to match Python `html.unescape` in the sanitizer. |
+| `indexmap` | 2.14.2 | 2026-09-05 | Insertion-ordered maps so DORA/UCB tie-breaking matches Python dict order. |
+| `subtle` | 2.6.1 | 2024-06-24 | Constant-time bearer token comparison. |
+| `hyperfine` (tool) | 2.0.0 | 2026-10-07 | Cold-start benchmark Python vs Rust. |
 | `rusqlite` | 0.40.2 | 2026-08-08 | Mature SQLite binding, `bundled` feature pins the SQLite version. Turso's Rust-native engine (0.7.x) is still pre-1.0 and explicitly warns API may change, so not yet. `sqlx` 0.9 is fine but adds a compile-time query checker we do not need. |
 | `axum` / `tower-http` | 0.8.9 / 0.7.1 | 2026 | Mount the rmcp Tower service, add bearer auth middleware, body limits. |
 | `schemars` + `serde` + `serde_json` | 1.2.3 / 1.0.229 / 1.0.154 | 2026 | JSON Schema for `inputSchema` and `outputSchema`. |
@@ -104,13 +115,15 @@ Source: official changelog (modelcontextprotocol.io/specification/2026-07-28/cha
   decoupled from how many candidates each direction already has. Our
   implementation uses `kappa = max - min` of branch scores as a breadth/depth
   switch, which is a budget heuristic, not DORA. Section 6.3 proposes the fix.
-- PRM survey (Zheng et al. 2025) and Yu et al. (2025) on compute scaling:
+- PRM survey (Zheng et al. 2025) and Chen et al. (2025) on compute scaling:
   Best-of-N is the right default under tight budgets, MCTS/beam only when
   compute is plentiful. Our difficulty tiers already encode that; the data to
   calibrate the thresholds is sitting unused in `episodic_memory`.
-- CATS (ICLR 2026) allocates per-step compute using a learned controller. Out
-  of scope for a deterministic server, but it argues for logging per-step
-  score variance so a future controller has training data.
+- CATS (Song et al. 2025, arXiv preprint; a secondary source labelled it ICLR
+  2026 but the arXiv page lists no venue) allocates per-step compute using a
+  learned controller. Out of scope for a deterministic server, but it argues
+  for logging per-step score variance so a future controller has training
+  data.
 
 ## 3. Target architecture
 
@@ -167,7 +180,7 @@ Design rules:
 | `sanitizer.py` | `re_core::sanitize` | `regex` crate; add NFKC + confusables (section 7). |
 | `research.py` | `re_core::planning` | Angle library + gap questions. |
 | `validation.py` | `re_mcp::params` | Becomes serde + schemars types; limits as `const`. |
-| `db.py`, `sessions.py`, `memory.py` | `re_store::{schema, sessions, memory}` | One pooled connection per thread, WAL, `PRAGMA user_version = 3`. |
+| `db.py`, `sessions.py`, `memory.py` | `re_store::{schema, sessions, memory}` | One connection per thread, WAL. Migrations are additive only (new tables/indexes via `IF NOT EXISTS`), so a database the Python code created opens unchanged. `user_version` is advisory because Python `init_db` rewrites it to 2 on every start; detect schema by table presence. |
 | `verifiable/sources/*.py` | `re_retrieval::sources::*` | One file per provider, trait `SourceAdapter`. |
 | `verifiable/aggregator.py` | `re_retrieval::aggregate` | `tokio::JoinSet`, per-source deadline, RRF. |
 | `verifiable/claims.py`, `quality.py` | `re_verify::{claims, gate}` | Tiered verifier. |
@@ -193,12 +206,20 @@ impl ReasoningEngine {
            annotations(read_only_hint = false, idempotent_hint = false))]
     async fn init_research_session(
         &self, Parameters(p): Parameters<InitResearchSession>,
-    ) -> Result<Json<SessionCreated>, ToolError> {
-        let query = Text::bounded(p.query, limits::MAX_QUERY_CHARS)?;
+    ) -> Result<Json<SessionCreated>, McpError> {
+        let query = BoundedText::new(p.query, limits::MAX_QUERY_CHARS)?; // our newtype
         Ok(Json(self.sessions.create(query).await?))
     }
 }
 ```
+
+Verified against rmcp 3.5 docs: `#[tool(... annotations(title = "...",
+read_only_hint = true))]` is the real syntax; `Json<T>` puts the value in
+`structured_content` with an `outputSchema`; `McpError` is rmcp's error type.
+`BoundedText` and `limits` are ours. For the tasks extension (Phase 8) rmcp
+ships `rmcp::task_manager::TaskManager` (`spawn`, `tasks/get`,
+`tasks/update`, `tasks/cancel`, TTL expiry) and tools return
+`CallToolResponse::Task(CreateTaskResult)`.
 
 Each tool lives in its own file and is registered with
 `ToolRouter::new().with_async_tool::<T>()` in a fixed order, as the rmcp docs
@@ -206,8 +227,10 @@ recommend once a server grows past a handful of tools.
 
 ### 3.3 Optional local host: HTTP server, audit UI, tunnel
 
-Nothing listens on a port unless the user asks. The first time the binary
-runs in a terminal (or whenever `reasoning-engine setup` is invoked) it asks:
+Nothing listens on a port unless the user asks. Only the `setup` subcommand
+ever prompts; every other subcommand prints a single stderr hint
+("no config found, run `reasoning-engine setup`") and proceeds with defaults.
+`setup` asks:
 
 ```
 reasoning-engine setup
@@ -236,7 +259,7 @@ Rules:
   `/ui`, protected by the same bearer token, read-only, no JavaScript build
   step (`askama` templates, inline SVG for the tree).
 - Builds without the `local-host` feature have no `serve`, `ui` or `tunnel`
-  subcommands at all, and `reqwest` is compiled client-only.
+  subcommands at all, and the axum/hyper server stack is not compiled in.
 - `setup` is re-runnable and idempotent; `setup --reset` wipes config but
   never the database or run packs.
 
@@ -269,10 +292,16 @@ server with injected latency, verifier on 20 claims x 50 snippets.
    `re-core` tests; every vector must match to the last decimal. Regenerate only
    with an explicit decision to change behaviour.
 2. **Property tests (`proptest`).** Difficulty is always in `[0, 1]` and
-   monotone in word count for fixed keywords; DORA's three output lists are
-   pairwise disjoint and together cover every input branch; `budget_remaining`
-   never goes negative; `sanitize` is idempotent and never grows the input
-   beyond entity expansion; `normalize_doi` is idempotent.
+   non-decreasing when words that are neither keywords nor conjunctions are
+   appended; DORA's three output lists are pairwise disjoint and together
+   cover every input branch; `budget_remaining` never goes negative;
+   `sanitize` output contains no `<`-delimited tags and matches no injection
+   pattern, and its length is at most input length plus the number of
+   markdown links (each `[t](u)` becomes `t (u)`); `normalize_doi` is
+   idempotent. `sanitize` is **not** idempotent (a second pass decodes
+   entities the first pass produced, verified: `A &amp;lt;b&amp;gt;` becomes
+   `A &lt;b&gt;` then `A`); preserve that for parity, document it, and
+   never call it twice on the same text.
 3. **Snapshot tests (`insta`)** for every tool's JSON output on a fixed
    fixture database, so schema drift is a reviewed diff.
 4. **Parity harness.** `tests/parity/run.sh` drives the same scripted tool
@@ -329,9 +358,11 @@ must never trigger a download.
 - **Retraction and integrity flags:** OpenAlex `is_retracted`, Crossref
   `update-to` (retraction notices) populate `risk_flags`, and retracted items
   can never be `supported` evidence.
-- **Dedup:** DOI first, then arXiv ID to DOI mapping (arXiv and Crossref both
-  expose it), then fuzzy title match (normalised Levenshtein <= 0.08) so
-  preprint and published versions merge instead of double counting.
+- **Dedup:** DOI first, then arXiv ID to DOI mapping (every arXiv paper has
+  the DataCite DOI `10.48550/arXiv.<id>`, and the Atom feed carries an
+  `arxiv:doi` element when a journal DOI exists), then fuzzy title match
+  (normalised Levenshtein <= 0.08) so preprint and published versions merge
+  instead of double counting.
 - **Per-source budgets:** request `limit * 2` from each source, fuse, cut to
   `limit`; sources that time out are recorded as gaps with their latency.
 - **Observability:** every adapter call logs status, latency, credits header
@@ -351,7 +382,8 @@ Keep the current `select_branches` behind `dora::legacy` for parity. Add
    direction quality with a temperature tied to difficulty (hard query, flatter
    allocation).
 4. Within a direction pick the next branch by UCB1 (already implemented) with
-   progressive widening: allow a new child only when `visits > depth^2`.
+   progressive widening: a node may gain a new child only while
+   `children < ceil(C * visits^alpha)` with `C = 1.0`, `alpha = 0.5`.
 5. Reflexion and pruning thresholds stay as they are; both are per-branch.
 
 The skill file needs no change: `select_next_branches` returns the same
@@ -468,7 +500,7 @@ adapters for SID, Magiran and ISC, and reports rendered in either language.
 | 3 | `re-retrieval`: 7 adapters + aggregator, recorded-HTTP fixtures (`wiremock`). | Same evidence set as Python on recorded responses, modulo new RRF ordering (documented). |
 | 4 | `re-mcp` + `re-cli`: all 20 tools over stdio; `setup` wizard with config file and flag equivalents; HTTP server and bearer auth behind `local-host`, off by default. | Parity harness diff is empty for the scripted `/deep-research` flow. `setup` never runs when stdin is not a TTY. |
 | 5 | `re-verify` tiers `hybrid` and `nli` behind `semantic`; DORA directional; FTS5 memory. | A labelled set of 100 claim/evidence pairs (hand-built from existing run packs) shows NLI beating lexical on contradiction recall; lexical remains default-off only in `high_stakes`. |
-| 6 | Cut-over: README, Dockerfile (distroless, `FROM scratch` + CA certs), `.mcp.json` examples; `re-ui` audit UI under `local-host`; Python marked deprecated for one release, removed next. | Users swap the `command` line only. UI reachable only when `setup` enabled it. |
+| 6 | Cut-over: README, Dockerfile (distroless, `FROM scratch` + CA certs, built with `--features local-host` and started with `--http` because the image's only job is to serve HTTP), `.mcp.json` examples; `re-ui` audit UI under `local-host`; Python marked deprecated for one release, removed next. | Users swap the `command` line only. UI reachable only when `setup` enabled it. |
 | 7 | **Trust and reproducibility:** replayable runs (recorded HTTP), Ed25519-signed attestations + Merkle log, `verify-runpack`, CSL citations via `hayagriva`, numeric claim checker. | `replay` reproduces an attested pack byte for byte offline; a tampered pack fails `verify-runpack`; `sources.bib` renders in the profile's style. |
 | 8 | **Speculative retrieval** via the MCP tasks extension; content-addressed evidence cache; cost ledger (credits, bytes, estimated tokens). | Angles 2..N are cached before Claude registers branch 1 in the parity flow; ledger appears in provenance. |
 | 9 | **Full-text verification** (`fulltext` feature) with section-aware chunks in `usearch`; source-quality scoring from Europe PMC and OpenAlex metadata. | On the Phase 5 labelled set, full-text NLI beats abstract-only NLI on `partially_supported` precision. |
@@ -494,20 +526,59 @@ depend on for test fixtures.
 | Users assume a port is open because the Python version had `serve`. | HTTP is off until `setup` or `--http`; `serve` prints the hint and exits non-zero. |
 | Phases 7-12 balloon the binary and build time. | Each lives behind its own Cargo feature; the default build stays stdio + lexical + bundled SQLite. |
 
-## 10. Open decisions for Raouf
+## 10. Decisions (defaults an agent proceeds with unless Raouf overrides)
 
-1. Default verifier tier for `standard` mode: `lexical` (zero download) or
-   `hybrid` (130 MB download, much better ranking)? Recommendation: `hybrid`
-   once Phase 5 lands, `lexical` until then.
-2. Keep the Notion/Cloudflare tunnel launcher scripts as shell, or fold them
-   into `reasoning-engine serve --tunnel`? Recommendation: keep shell; it is
-   platform glue, not engine.
-3. Drop Scholar Gateway adapter? It is the only paid source and the mock
-   fixtures add surface area. Recommendation: keep behind a feature flag.
-4. Should `setup` also offer to download the semantic models up front, or
-   leave that to first use? Recommendation: offer it, default No.
-5. Which Phase 7-12 item gets first dibs after cut-over? Recommendation:
-   Phase 7 (replayable runs) because everything else tests against it.
+| # | Question | Default the executable plans assume |
+|---|---|---|
+| 1 | Default verifier tier for `standard` mode | `lexical` until Phase 5 lands, then `hybrid`; `high_stakes` always `nli` when the `semantic` feature is built. |
+| 2 | Tunnel launcher: shell or CLI | Stays shell (`run-notion-mcp-laptop.sh`); `setup` only offers to run it. |
+| 3 | Scholar Gateway adapter | Kept, behind the `scholar-gateway` Cargo feature, off by default. |
+| 4 | `setup` offers model download | Yes, default answer No. |
+| 5 | First post-cut-over phase | Phase 7 (replayable runs). |
+
+An agent never blocks on these. It records the default it used in the commit
+message of the task that first depends on it.
+
+## 11. Parity hazards (read before porting a single function)
+
+Verified against the Python code and `golden_vectors.json` on 2026-10-18.
+
+| Hazard | Python behaviour | Rust requirement |
+|---|---|---|
+| Dict order | `select_branches` and `select_best_ucb` iterate dicts in insertion order; sorting is stable; ties keep insertion order. | Parse `scores`/`branches` with `serde_json` feature `preserve_order` into `IndexMap`; use `sort_by` (stable), never `sort_unstable_by`. |
+| Tokenisation | `query.lower().split()` keeps punctuation attached: `"implications?"` does not match the keyword `implications` (difficulty 0.0479 vs 0.0542, verified). | `to_lowercase().split_whitespace()`, no punctuation stripping. |
+| Multi-word keywords | Matched by substring on the full lowercased query (`"beam search" in query_lower`). | Same substring check; do not tokenise. |
+| Float arithmetic | `0.25*a + 0.35*b + 0.25*c + 0.15*d` evaluated left to right in f64. | Identical expression order; no FMA; `f64` only. |
+| `round(x, 4)` | Python rounds the exact binary value, ties to even. | Implement `py_round` and test it against every `relevance_score` golden vector; add tie cases to the generator if any disagree. |
+| `float("inf")` | UCB returns infinity for unvisited nodes; `max(total_visits, 1)` guards `log(0)`. | `f64::INFINITY`; the golden file stores the infinity case as a boolean because JSON has no infinity. |
+| HTML entities | `html.unescape` decodes named, decimal and hex references, HTML5 table. | `html_escape::decode_html_entities`; cross-check the eight sanitizer vectors. |
+| Regex semantics | Python `re` on `str`: `\b`, `\s`, `\w` are Unicode-aware; `re.DOTALL` on script/style patterns. | `regex` crate defaults are Unicode-aware; use `(?s)` for the script/style patterns; `[​-‏]` becomes `[\x{200b}-\x{200f}]`. |
+| Sanitize twice | Not idempotent (section 5). | Call once per field; keep the behaviour. |
+| Claim IDs | `claim_0001` zero-padded, sentence split on `(?<=[.!?])\s+` (lookbehind). | `regex` has no lookbehind: split on `[.!?]\s+` while keeping the terminator, then `trim_end_matches(['.', '!', '?'])`. |
+| Timestamps and UUIDs | `utc_now()` ISO-8601 with `+00:00`; `uuid4`. | `time` or `chrono` formatted identically; parity harness ignores these fields by name. |
+| JSON output | `json.dumps(..., ensure_ascii=False)`, `sort_keys=True` in run packs. | `serde_json` with sorted keys for run-pack files (BTreeMap or `preserve_order` off there) so hashes match. |
+
+## 12. Gauntlet log (2026-10-18)
+
+Line-by-line review of this plan. Each row was fixed in place.
+
+| Found | Fix |
+|---|---|
+| TL;DR said 6 crates after `re-ui` made it 7. | 7. |
+| Speed numbers read as promises. | Marked as hypotheses to be measured by the Phase 1 bench task. |
+| `reqwest` feature named `rustls-tls`; crates.io lists `rustls`. | Corrected, full feature list given. |
+| Paper authors were guessed ("Wang, X", "Yu", "Zhou"). | Pulled from arXiv: Wang, Xinglin et al.; Chen, Zhengyu et al.; Song, Zeen et al.; Zheng, Congmin et al. |
+| CATS labelled ICLR 2026 on the strength of one secondary site. | arXiv page lists no venue; cited as a preprint with the discrepancy noted. |
+| Tool example used an invented `ToolError` and `Text::bounded`. | `McpError` (real) and `BoundedText` (ours, labelled as ours); macro syntax verified against rmcp 3.5 docs. |
+| Phase 2 promised "opens unchanged" while 3.1 bumped `user_version`. | Additive migrations only; `user_version` advisory because Python rewrites it. |
+| `setup` wording implied any terminal run could prompt. | Only `setup` prompts; others print a hint. |
+| "reqwest compiled client-only" is meaningless. | Axum/hyper server stack excluded without `local-host`. |
+| Property test claimed `sanitize` idempotent and "monotone in word count". | Both false; verified counter-example; replaced with true properties. |
+| Dedup cited "arXiv ID to DOI mapping both expose". | DataCite `10.48550/arXiv.<id>` plus Atom `arxiv:doi`. |
+| Progressive widening rule `visits > depth^2` was invented. | Standard `children < ceil(C * visits^alpha)`. |
+| Docker image would silently lose `serve` once `local-host` is opt-in. | Phase 6 builds the image with the feature and starts with `--http`. |
+| Open decisions would block an autonomous agent. | Converted to defaults with an override path. |
+| No list of Python-vs-Rust parity traps. | Section 11 added, with verified examples. |
 
 ## References (Harvard, Australian style)
 
@@ -529,10 +600,10 @@ Rust Project 2026, *Rust release schedule* (stable 1.99.1), releases.rs, viewed 
 
 Thoughtworks 2026, *Technology Radar: cargo-mutants*, April 2026, viewed 18 October 2026, <https://www.thoughtworks.com/radar/tools/cargo-mutants>.
 
-Wang, X et al. 2025, 'Every rollout counts: optimal resource allocation for efficient test-time scaling', *arXiv preprint*, arXiv:2506.15707, viewed 18 October 2026, <https://arxiv.org/abs/2506.15707>.
+Chen, Z, Wang, Y, Xiao, T, Zhou, R, Yang, X, Wang, W, Sui, Z & Wang, J 2025, 'From mathematical reasoning to code: generalization of process reward models in test-time scaling', *arXiv preprint*, arXiv:2506.00027, viewed 18 October 2026, <https://arxiv.org/abs/2506.00027>.
 
-Yu, Z et al. 2025, 'From mathematical reasoning to code: generalization of process reward models in test-time scaling', *arXiv preprint*, arXiv:2506.00027, viewed 18 October 2026, <https://arxiv.org/abs/2506.00027>.
+Song, Z, Qiang, W, Zhao, S, Zheng, C & Hua, G 2025, 'Reward model generalization for compute-aware test-time reasoning', *arXiv preprint*, arXiv:2505.18065, viewed 18 October 2026, <https://arxiv.org/abs/2505.18065>.
 
-Zheng, C et al. 2025, 'A survey of process reward models: from outcome signals to process supervisions for large language models', *arXiv preprint*, arXiv:2510.08049, viewed 18 October 2026, <https://arxiv.org/abs/2510.08049>.
+Wang, X, Li, Y, Feng, S, Yuan, P, Zhang, Y, Shi, J, Tan, C, Pan, B, Hu, Y & Li, K 2025, 'Every rollout counts: optimal resource allocation for efficient test-time scaling', *arXiv preprint*, arXiv:2506.15707 (v2, 20 October 2025), viewed 18 October 2026, <https://arxiv.org/abs/2506.15707>.
 
-Zhou, Y et al. 2026, 'Reward model generalization for compute-aware test-time reasoning (CATS)', *International Conference on Learning Representations 2026*, arXiv:2505.18065, viewed 18 October 2026, <https://arxiv.org/abs/2505.18065>.
+Zheng, C, Zhu, J, Ou, Z et al. 2025, 'A survey of process reward models: from outcome signals to process supervisions for large language models', *arXiv preprint*, arXiv:2510.08049, viewed 18 October 2026, <https://arxiv.org/abs/2510.08049>.
