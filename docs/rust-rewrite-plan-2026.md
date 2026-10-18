@@ -26,6 +26,13 @@ the accuracy ceilings the Python MVP documents about itself.
   branch) freezes the Python behaviour of difficulty, DORA, UCB, sanitizer,
   relevance scoring and DOI normalisation. The Rust core must reproduce it
   bit-for-bit before anything is "improved".
+- **Local host is opt-in.** Stdio is the only thing that runs by default. The
+  local HTTP MCP server, the embedded audit UI and the Notion tunnel are
+  compiled behind a `local-host` feature and enabled only when the user says
+  yes in `reasoning-engine setup` (section 3.3).
+- **Beast mode is wired in as phases 7-12.** Every item from
+  `beast-mode-vision-2026.md` has a phase, an exit criterion and a crate
+  (section 8). Nothing from the vision ships before the parity gate.
 
 ## 2. What the 2026 docs say
 
@@ -47,6 +54,17 @@ the accuracy ceilings the Python MVP documents about itself.
 | `proptest` / `insta` / `criterion` | 1.12.0 / 1.49.0 / 0.8.2 | 2026 | Property tests, snapshot tests, benchmarks. |
 | `cargo-nextest` / `cargo-deny` / `cargo-mutants` | 0.9.148 / 0.20.2 / 27.1.0 | 2026 | Test runner, supply-chain policy, mutation testing. |
 | `clap`, `thiserror`, `anyhow`, `tracing`, `uuid`, `sha2`, `governor` | 4.6.7 / 2.0.21 / 1.0.104 / 0.1.44 / 1.28.0 / 0.11.1 / 0.10.4 | 2026 | CLI, errors, telemetry, IDs, hashing, rate limiting. |
+| `inquire` | 0.9.4 | 2026-02-24 | Interactive prompts for `reasoning-engine setup` (TTY only; falls back to flags). |
+| `hayagriva` | 0.10.1 | 2026-06-14 | CSL citation rendering (Harvard AU, Vancouver, IEEE, Chicago). Phase 7. |
+| `ed25519-dalek` | 3.0.0 | 2026-07-06 | Signed attestations and Merkle transparency log. Phase 7. |
+| `nom` | 8.0.0 | 2025-01-26 | Numeric claim grammar (numbers, units, ranges, CIs). Phase 7. |
+| `petgraph` | 0.8.3 | 2025-09-30 | Evidence graph, corroboration independence, retraction cascade. Phase 10. |
+| `usearch` | 2.26.5 | 2026-10-18 | Single-file HNSW index for chunks and cross-session evidence memory. Phases 9-11. |
+| `pdfium-render` / `pdf-extract` | 0.9.4 / 0.12.1 | 2026-09 | Full-text extraction of open-access PDFs. Phase 9. |
+| `linfa` | 0.8.1 | 2025-12-23 | Learned PRM prior trained on the engine's own history. Phase 11. |
+| `askama` | 0.16.1 | 2026-09-04 | Embedded audit UI templates, `local-host` feature only. Phase 6. |
+| `wasmtime` | 50.0.0-rc.1 (pre-release) | 2026-10-14 | Sandboxed WASM source adapters. Phase 12, optional. |
+| `wiremock` | 0.6.5 | 2025-08-24 | Recorded-HTTP adapter tests. Phase 3. |
 
 ### 2.2 MCP specification 2026-07-28: changes that affect this server
 
@@ -107,14 +125,24 @@ reasoning-engine/            (Cargo workspace, edition 2024, MSRV 1.88 for rmcp)
                     with RRF, dedup, retraction flags, governor rate limits
     re-verify/      claim extraction, tiered verifier (lexical | bm25+embed |
                     nli), run-pack export + attestation
-    re-mcp/         rmcp 3.5 server: tool structs, stdio + streamable HTTP,
-                    bearer auth, bind safety, tasks extension
-    re-cli/         clap binary `reasoning-engine` (mcp | serve | research |
-                    scholar search | verify-runpack | bench)
+    re-mcp/         rmcp 3.5 server: tool structs, stdio (always) + streamable
+                    HTTP (feature `local-host`), bearer auth, bind safety,
+                    tasks extension for speculative retrieval
+    re-ui/          feature `local-host` only: axum + askama audit UI
+                    (branch tree, kappa over rounds, evidence graph)
+    re-cli/         clap binary `reasoning-engine` (setup | mcp | serve |
+                    research | scholar search | verify-runpack | replay |
+                    watch | calibrate | bench)
   skill/deep-research.md     unchanged
   tests/golden/              Python-generated parity vectors (this branch)
   tests/parity/              harness: same tool calls -> Python and Rust -> diff
 ```
+
+Cargo features (defaults in bold): **`stdio`**, `local-host` (HTTP server,
+audit UI, tunnel helper), `semantic` (ort, fastembed, NLI), `fulltext`
+(pdfium), `fa` (Persian sources and multilingual embeddings), `wasm-adapters`.
+The default build is stdio plus the lexical verifier and has no native
+dependencies beyond bundled SQLite.
 
 Design rules:
 
@@ -176,6 +204,42 @@ Each tool lives in its own file and is registered with
 `ToolRouter::new().with_async_tool::<T>()` in a fixed order, as the rmcp docs
 recommend once a server grows past a handful of tools.
 
+### 3.3 Optional local host: HTTP server, audit UI, tunnel
+
+Nothing listens on a port unless the user asks. The first time the binary
+runs in a terminal (or whenever `reasoning-engine setup` is invoked) it asks:
+
+```
+reasoning-engine setup
+  Data directory ........................ ~/.reasoning-engine   [Enter to accept]
+  Verifier tier ......................... lexical / hybrid (130 MB) / nli (+90 MB)
+  Set up a local HTTP MCP server? ....... No / Yes
+    Bind address ........................ 127.0.0.1 only (public bind needs --unsafe-bind-public)
+    Port ................................ 8765
+    Generate a bearer token? ............ Yes -> ~/.reasoning-engine/http.env (0600)
+  Enable the local audit UI? ............ No / Yes (served at http://127.0.0.1:8765/ui)
+  Set up the Notion/Cloudflare tunnel? .. No / Yes (needs cloudflared on PATH)
+  Register with Claude Code now? ........ Yes -> runs `claude mcp add reasoning-engine -s user -- <binary> mcp`
+```
+
+Rules:
+
+- Stdio MCP never asks anything: when stdin is not a TTY, `setup` is skipped
+  and defaults apply. The MCP protocol owns stdin, so prompts there would
+  corrupt the stream.
+- Answers persist to `~/.reasoning-engine/config.toml`. Every question has a
+  flag equivalent (`--http`, `--port`, `--ui`, `--tunnel`, `--verifier`) and an
+  environment variable, so CI and Docker never see a prompt.
+- `serve` refuses to start when `http.enabled = false` in config and no
+  `--http` flag is given, with a one-line hint pointing at `setup`.
+- The audit UI binds to the same loopback listener as the MCP endpoint, under
+  `/ui`, protected by the same bearer token, read-only, no JavaScript build
+  step (`askama` templates, inline SVG for the tree).
+- Builds without the `local-host` feature have no `serve`, `ui` or `tunnel`
+  subcommands at all, and `reqwest` is compiled client-only.
+- `setup` is re-runnable and idempotent; `setup --reset` wipes config but
+  never the database or run packs.
+
 ## 4. Speed: what actually gets faster
 
 | Hot spot in Python today | Rust change | Expected effect |
@@ -185,6 +249,8 @@ recommend once a server grows past a handful of tools.
 | New `sqlite3.connect` per tool call, PRAGMAs re-applied each time. | Long-lived connection(s), prepared-statement cache, single write transaction per tool call. | Sub-millisecond tool calls for session/branch operations. |
 | JSON round-trips: tools return JSON as a string that the client parses again. | `structuredContent` with `outputSchema`. | Fewer bytes, fewer parses, typed on both sides. |
 | `recall_memory` loads every row and scores in Python. | FTS5 (bundled SQLite) for the lexical path; BM25/embedding path optional. | Constant time per query as memory grows. |
+| Claude waits on every `scholar_search_tool` call in sequence. | **Speculative retrieval (Phase 8):** `plan_research_angles_tool` returns a task handle and the server fans out all angles at once into a content-addressed cache keyed by `(source, normalised query)`. | By the time Claude registers branch one, angles two to six are cached, deduped and ranked. |
+| Every test and bug report needs live network. | **Replayable runs (Phase 7):** HTTP responses recorded into the run pack, content-addressed; `reasoning-engine replay <run_id>` reproduces the pipeline offline, byte for byte. | Deterministic tests, reproducible attestations, offline demos. |
 
 Honest framing: for an end-to-end `/deep-research` run the wall clock is
 dominated by Claude's own reasoning and by remote API latency. The Rust port
@@ -308,6 +374,62 @@ against steps actually consumed.
   split, keep the deterministic claim typing, and add a `numeric_span` field
   so quantitative claims can be matched on their numbers.
 
+### 6.6 Numeric claim checker (Phase 7)
+
+A `nom` grammar parses numbers, percentages, ranges, confidence intervals,
+comparatives and units from both the claim and the evidence. Units are
+normalised, values matched within tolerance. A quantitative claim whose
+number appears nowhere in its supporting evidence cannot be `supported`,
+whatever the NLI model says.
+
+### 6.7 Adversarial branch (Phase 10)
+
+`beam_search` and `forest` reserve one branch for the counter-position. The
+server generates negated queries (`"X does not reduce Y"`, `"replication
+failure X"`) and the NLI tier scores contradiction rather than support. A
+claim that survives a funded contradiction search earns a confidence bonus;
+one that does not gets a steel-manned counter-view section in the report.
+
+### 6.8 Evidence graph and corroboration independence (Phase 10)
+
+Build a per-run `petgraph` of evidence nodes with citation and shared-author
+edges from OpenAlex `referenced_works` and `authorships`. Each claim gets an
+**independence score** (connected components among its supporters). A
+retraction propagates: claims whose only support is downstream are demoted
+and the run pack gains `cascade.json`. The report embeds a Mermaid snippet
+per claim.
+
+### 6.9 Full-text verification (Phase 9)
+
+Pull open-access full text (OpenAlex `oa_url`, Europe PMC XML), extract with
+`pdfium-render` or `pdf-extract`, chunk by section into `usearch`, and verify
+claims against the body of the paper. The NLI tier receives the section label
+as context; support found only in an introduction is `partially_supported`
+with the reason stated.
+
+### 6.10 Calibrated confidence (Phase 10)
+
+Conformal prediction over a few hundred labelled claim-evidence pairs built
+from past run packs turns NLI scores into "supported at 90% coverage" sets.
+No crate needed; sorted residuals and a quantile.
+
+### 6.11 Learned PRM prior (Phase 11)
+
+Traces, critiques, score deltas and gate outcomes already form a labelled
+dataset. `fastembed` embeds traces, `linfa` fits a small classifier predicting
+consensus membership. It seeds UCB `q_value` instead of 0.0, flags large
+disagreement with Claude's self-score for reflexion, and sharpens the
+difficulty estimator. Blend weight grows with data volume; cold start is the
+deterministic heuristic; models are versioned artifacts next to the database.
+
+### 6.12 Source-quality model and cross-lingual research (Phases 9 and 12)
+
+Europe PMC publication types and OpenAlex venue, open-access and institution
+data score evidence against each profile's `preferred_source_types` instead
+of a constant label. Behind the `fa` feature, `bge-m3` multilingual
+embeddings let a Persian query find English evidence and vice versa, with
+adapters for SID, Magiran and ISC, and reports rendered in either language.
+
 ## 7. Security posture carried over and tightened
 
 - Sanitizer: keep all current regexes; add NFKC normalisation before matching,
@@ -323,8 +445,18 @@ against steps actually consumed.
 - SSRF: adapters may only hit their fixed hosts; no URL comes from tool input.
 - XML: `quick-xml` with entity expansion disabled and a size cap.
 - SQLite: `0o600` on creation, `PRAGMA foreign_keys`, `trusted_schema = OFF`.
-- Run packs: optional Ed25519 signature (`ed25519-dalek`) on `attestation.json`
-  so the `signature` and `signature_algorithm` fields stop being `null`.
+- Run packs: Ed25519 signature (`ed25519-dalek` 3.0.0) on `attestation.json`
+  so the `signature` and `signature_algorithm` fields stop being `null`, plus
+  an append-only Merkle log of run-pack hashes in SQLite.
+  `reasoning-engine verify-runpack` checks signature, inclusion proof and
+  artifact hashes offline (Phase 7).
+- Recorded HTTP for replay strips `Authorization`, `Set-Cookie` and any
+  header named in a deny-list before it touches disk.
+- Local host (when enabled): loopback bind by default, bearer token file at
+  `0600`, audit UI read-only, `allowed_hosts`/`allowed_origins` set, body
+  limit set, tunnel only via the explicit helper.
+- WASM adapters (Phase 12): no filesystem, no environment, outbound HTTP only
+  to the adapter's declared host list, fuel-metered execution.
 
 ## 8. Migration phases and exit criteria
 
@@ -334,12 +466,20 @@ against steps actually consumed.
 | 1 | Workspace skeleton, `re-core` with all pure algorithms, golden + property tests, CI. | `cargo nextest run` green on 3 OSes; golden parity 100%. |
 | 2 | `re-store` with schema v3 migration that opens an existing `reasoning.db` unchanged. | Python test fixtures load; `pytest` suite's DB assertions re-expressed in Rust. |
 | 3 | `re-retrieval`: 7 adapters + aggregator, recorded-HTTP fixtures (`wiremock`). | Same evidence set as Python on recorded responses, modulo new RRF ordering (documented). |
-| 4 | `re-mcp` + `re-cli`: all 20 tools, stdio and HTTP, bearer auth. | Parity harness diff is empty for the scripted `/deep-research` flow. |
+| 4 | `re-mcp` + `re-cli`: all 20 tools over stdio; `setup` wizard with config file and flag equivalents; HTTP server and bearer auth behind `local-host`, off by default. | Parity harness diff is empty for the scripted `/deep-research` flow. `setup` never runs when stdin is not a TTY. |
 | 5 | `re-verify` tiers `hybrid` and `nli` behind `semantic`; DORA directional; FTS5 memory. | A labelled set of 100 claim/evidence pairs (hand-built from existing run packs) shows NLI beating lexical on contradiction recall; lexical remains default-off only in `high_stakes`. |
-| 6 | Cut-over: README, Dockerfile (distroless, `FROM scratch` + CA certs), `.mcp.json` examples; Python marked deprecated for one release, removed next. | Users swap the `command` line only. |
+| 6 | Cut-over: README, Dockerfile (distroless, `FROM scratch` + CA certs), `.mcp.json` examples; `re-ui` audit UI under `local-host`; Python marked deprecated for one release, removed next. | Users swap the `command` line only. UI reachable only when `setup` enabled it. |
+| 7 | **Trust and reproducibility:** replayable runs (recorded HTTP), Ed25519-signed attestations + Merkle log, `verify-runpack`, CSL citations via `hayagriva`, numeric claim checker. | `replay` reproduces an attested pack byte for byte offline; a tampered pack fails `verify-runpack`; `sources.bib` renders in the profile's style. |
+| 8 | **Speculative retrieval** via the MCP tasks extension; content-addressed evidence cache; cost ledger (credits, bytes, estimated tokens). | Angles 2..N are cached before Claude registers branch 1 in the parity flow; ledger appears in provenance. |
+| 9 | **Full-text verification** (`fulltext` feature) with section-aware chunks in `usearch`; source-quality scoring from Europe PMC and OpenAlex metadata. | On the Phase 5 labelled set, full-text NLI beats abstract-only NLI on `partially_supported` precision. |
+| 10 | **Evidence graph** (independence score, retraction cascade), **adversarial branch**, **calibrated confidence**, mid-run budget re-estimation. | Reports show per-claim independence and counter-view sections; stated coverage matches empirical coverage within 5 points on held-out pairs. |
+| 11 | **Learned PRM prior** (`calibrate` subcommand), cross-session evidence memory, **living reports** (`watch`). | Prior improves consensus-set prediction over the 0.0 baseline on held-out sessions; `watch` emits a diff when a fixture source is retracted. |
+| 12 | **Persian / cross-lingual** (`fa` feature), **WASM adapters** (`wasm-adapters`), public SciFact scoreboard in README. | A Persian query retrieves and verifies against English evidence; a third-party WASM adapter runs with no filesystem access; `bench verify` numbers published. |
 
 Rough effort: Phases 1-4 about two to three focused weeks; Phase 5 another
-two, most of it in evaluation data rather than code.
+two, most of it in evaluation data rather than code. Phases 7-12 are each one
+to three weeks and can be reordered freely after Phase 7, which the rest
+depend on for test fixtures.
 
 ## 9. Risks and how to hold them
 
@@ -350,6 +490,9 @@ two, most of it in evaluation data rather than code.
 | Model downloads (90-280 MB) are a surprise for a "no API key" project. | Lazy download on first `nli` use, clear log line, `OFFLINE=1` refuses, `lexical` always works. |
 | OpenAlex credit budgets could throttle keyless users. | Read `X-RateLimit-Credits-Used`, surface in `get_scholar_auth_status`, recommend the free key in README. |
 | Behaviour drift during "improvements". | Legacy algorithms kept behind flags; golden vectors never regenerated silently. |
+| A prompt in `setup` corrupts an MCP stdio stream. | `setup` runs only on an interactive TTY and never from the `mcp` subcommand; all answers have flag and env equivalents. |
+| Users assume a port is open because the Python version had `serve`. | HTTP is off until `setup` or `--http`; `serve` prints the hint and exits non-zero. |
+| Phases 7-12 balloon the binary and build time. | Each lives behind its own Cargo feature; the default build stays stdio + lexical + bundled SQLite. |
 
 ## 10. Open decisions for Raouf
 
@@ -361,6 +504,10 @@ two, most of it in evaluation data rather than code.
    platform glue, not engine.
 3. Drop Scholar Gateway adapter? It is the only paid source and the mock
    fixtures add surface area. Recommendation: keep behind a feature flag.
+4. Should `setup` also offer to download the semantic models up front, or
+   leave that to first use? Recommendation: offer it, default No.
+5. Which Phase 7-12 item gets first dibs after cut-over? Recommendation:
+   Phase 7 (replayable runs) because everything else tests against it.
 
 ## References (Harvard, Australian style)
 

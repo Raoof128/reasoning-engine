@@ -171,9 +171,10 @@ language with the citation style still correct.
 
 ## 3. Tier B: quality of life that compounds
 
-- **Embedded audit UI.** `axum` + `askama` 0.16.1 serving a localhost page
-  from the same binary: the branch tree, kappa over rounds, the evidence
-  graph, every sanitizer removal. No JavaScript build step.
+- **Embedded audit UI (opt-in).** `axum` + `askama` 0.16.1 serving a
+  localhost page from the same binary: the branch tree, kappa over rounds,
+  the evidence graph, every sanitizer removal. No JavaScript build step.
+  Off by default; `setup` asks before anything listens on a port.
 - **Cross-session evidence memory.** Every snippet ever retrieved is embedded
   into `usearch`; `recall_memory_tool` returns "you found this paper on 3
   October for a related question" with the old verification status.
@@ -196,7 +197,16 @@ language with the citation style still correct.
   verify` subcommand and publish the numbers in the README. Accuracy claims
   about an accuracy engine should themselves be verifiable.
 
+## 3.1 Local host is optional
+
+The audit UI, the HTTP MCP server and the tunnel helper are all behind the
+`local-host` Cargo feature and are off until `reasoning-engine setup` asks
+and the user says yes. See `rust-rewrite-plan-2026.md` section 3.3 for the
+wizard and the rules that keep it away from stdio.
+
 ## 4. How the tiers stack
+
+Every item above now has a phase number in the plan (phases 7-12).
 
 ```
 Rust port (gauntlet, phases 1-6)
