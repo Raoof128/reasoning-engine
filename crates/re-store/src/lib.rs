@@ -9,7 +9,9 @@
 
 mod conn;
 mod error;
+pub mod memory;
 pub mod schema;
+pub mod sessions;
 
 pub use conn::Store;
 pub use error::StoreError;

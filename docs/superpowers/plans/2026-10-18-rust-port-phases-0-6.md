@@ -6,7 +6,7 @@
 
 **Architecture:** Cargo workspace with `re-core` (pure algorithms), `re-store` (SQLite), `re-retrieval` (HTTP adapters + aggregator), `re-verify` (claims, gate, run packs), `re-mcp` (rmcp server), `re-ui` (feature `local-host`), `re-cli` (binary). Python stays in `src/` untouched until Task 24.
 
-**Tech Stack:** Rust stable (edition 2024, `rust-version = "1.88"`), rmcp 3.5.1, tokio 1.53, reqwest 0.13 (`rustls`), rusqlite 0.40 (`bundled`), serde/serde_json (`preserve_order`), schemars 1.2, indexmap, regex, proptest, insta, criterion, cargo-nextest, cargo-deny, wiremock. Python 3.12+ with `.venv` for golden generation and the parity harness.
+**Tech Stack:** Rust stable (edition 2024, `rust-version = "1.89"`; optional `semantic` needs 1.92, `wasm-adapters` 1.97), rmcp 3.5.1, tokio 1.53, reqwest 0.13 (`rustls`), rusqlite 0.40 (`bundled`), serde/serde_json (`preserve_order`), schemars 1.2, indexmap, regex, proptest, insta, criterion, cargo-nextest, cargo-deny, wiremock. Python 3.12+ with `.venv` for golden generation and the parity harness.
 
 ---
 
@@ -19,7 +19,7 @@
 - **No secrets, no model weights, no `runs/` output** in git. `.gitignore` gets `target/`, `models/`, `*.onnx`.
 - **Decision defaults** come from `rust-rewrite-plan-2026.md` section 10. Do not ask; record the default used in the commit body.
 - **Stop and report** only if: a golden vector cannot be matched after implementing the listed parity hazard fix, a crate pinned in the plan fails to build on the current stable, or the parity harness shows a difference that is not an ID, timestamp or float formatting artefact.
-- **Environment prerequisites:** `cargo >= 1.88` (`rustup update stable`), `cargo install cargo-nextest cargo-deny cargo-insta`, `python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"`.
+- **Environment prerequisites:** `cargo >= 1.89` (`rustup update stable`), `cargo install cargo-nextest cargo-deny cargo-insta`, `python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"`.
 
 ---
 

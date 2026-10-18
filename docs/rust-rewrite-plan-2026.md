@@ -8,7 +8,8 @@ the accuracy ceilings the Python MVP documents about itself.
 ## 1. TL;DR
 
 - **Do it as a 7-crate Cargo workspace** on Rust stable (1.99 today, MSRV
-  1.88 set by rmcp) / edition 2024, using the official `rmcp` 3.5.1 SDK (which
+  1.89 for the default build, set by uuid; `semantic` needs 1.92 for ort and
+  `wasm-adapters` needs 1.97 for wasmtime) / edition 2024, using the official `rmcp` 3.5.1 SDK (which
   implements MCP `2026-07-28`), `tokio`, `reqwest`, `rusqlite` (bundled, WAL),
   `schemars` for tool schemas.
 - **Speed wins are real but specific.** Hypothesis to be measured in Phase 1
@@ -127,7 +128,7 @@ Source: official changelog (modelcontextprotocol.io/specification/2026-07-28/cha
 ## 3. Target architecture
 
 ```
-reasoning-engine/            (Cargo workspace, edition 2024, MSRV 1.88 for rmcp)
+reasoning-engine/            (Cargo workspace, edition 2024, MSRV 1.89)
   crates/
     re-core/        pure, no I/O:  difficulty, dora, ucb, sanitizer, research
                     planning, claim typing, quality gate, newtypes (Score, Depth)
@@ -596,6 +597,8 @@ Line-by-line review of this plan. Each row was fixed in place.
 | *Phase 1 execution:* "sanitize output matches no injection pattern" is false; nested payloads bypass the live Python sanitizer. | Property corrected; fixed in both implementations (section 7). |
 | *Phase 1 execution:* Python angle planning is hash-seed dependent. | Deterministic port plus hazard row. |
 | *Phase 1 execution:* Task 7 listed `auto` as a research mode; it is a profile value. | Golden uses real modes plus error vectors. |
+| *Phase 2 execution:* MSRV 1.88 was wrong; `uuid` 1.28 needs 1.89, `ort` 1.92, `wasmtime` 1.97. | Default-build MSRV 1.89, optional floors documented, CI checks 1.89. |
+| *Phase 2 execution:* the plan put record types in `re-verify`, creating a `re-store`/`re-verify` cycle. | New `re-model` crate. |
 | No list of Python-vs-Rust parity traps. | Section 11 added, with verified examples. |
 
 ## References (Harvard, Australian style)

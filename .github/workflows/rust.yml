@@ -48,11 +48,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.88
+      - uses: dtolnay/rust-toolchain@1.89
       - uses: Swatinem/rust-cache@v2
-      # Explicit +1.88: rust-toolchain.toml would otherwise override to stable.
+      # Explicit +1.89: rust-toolchain.toml would otherwise override to stable.
       - name: Check on MSRV
-        run: cargo +1.88 check --workspace --all-targets
+        run: cargo +1.89 check --workspace --all-targets
 
   deny:
     runs-on: ubuntu-latest

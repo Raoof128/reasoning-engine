@@ -40,6 +40,98 @@ fn fresh_rust_database_has_python_schema() {
     assert_eq!(schema_of(&rs_db), schema_of(&py_db));
 }
 
+#[test]
+fn reads_python_sessions_and_branches_exactly() {
+    use re_store::sessions::{BranchRow, SessionRow};
+
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("python.db");
+    let manifest = make_python_db(&db);
+    let store = Store::open(&db).unwrap();
+
+    let session_id = manifest["session_id"].as_str().unwrap();
+    let expected: SessionRow =
+        serde_json::from_value(manifest["rows"]["sessions"][0].clone()).unwrap();
+    assert_eq!(store.get_session(session_id).unwrap(), expected);
+
+    for row in manifest["rows"]["branches"].as_array().unwrap() {
+        let expected: BranchRow = serde_json::from_value(row.clone()).unwrap();
+        assert_eq!(store.get_branch(&expected.id).unwrap(), expected);
+    }
+    let recalled = store.recall_memory("how do prms work", 5).unwrap();
+    assert_eq!(recalled.len(), 1);
+    assert_eq!(recalled[0].id, manifest["memory_id"].as_str().unwrap());
+}
+
+#[test]
+fn writes_the_same_bytes_python_writes() {
+    let dir = tempfile::tempdir().unwrap();
+    let py_db = dir.path().join("python.db");
+    let manifest = make_python_db(&py_db);
+    let rows = &manifest["rows"];
+    let store = Store::open(dir.path().join("rust.db")).unwrap();
+
+    // Same query: same difficulty, strategy and budget columns.
+    let session = store
+        .create_session("How do PRMs interact with MCTS for test-time compute scaling?")
+        .unwrap();
+    let ours = serde_json::to_value(store.get_session(&session.id).unwrap()).unwrap();
+    for column in [
+        "difficulty",
+        "strategy",
+        "budget_total_branches",
+        "budget_max_depth",
+        "budget_max_steps",
+        "budget_tokens_per_branch",
+    ] {
+        assert_eq!(ours[column], rows["sessions"][0][column], "{column}");
+    }
+
+    // Same trace input (non-ASCII, astral emoji, markup): same stored JSON text.
+    let trace = [
+        "Step 1: caf\u{e9} <b>bold</b>".to_string(),
+        "Step 2: \u{646}\u{62a}\u{6cc}\u{62c}\u{647} \u{1f600}".to_string(),
+    ];
+    let branch = store
+        .register_branch(&session.id, &trace, &[], None, 0)
+        .unwrap();
+    assert_eq!(
+        store.get_branch(&branch.id).unwrap().trace,
+        rows["branches"][0]["trace"].as_str().unwrap()
+    );
+
+    // Same memory input: same stored learnings and tags text.
+    store
+        .save_memory(
+            &session.id,
+            "How do PRMs work?",
+            &[
+                "PRMs score individual steps".into(),
+                "Dense supervision \u{2011} beats ORM".into(),
+            ],
+            &["prm".into(), "reward-models".into()],
+        )
+        .unwrap();
+    let conn = rusqlite::Connection::open(store.path()).unwrap();
+    let (learnings, tags): (String, String) = conn
+        .query_row(
+            "SELECT key_learnings, domain_tags FROM episodic_memory",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(
+        learnings,
+        rows["episodic_memory"][0]["key_learnings"]
+            .as_str()
+            .unwrap()
+    );
+    assert_eq!(
+        tags,
+        rows["episodic_memory"][0]["domain_tags"].as_str().unwrap()
+    );
+}
+
 // Mirrors tests/test_db.py.
 
 #[test]
