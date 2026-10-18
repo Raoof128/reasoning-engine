@@ -22,7 +22,8 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      # Keep in step with rust-toolchain.toml.
+      - uses: dtolnay/rust-toolchain@1.99.1
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2

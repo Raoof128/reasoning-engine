@@ -144,7 +144,7 @@ mod tests {
             split_sentences("  A b. C!D?  E.\n\nF  "),
             ["A b.", "C!D?", "E.", "F"]
         );
-        assert!(split_sentences("   ").is_empty());
+        assert_eq!(split_sentences("   "), Vec::<&str>::new());
     }
 
     #[test]
