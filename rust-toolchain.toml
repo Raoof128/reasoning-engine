@@ -1,3 +1,5 @@
+# Pinned so local runs and CI use the same rustc, clippy and rustfmt.
+# A floating "stable" let CI pick up new clippy lints that local runs missed.
 [toolchain]
-channel = "stable"
+channel = "1.99.1"
 components = ["rustfmt", "clippy"]
