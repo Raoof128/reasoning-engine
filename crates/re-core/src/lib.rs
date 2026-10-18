@@ -19,3 +19,4 @@ pub mod profiles;
 pub mod sanitize;
 pub mod types;
 pub mod ucb;
+pub mod validation;

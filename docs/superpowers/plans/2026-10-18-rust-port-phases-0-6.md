@@ -128,7 +128,7 @@ Steps:
 
 Steps:
 
-- [ ] Extend the generator with sections `plan_research_angles` (6 queries x `max_angles` 1, 3, 6), `evidence_gap_questions` (3 claim lists), `classify_research_mode` and `select_profile` (10 queries x modes `standard`, `high_stakes`, `auto`), `claim_type` (12 sentences), `extract_claims_text` (2 drafts, only `text`, `claim_type`, `importance`, `risk_level`, `requires_citation`), `quality_gate` (4 claim/verification combinations, `checked_at` removed). Regenerate and commit generator plus JSON together: `test(golden): extend vectors for planning, profiles, claims and gate`.
+- [ ] Extend the generator with sections `plan_research_angles` (6 queries x `max_angles` 1, 3, 6), `evidence_gap_questions` (3 claim lists), `classify_research_mode` (10 queries x modes `standard`, `quick`, `high_stakes`) and `select_profile` (10 queries x `auto`, `law`), error vectors for unknown modes and profiles, `claim_type` (12 sentences), `extract_claims_text` (2 drafts, only `text`, `claim_type`, `importance`, `risk_level`, `requires_citation`), `quality_gate` (4 claim/verification combinations, `checked_at` removed). Regenerate and commit generator plus JSON together: `test(golden): extend vectors for planning, profiles, claims and gate`.
 - [ ] Port `research.py` (`ANGLE_LIBRARY`, `DOMAIN_HINTS`, `QUESTION_STARTERS`, `unique_ordered`) to `planning.rs`; golden tests.
 - [ ] Port `profiles.py` (all ten `ResearchProfile`s, `PROFILE_KEYWORDS`, `select_profile`, `classify_research_mode`) to `profiles.rs`; golden tests.
 - [ ] Port `_claim_type` and the sentence split (hazard table: no lookbehind) to `claims.rs`; golden tests.

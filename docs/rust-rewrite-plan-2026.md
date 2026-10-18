@@ -566,6 +566,7 @@ Verified against the Python code and `golden_vectors.json` on 2026-10-18.
 | HTML entities | `html.unescape` decodes named, decimal and hex references with the HTML5 table, legacy names without `;` (`&copy`), `&#0;` to U+FFFD, and the Windows-1252 remap (`&#x80;` to `€`). | `html-escape` gets all three wrong (found in Phase 1 Task 6). Use `re_core::html_unescape`, an exact port of the CPython algorithm with tables generated from CPython by `scripts/gen_html_entities.py`. |
 | Regex semantics | Python `re` on `str`: `\b`, `\s`, `\w` are Unicode-aware; `re.DOTALL` on script/style patterns. | `regex` crate defaults are Unicode-aware; use `(?s)` for the script/style patterns; `[​-‏]` becomes `[\x{200b}-\x{200f}]`. |
 | Sanitize twice | Not idempotent (section 5). | Call once per field; keep the behaviour. |
+| Set iteration | `plan_research_angles` iterates `set(words)`, so with two or more domain hints the angle order depends on `PYTHONHASHSEED` (22 orders across 64 seeds for one query; found in Phase 1 Task 7). | First-occurrence order. Golden expected values come from Python's own algorithm with `set` swapped for an insertion-ordered dict; the generator asserts this is a no-op wherever Python is stable. Fixing the Python side to match is a one-line change worth making before cut-over. |
 | Claim IDs | `claim_0001` zero-padded, sentence split on `(?<=[.!?])\s+` (lookbehind). | `regex` has no lookbehind: split on `[.!?]\s+` while keeping the terminator, then `trim_end_matches(['.', '!', '?'])`. |
 | Timestamps and UUIDs | `utc_now()` ISO-8601 with `+00:00`; `uuid4`. | `time` or `chrono` formatted identically; parity harness ignores these fields by name. |
 | JSON output | `json.dumps(..., ensure_ascii=False)`, `sort_keys=True` in run packs. | `serde_json` with sorted keys for run-pack files (BTreeMap or `preserve_order` off there) so hashes match. |
@@ -592,7 +593,9 @@ Line-by-line review of this plan. Each row was fixed in place.
 | Open decisions would block an autonomous agent. | Converted to defaults with an override path. |
 | *Phase 1 execution:* serde_json misparsed a golden float by one ULP. | `float_roundtrip` feature; hazard row added. |
 | *Phase 1 execution:* `html-escape` is not `html.unescape`. | Exact CPython port with generated tables; crate dropped. |
-| *Phase 1 execution:* "sanitize output matches no injection pattern" is false; nested payloads bypass the live Python sanitizer. | Property corrected; fix specified in section 7. |
+| *Phase 1 execution:* "sanitize output matches no injection pattern" is false; nested payloads bypass the live Python sanitizer. | Property corrected; fixed in both implementations (section 7). |
+| *Phase 1 execution:* Python angle planning is hash-seed dependent. | Deterministic port plus hazard row. |
+| *Phase 1 execution:* Task 7 listed `auto` as a research mode; it is a profile value. | Golden uses real modes plus error vectors. |
 | No list of Python-vs-Rust parity traps. | Section 11 added, with verified examples. |
 
 ## References (Harvard, Australian style)

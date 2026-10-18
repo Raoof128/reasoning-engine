@@ -21,6 +21,8 @@ allow = [
     "Zlib",
 ]
 confidence-threshold = 0.9
+# ISC, MPL-2.0 and friends are needed by crates later phases add.
+unused-allowed-license = "allow"
 
 [bans]
 multiple-versions = "warn"

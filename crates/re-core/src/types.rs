@@ -13,6 +13,26 @@ pub enum CoreError {
         /// The rejected value.
         value: f64,
     },
+    /// A required text field was empty after trimming.
+    #[error("{field} must not be empty")]
+    EmptyText {
+        /// Name of the offending field, e.g. `query` or `claims[1]`.
+        field: String,
+    },
+    /// A text field exceeded its character limit after trimming.
+    #[error("{field} exceeds {max_chars} characters")]
+    TextTooLong {
+        /// Name of the offending field.
+        field: String,
+        /// The limit, in characters.
+        max_chars: usize,
+    },
+    /// A research mode outside the supported set.
+    #[error("unknown research mode: {0}")]
+    UnknownMode(String),
+    /// A profile name outside the supported set.
+    #[error("unknown profile: {0}")]
+    UnknownProfile(String),
 }
 
 /// A score guaranteed to be finite and within `[0, 1]`.
