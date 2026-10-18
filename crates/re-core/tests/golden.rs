@@ -281,3 +281,38 @@ mod task7 {
         }
     }
 }
+
+mod pyjson {
+    use super::{as_str, section};
+    use re_core::hashing::stable_json_hash;
+    use re_core::pyjson::{DumpOptions, dumps};
+
+    #[test]
+    fn dumps_matches_python_byte_for_byte() {
+        let cases = section("pyjson");
+        assert_eq!(cases.len(), 37);
+        for case in cases {
+            let v = &case["value"];
+            assert_eq!(
+                dumps(v, &DumpOptions::sorted()),
+                as_str(&case["default"]),
+                "{v}"
+            );
+            assert_eq!(
+                dumps(v, &DumpOptions::compact_sorted()),
+                as_str(&case["compact"]),
+                "{v}"
+            );
+            assert_eq!(
+                dumps(v, &DumpOptions::indented_sorted(2)),
+                as_str(&case["indent2"]),
+                "{v}"
+            );
+            assert_eq!(
+                stable_json_hash(v),
+                as_str(&case["stable_json_hash"]),
+                "{v}"
+            );
+        }
+    }
+}

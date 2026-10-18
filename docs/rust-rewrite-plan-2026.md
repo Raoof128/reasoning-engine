@@ -568,8 +568,8 @@ Verified against the Python code and `golden_vectors.json` on 2026-10-18.
 | Sanitize twice | Not idempotent (section 5). | Call once per field; keep the behaviour. |
 | Set iteration | `plan_research_angles` iterates `set(words)`, so with two or more domain hints the angle order depends on `PYTHONHASHSEED` (22 orders across 64 seeds for one query; found in Phase 1 Task 7). | First-occurrence order. Golden expected values come from Python's own algorithm with `set` swapped for an insertion-ordered dict; the generator asserts this is a no-op wherever Python is stable. Fixing the Python side to match is a one-line change worth making before cut-over. |
 | Claim IDs | `claim_0001` zero-padded, sentence split on `(?<=[.!?])\s+` (lookbehind). | `regex` has no lookbehind: split on `[.!?]\s+` while keeping the terminator, then `trim_end_matches(['.', '!', '?'])`. |
-| Timestamps and UUIDs | `utc_now()` ISO-8601 with `+00:00`; `uuid4`. | `time` or `chrono` formatted identically; parity harness ignores these fields by name. |
-| JSON output | `json.dumps(..., ensure_ascii=False)`, `sort_keys=True` in run packs. | `serde_json` with sorted keys for run-pack files (BTreeMap or `preserve_order` off there) so hashes match. |
+| Timestamps and UUIDs | `utc_now()` is second-precision ISO-8601 with a `Z` suffix (`2026-10-18T22:34:00Z`); IDs are `uuid4`. | `re_model::clock::utc_now` formats identically; parity harness ignores these fields by name. |
+| JSON text | Everything hashed or stored (`stable_json_hash`, DB payloads, run-pack files) uses Python's default `ensure_ascii=True`, so non-ASCII becomes `\uXXXX` with surrogate pairs. Floats use `float.__repr__` (`1e-05`, `1e+16`). Only MCP tool responses use `ensure_ascii=False`. | `serde_json` writes `1e-5`, `1e16` and raw UTF-8, so it cannot be used for these bytes. Use `re_core::pyjson::dumps`, checked byte-for-byte against Python in four modes (found in Phase 2). |
 
 ## 12. Gauntlet log (2026-10-18)
 

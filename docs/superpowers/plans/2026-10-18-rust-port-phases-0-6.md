@@ -186,7 +186,7 @@ Steps:
 
 Steps:
 
-- [ ] Port `models.py` record types (`ResearchRun`, `EvidenceRecord`, `EvidenceGap`, `ClaimRecord`, `VerificationRecord`, `utc_now`, `stable_json_hash` with sorted keys and `ensure_ascii=False` semantics) to `re-verify/src/models.rs`.
+- [ ] Port `models.py` record types (`ResearchRun`, `EvidenceRecord`, `EvidenceGap`, `ClaimRecord`, `VerificationRecord`, `utc_now`) to a new `re-model` crate, and `stable_json_hash` (sorted keys, compact separators, Python's default `ensure_ascii=True`) to `re_core::hashing`. *Changed in execution:* the original target `re-verify/src/models.rs` would make `re-store` depend on `re-verify` while Task 15 makes `re-verify` depend on `re-store`, a crate cycle.
 - [ ] Port `store.py`: `save_run`, `save_evidence` (snippet hash), `save_gap`, `save_claim`, `save_verification`, `save_gate`, `append_provenance`, `list_*` ordered by `rowid`.
 - [ ] Re-express `tests/test_verifiable_store.py` and `tests/test_verifiable_models.py`.
 - [ ] Cross-check `stable_json_hash` against three hashes produced by the Python function on the same inputs (add them to the generator in this task).
