@@ -549,6 +549,7 @@ Verified against the Python code and `golden_vectors.json` on 2026-10-18.
 | Tokenisation | `query.lower().split()` keeps punctuation attached: `"implications?"` does not match the keyword `implications` (difficulty 0.0479 vs 0.0542, verified). | `to_lowercase().split_whitespace()`, no punctuation stripping. |
 | Multi-word keywords | Matched by substring on the full lowercased query (`"beam search" in query_lower`). | Same substring check; do not tokenise. |
 | Float arithmetic | `0.25*a + 0.35*b + 0.25*c + 0.15*d` evaluated left to right in f64. | Identical expression order; no FMA; `f64` only. |
+| JSON float parsing | `json.loads` is correctly rounded. | Enable `serde_json` feature `float_roundtrip`. Without it serde_json read `0.24062499999999998` as `0.240625` (found in Phase 1 Task 3). |
 | `round(x, 4)` | Python rounds the exact binary value, ties to even. | Implement `py_round` and test it against every `relevance_score` golden vector; add tie cases to the generator if any disagree. |
 | `float("inf")` | UCB returns infinity for unvisited nodes; `max(total_visits, 1)` guards `log(0)`. | `f64::INFINITY`; the golden file stores the infinity case as a boolean because JSON has no infinity. |
 | HTML entities | `html.unescape` decodes named, decimal and hex references, HTML5 table. | `html_escape::decode_html_entities`; cross-check the eight sanitizer vectors. |

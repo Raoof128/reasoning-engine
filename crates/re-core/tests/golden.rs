@@ -4,7 +4,27 @@
 
 mod common;
 
-use common::golden;
+use common::{golden, section};
+use re_core::difficulty::estimate_difficulty;
+
+fn as_f64(v: &serde_json::Value) -> f64 {
+    v.as_f64()
+        .unwrap_or_else(|| panic!("expected number, got {v}"))
+}
+
+fn as_str(v: &serde_json::Value) -> &str {
+    v.as_str()
+        .unwrap_or_else(|| panic!("expected string, got {v}"))
+}
+
+#[test]
+fn difficulty_matches_python() {
+    for case in section("difficulty") {
+        let query = as_str(&case["query"]);
+        let expected = as_f64(&case["difficulty"]);
+        assert_eq!(estimate_difficulty(query), expected, "query: {query:?}");
+    }
+}
 
 #[test]
 fn golden_file_has_expected_sections() {

@@ -15,7 +15,9 @@ repository = "https://github.com/Raoof128/reasoning-engine"
 [workspace.dependencies]
 # Core
 serde = { version = "=1.0.229", features = ["derive"] }
-serde_json = { version = "=1.0.154", features = ["preserve_order"] }
+# float_roundtrip: the default parser is not correctly rounded and reads
+# 0.24062499999999998 as 0.240625, which breaks bit-exact golden parity.
+serde_json = { version = "=1.0.154", features = ["preserve_order", "float_roundtrip"] }
 indexmap = { version = "=2.14.2", features = ["serde"] }
 regex = "=1.13.1"
 html-escape = "=0.3.0"
