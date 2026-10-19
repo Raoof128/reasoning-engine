@@ -168,6 +168,14 @@ impl Config {
         env_path("REASONING_ENGINE_RUNS_DIR").unwrap_or_else(|| self.data_dir().join("runs"))
     }
 
+    /// `REASONING_ENGINE_SIGNING_KEY`, or `<data_dir>/signing.key`.
+    #[cfg(feature = "trust")]
+    #[must_use]
+    pub fn signing_key_path(&self) -> PathBuf {
+        env_path("REASONING_ENGINE_SIGNING_KEY")
+            .unwrap_or_else(|| self.data_dir().join("signing.key"))
+    }
+
     /// `REASONING_ENGINE_MODELS_DIR`, or `<data_dir>/models`.
     #[must_use]
     pub fn models_dir(&self) -> PathBuf {

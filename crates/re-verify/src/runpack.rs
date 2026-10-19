@@ -69,6 +69,26 @@ pub struct RunPackInput<'a> {
     pub verifier_models: &'a [String],
     /// What a recorded run keeps for `replay`, if it was recorded.
     pub replay: Option<&'a ReplayFiles>,
+    /// Signs `run_pack_hash`, if signing is configured.
+    pub signer: Option<&'a dyn AttestationSigner>,
+}
+
+/// Something that signs a run pack's `run_pack_hash` (plan Phase 7). The
+/// Ed25519 implementation lives in [`crate::signing`] (`trust` feature);
+/// without a signer the attestation keeps Python's `null` signature.
+pub trait AttestationSigner: Send + Sync {
+    /// `signature_algorithm`, e.g. `ed25519`.
+    fn algorithm(&self) -> &'static str;
+    /// The public key, base64.
+    fn public_key(&self) -> String;
+    /// The signature over `message`, base64.
+    fn sign(&self, message: &[u8]) -> String;
+}
+
+impl std::fmt::Debug for dyn AttestationSigner + '_ {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} signer {}", self.algorithm(), self.public_key())
+    }
 }
 
 /// The extra files of a recorded run (plan Phase 7): `replay.json` holds
@@ -242,6 +262,15 @@ pub fn export_run_pack(base_dir: &Path, input: &RunPackInput<'_>) -> io::Result<
         attestation["verifier"] =
             json!({"method": input.verifier_method, "models": input.verifier_models});
     }
+    if let Some(signer) = input.signer {
+        let hash = attestation["run_pack_hash"]
+            .as_str()
+            .unwrap_or_default()
+            .to_string();
+        attestation["signature"] = signer.sign(hash.as_bytes()).into();
+        attestation["signature_algorithm"] = signer.algorithm().into();
+        attestation["public_key"] = signer.public_key().into();
+    }
     if let Some(replay) = input.replay {
         attestation["replay"] = Value::Object(write_replay_files(&output, replay)?);
     }
@@ -290,6 +319,20 @@ fn replay_path(dir: &Path, name: &str) -> Option<PathBuf> {
     }
     let file = name.strip_prefix(RECORDINGS_DIR)?.strip_prefix('/')?;
     is_recording_name(file).then(|| dir.join(RECORDINGS_DIR).join(file))
+}
+
+/// `run_pack_hash` from a pack's `attestation.json`.
+///
+/// # Errors
+/// An unreadable or malformed attestation.
+pub fn read_run_pack_hash(run_pack_dir: &Path) -> io::Result<String> {
+    let text = fs::read_to_string(run_pack_dir.join("attestation.json"))?;
+    let attestation: Value = serde_json::from_str(&text).map_err(io::Error::other)?;
+    attestation
+        .get("run_pack_hash")
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .ok_or_else(|| io::Error::other("attestation has no run_pack_hash"))
 }
 
 /// A plain file name: no separators, no `..`, nothing absolute.

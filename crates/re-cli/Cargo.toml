@@ -23,7 +23,7 @@ semantic = ["re-verify/semantic"]
 scholar-gateway = ["re-retrieval/scholar-gateway"]
 # Trust and reproducibility (plan Phase 7): `research --record` and
 # `replay`.
-trust = []
+trust = ["re-verify/trust"]
 
 [dependencies]
 tokio-util = { workspace = true, optional = true }

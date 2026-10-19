@@ -14,8 +14,13 @@ default = []
 # Hybrid (BM25 + embeddings) and NLI verifier tiers. Needs Rust 1.92 (ort)
 # and downloads ONNX models on first use unless REASONING_ENGINE_OFFLINE=1.
 semantic = ["dep:ort", "dep:tokenizers", "dep:reqwest", "dep:sha2"]
+# Ed25519-signed attestations and the transparency-log check (plan Phase 7).
+trust = ["dep:ed25519-dalek", "dep:getrandom", "dep:base64"]
 
 [dependencies]
+ed25519-dalek = { workspace = true, optional = true }
+getrandom = { workspace = true, optional = true }
+base64 = { workspace = true, optional = true }
 ort = { workspace = true, optional = true }
 tokenizers = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }

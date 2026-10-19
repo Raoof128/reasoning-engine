@@ -15,6 +15,8 @@ pub mod nli;
 pub mod replay;
 pub mod runpack;
 pub mod service;
+#[cfg(feature = "trust")]
+pub mod signing;
 pub mod verify;
 
 pub use error::VerifyError;

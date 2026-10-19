@@ -15,6 +15,7 @@ pub mod memory_fts;
 pub mod research;
 pub mod schema;
 pub mod sessions;
+pub mod transparency;
 
 pub use conn::Store;
 pub use error::StoreError;

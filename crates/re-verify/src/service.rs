@@ -18,7 +18,9 @@ use serde_json::{Map, Value, json};
 use crate::claims::extract_claims;
 use crate::error::VerifyError;
 use crate::gate::gate_records;
-use crate::runpack::{ReplayFiles, RunPackInput, export_run_pack, verify_run_pack_attestation};
+use crate::runpack::{
+    AttestationSigner, ReplayFiles, RunPackInput, export_run_pack, verify_run_pack_attestation,
+};
 use crate::verify::{Verifier, load_verifier};
 
 /// `REASONING_ENGINE_MODELS_DIR`, or `~/.reasoning-engine/models`.
@@ -96,6 +98,7 @@ pub struct VerifiableResearchService {
     models_dir: PathBuf,
     offline: bool,
     recorder: Option<Recorder>,
+    signer: Option<Arc<dyn AttestationSigner>>,
 }
 
 /// Print the high-stakes fallback warning once per process.
@@ -125,7 +128,16 @@ impl VerifiableResearchService {
             models_dir: default_models_dir(),
             offline: std::env::var("REASONING_ENGINE_OFFLINE").is_ok_and(|v| v == "1"),
             recorder: None,
+            signer: None,
         }
+    }
+
+    /// Sign every exported run pack with `signer` and append it to the
+    /// database's transparency log.
+    #[must_use]
+    pub fn with_signer(mut self, signer: Arc<dyn AttestationSigner>) -> Self {
+        self.signer = Some(signer);
+        self
     }
 
     /// Record pipeline runs for replay: their run packs gain `replay.json`
@@ -368,8 +380,13 @@ impl VerifiableResearchService {
                 verifier_method: verifier.method(),
                 verifier_models: &verifier.models(),
                 replay: replay.as_ref(),
+                signer: self.signer.as_deref(),
             },
         )?;
+        if self.signer.is_some() {
+            let hash = crate::runpack::read_run_pack_hash(&output)?;
+            self.store.append_transparency(&run.run_id, &hash)?;
+        }
         let attestation = verify_run_pack_attestation(&output);
         let snippets: Vec<&str> = evidence.iter().map(|e| e.snippet.as_str()).collect();
         Ok(json!({

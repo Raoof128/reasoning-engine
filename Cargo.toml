@@ -57,6 +57,7 @@ tantivy = "=0.27.0"
 # Beast mode, phases 7-12 (feature-gated in their crates)
 hayagriva = "=0.10.1"
 ed25519-dalek = "=3.0.0"
+getrandom = "=0.3.4"
 nom = "=8.0.0"
 petgraph = "=0.8.3"
 usearch = "=2.26.5"
