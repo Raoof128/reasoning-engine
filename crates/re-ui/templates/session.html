@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Session {{ session.short_id }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="/ui/">Overview</a> / session <code>{{ session.short_id }}</code></p>
+<h1>{{ session.query }}</h1>
+<dl class="facts">
+  <div><dt>Status</dt><dd>{{ session.status }}</dd></div>
+  <div><dt>Difficulty</dt><dd>{{ session.difficulty }}</dd></div>
+  <div><dt>Strategy</dt><dd>{{ session.strategy }}</dd></div>
+  <div><dt>Steps left</dt><dd>{{ session.steps }}</dd></div>
+  <div><dt>Branches</dt><dd>{{ branches.len() }}</dd></div>
+  <div><dt>Created</dt><dd>{{ session.created_at }}</dd></div>
+</dl>
+
+<section>
+  <h2>Branch tree</h2>
+  {% if tree.nodes.is_empty() %}
+  <p class="empty">No branches registered.</p>
+  {% else %}
+  <ul class="legend">
+    <li><i class="dot active"></i>active</li><li><i class="dot reflecting"></i>reflecting</li>
+    <li><i class="dot completed"></i>completed</li><li><i class="dot pruned"></i>pruned</li>
+  </ul>
+  <div class="scroll"><svg class="tree" role="img" aria-label="Branch tree" width="{{ tree.width }}" height="{{ tree.height }}" viewBox="0 0 {{ tree.width }} {{ tree.height }}">
+    {% for d in tree.edges %}<path class="edge" d="{{ d }}"/>{% endfor %}
+    {% for n in tree.nodes %}
+    <g class="node {{ n.status }}">
+      <title>{{ n.short_id }}: q={{ n.score }} ({{ n.status }})</title>
+      <circle cx="{{ n.x }}" cy="{{ n.y }}" r="11"/>
+      <text class="score" x="{{ n.label_x }}" y="{{ n.y }}" dy="-2">{{ n.score }}</text>
+      <text class="sub" x="{{ n.label_x }}" y="{{ n.y }}" dy="12">{{ n.short_id }}</text>
+    </g>
+    {% endfor %}
+  </svg></div>
+  {% endif %}
+</section>
+
+{% if !chart.bars.is_empty() %}
+<section>
+  <h2>Scores by branch <small>creation order, q_score 0–1</small></h2>
+  <div class="scroll"><svg class="chart" role="img" aria-label="Score per branch" width="{{ chart.width }}" height="{{ chart.height }}" viewBox="0 0 {{ chart.width }} {{ chart.height }}">
+    <line class="grid" x1="0" x2="{{ chart.width }}" y1="{{ chart.top }}" y2="{{ chart.top }}"/>
+    <text class="axis" x="2" y="{{ chart.top }}" dy="-4">1.0</text>
+    <line class="baseline" x1="0" x2="{{ chart.width }}" y1="{{ chart.base }}" y2="{{ chart.base }}"/>
+    {% for b in chart.bars %}
+    <g class="bar {{ b.status }}">
+      <title>#{{ b.index }} {{ b.short_id }}: {{ b.score }}</title>
+      <rect x="{{ b.x }}" y="{{ b.y }}" width="26" height="{{ b.height }}" rx="3"/>
+      <text class="axis" x="{{ b.label_x }}" y="{{ chart.base }}" dy="16" text-anchor="middle">{{ b.index }}</text>
+    </g>
+    {% endfor %}
+  </svg></div>
+</section>
+{% endif %}
+
+<section>
+  <h2>Branches</h2>
+  {% if branches.is_empty() %}<p class="empty">None.</p>{% else %}
+  <div class="scroll"><table>
+    <thead><tr><th>Branch</th><th>Parent</th><th class="num">Depth</th><th class="num">q</th><th class="num">Adv.</th><th class="num">Conf.</th><th class="num">Visits</th><th>Status</th><th>Trace and critique</th></tr></thead>
+    <tbody>
+    {% for b in branches %}
+    <tr>
+      <td><code>{{ b.short_id }}</code></td>
+      <td><code>{{ b.parent }}</code></td>
+      <td class="num">{{ b.depth }}</td>
+      <td class="num">{{ b.score }}</td>
+      <td class="num">{{ b.advantage }}</td>
+      <td class="num">{{ b.confidence }}</td>
+      <td class="num">{{ b.visits }}</td>
+      <td><span class="pill {{ b.status }}">{{ b.status_text }}</span></td>
+      <td class="wide">
+        {% if !b.steps.is_empty() %}<details><summary>{{ b.steps.len() }} step{% if b.steps.len() != 1 %}s{% endif %}</summary><ol>{% for step in b.steps %}<li>{{ step }}</li>{% endfor %}</ol></details>{% endif %}
+        {% if !b.critique.is_empty() %}<p class="critique">{{ b.critique }}</p>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Reflections</h2>
+  {% if reflections.is_empty() %}<p class="empty">No reflections recorded.</p>{% else %}
+  <div class="scroll"><table>
+    <thead><tr><th>Branch</th><th>Score</th><th>Critique</th><th>Revision</th><th>When</th></tr></thead>
+    <tbody>
+    {% for r in reflections %}
+    <tr>
+      <td><code>{{ r.branch }}</code></td>
+      <td class="num {% if r.improved %}up{% else %}down{% endif %}">{{ r.change }}</td>
+      <td class="wide">{{ r.critique }}</td>
+      <td class="wide">{{ r.revision }}</td>
+      <td class="muted">{{ r.created_at }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Overview{% endblock %}
+{% block content %}
+<h1>Overview</h1>
+
+<section>
+  <h2>Reasoning sessions <small>newest {{ limit }}</small></h2>
+  {% if sessions.is_empty() %}
+  <p class="empty">No sessions yet. They appear once Claude calls <code>create_session</code>.</p>
+  {% else %}
+  <div class="scroll"><table>
+    <thead><tr><th>Session</th><th>Question</th><th>Status</th><th class="num">Difficulty</th><th>Strategy</th><th class="num">Steps left</th><th>Created</th></tr></thead>
+    <tbody>
+    {% for s in sessions %}
+    <tr>
+      <td><a class="id" href="/ui/sessions/{{ s.id }}">{{ s.short_id }}</a></td>
+      <td class="wide">{{ s.query }}</td>
+      <td><span class="pill">{{ s.status }}</span></td>
+      <td class="num">{{ s.difficulty }}</td>
+      <td>{{ s.strategy }}</td>
+      <td class="num">{{ s.steps }}</td>
+      <td class="muted">{{ s.created_at }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Research runs <small>newest {{ limit }}</small></h2>
+  {% if runs.is_empty() %}
+  <p class="empty">No research runs yet. They appear after <code>research_question</code>.</p>
+  {% else %}
+  <div class="scroll"><table>
+    <thead><tr><th>Run</th><th>Question</th><th>Profile</th><th>Mode</th><th>Status</th><th>Created</th></tr></thead>
+    <tbody>
+    {% for r in runs %}
+    <tr>
+      <td><a class="id" href="/ui/runs/{{ r.id }}">{{ r.short_id }}</a></td>
+      <td class="wide">{{ r.query }}</td>
+      <td>{{ r.profile }}</td>
+      <td>{{ r.mode }}</td>
+      <td><span class="pill">{{ r.status }}</span></td>
+      <td class="muted">{{ r.created_at }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% endif %}
+</section>
+{% endblock %}

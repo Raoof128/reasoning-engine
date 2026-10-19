@@ -7,6 +7,7 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+pub mod audit;
 mod conn;
 mod error;
 pub mod memory;

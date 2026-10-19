@@ -26,6 +26,7 @@ unicode-segmentation = "=1.13.3"
 uuid = { version = "=1.28.0", features = ["v4"] }
 sha2 = "=0.11.1"
 subtle = "=2.6.1"
+base64 = "=0.22.1"
 
 # Async, HTTP, MCP
 tokio-util = "=0.7.20"
@@ -80,6 +81,7 @@ re-store = { path = "crates/re-store" }
 re-retrieval = { path = "crates/re-retrieval" }
 re-verify = { path = "crates/re-verify" }
 re-mcp = { path = "crates/re-mcp" }
+re-ui = { path = "crates/re-ui" }
 re-cli = { path = "crates/re-cli" }
 
 [workspace.lints.rust]

@@ -16,12 +16,13 @@ path = "src/main.rs"
 [features]
 default = []
 # Adds the `serve` subcommand: the opt-in local Streamable HTTP server.
-local-host = ["re-mcp/local-host", "dep:tokio-util"]
+local-host = ["re-mcp/local-host", "dep:tokio-util", "dep:re-ui"]
 # Hybrid and NLI verifier tiers (downloads ONNX models on first use).
 semantic = ["re-verify/semantic"]
 
 [dependencies]
 tokio-util = { workspace = true, optional = true }
+re-ui = { workspace = true, optional = true }
 re-core.workspace = true
 re-mcp.workspace = true
 re-retrieval.workspace = true

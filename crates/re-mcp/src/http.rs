@@ -14,7 +14,7 @@
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 
-use axum::Router;
+pub use axum::Router;
 use axum::extract::{Request, State};
 use axum::http::{HeaderValue, StatusCode, header};
 use axum::middleware::{self, Next};
@@ -46,7 +46,9 @@ pub struct HttpOptions {
     pub unsafe_bind_public: bool,
 }
 
-fn is_loopback(host: &str) -> bool {
+/// Whether `host` is a loopback name or address.
+#[must_use]
+pub fn is_loopback(host: &str) -> bool {
     LOOPBACK_HOSTS.contains(&host) || host.parse::<IpAddr>().is_ok_and(|ip| ip.is_loopback())
 }
 
@@ -93,11 +95,14 @@ async fn require_bearer(State(token): State<Arc<str>>, request: Request, next: N
     response
 }
 
-/// The axum router serving `server` at `options.path`.
+/// The axum router serving `server` at `options.path`, plus `extra` routes
+/// (the audit UI). The bearer check wraps only the MCP endpoint; `extra`
+/// brings its own guard.
 pub fn router(
     server: ReasoningServer,
     options: &HttpOptions,
     shutdown: CancellationToken,
+    extra: Router,
 ) -> Router {
     let host = re_core::pystr::py_strip(&options.host);
     let mut config = StreamableHttpServerConfig::default()
@@ -117,13 +122,14 @@ pub fn router(
         config,
     );
     let router = Router::new().nest_service(&options.path, service);
-    match options.bearer_token.as_deref().filter(|t| !t.is_empty()) {
+    let router = match options.bearer_token.as_deref().filter(|t| !t.is_empty()) {
         Some(token) => router.layer(middleware::from_fn_with_state(
             Arc::<str>::from(token),
             require_bearer,
         )),
         None => router,
-    }
+    };
+    router.merge(extra)
 }
 
 /// Bind and serve until `shutdown` is cancelled. Returns the bound address
@@ -137,10 +143,24 @@ pub async fn serve(
     shutdown: CancellationToken,
     on_bound: impl FnOnce(SocketAddr),
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    serve_with(server, options, Router::new(), shutdown, on_bound).await
+}
+
+/// [`serve`] with `extra` routes merged in (see [`router`]).
+///
+/// # Errors
+/// An invalid bind or a socket failure.
+pub async fn serve_with(
+    server: ReasoningServer,
+    options: &HttpOptions,
+    extra: Router,
+    shutdown: CancellationToken,
+    on_bound: impl FnOnce(SocketAddr),
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let host = validate_http_bind(options)?;
     let listener = tokio::net::TcpListener::bind((host.as_str(), options.port)).await?;
     on_bound(listener.local_addr()?);
-    let app = router(server, options, shutdown.clone());
+    let app = router(server, options, shutdown.clone(), extra);
     axum::serve(listener, app)
         .with_graceful_shutdown(async move { shutdown.cancelled_owned().await })
         .await?;
