@@ -22,6 +22,7 @@ from reasoning_engine.research import evidence_gap_questions  # noqa: E402
 from reasoning_engine.sanitizer import sanitize_content  # noqa: E402
 from reasoning_engine.ucb import select_best_ucb, ucb_score  # noqa: E402
 from reasoning_engine.verifiable.claims import _claim_type, extract_claims  # noqa: E402
+from reasoning_engine.verifiable.models import stable_json_hash  # noqa: E402
 from reasoning_engine.verifiable.profiles import (  # noqa: E402
     classify_research_mode,
     list_profiles,
@@ -29,6 +30,60 @@ from reasoning_engine.verifiable.profiles import (  # noqa: E402
 )
 from reasoning_engine.verifiable.quality import run_quality_gate  # noqa: E402
 from reasoning_engine.verifiable.sources.base import normalize_doi, relevance_score  # noqa: E402
+
+# Byte-exact json.dumps output matters wherever Python hashes or stores JSON
+# (stable_json_hash, DB payloads, run-pack artifacts). Keys are stored sorted,
+# so only sort_keys=True modes are meaningful here.
+PYJSON_VALUES = [
+    0.0,
+    -0.0,
+    1.0,
+    0.1,
+    1e-05,
+    0.0001,
+    1e16,
+    1e15,
+    123456789012345680.0,
+    1.5e-07,
+    2.5e300,
+    0.24062499999999998,
+    1 / 3,
+    100.0,
+    12.5,
+    0,
+    -7,
+    2**53,
+    10**18,
+    True,
+    False,
+    None,
+    "",
+    "ascii",
+    'quote " backslash \\ slash /',
+    "tab\tnl\nret\rbs\bff\f",
+    "\x00\x1f\x7f",
+    "café",
+    "\U0001f600",
+    " ",
+    "مرحبا",
+    [],
+    {},
+    [[]],
+    {"b": [1, {"z": None, "a": True}], "a": {}, "é": [], "c": [[]]},
+    {"Z": 1, "a": 2, "é": 3, "_": 4, "10": 5, "9": 6},
+    {"score": 0.82, "authors": ["A. Researcher"], "year": 2026, "doi": None},
+]
+
+
+def pyjson_vector(value) -> dict:
+    return {
+        "value": value,
+        "default": json.dumps(value, sort_keys=True),
+        "compact": json.dumps(value, sort_keys=True, separators=(",", ":")),
+        "indent2": json.dumps(value, indent=2, sort_keys=True),
+        "stable_json_hash": stable_json_hash(value),
+    }
+
 
 # plan_research_angles iterates a Python set, so its output order depends on
 # PYTHONHASHSEED. The Rust port uses first-occurrence order instead. The
@@ -332,6 +387,7 @@ golden = {
         for domain in ("general", "security")
     ],
     "quality_gate": [gate_vector(*case) for case in GATE_CASES],
+    "pyjson": [pyjson_vector(v) for v in PYJSON_VALUES],
 }
 
 out = Path(__file__).with_name("golden_vectors.json")

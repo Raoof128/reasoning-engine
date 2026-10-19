@@ -6,7 +6,7 @@
 
 **Architecture:** Cargo workspace with `re-core` (pure algorithms), `re-store` (SQLite), `re-retrieval` (HTTP adapters + aggregator), `re-verify` (claims, gate, run packs), `re-mcp` (rmcp server), `re-ui` (feature `local-host`), `re-cli` (binary). Python stays in `src/` untouched until Task 24.
 
-**Tech Stack:** Rust stable (edition 2024, `rust-version = "1.88"`), rmcp 3.5.1, tokio 1.53, reqwest 0.13 (`rustls`), rusqlite 0.40 (`bundled`), serde/serde_json (`preserve_order`), schemars 1.2, indexmap, regex, proptest, insta, criterion, cargo-nextest, cargo-deny, wiremock. Python 3.12+ with `.venv` for golden generation and the parity harness.
+**Tech Stack:** Rust stable (edition 2024, `rust-version = "1.89"`; optional `semantic` needs 1.92, `wasm-adapters` 1.97), rmcp 3.5.1, tokio 1.53, reqwest 0.13 (`rustls`), rusqlite 0.40 (`bundled`), serde/serde_json (`preserve_order`), schemars 1.2, indexmap, regex, proptest, insta, criterion, cargo-nextest, cargo-deny, wiremock. Python 3.12+ with `.venv` for golden generation and the parity harness.
 
 ---
 
@@ -19,7 +19,7 @@
 - **No secrets, no model weights, no `runs/` output** in git. `.gitignore` gets `target/`, `models/`, `*.onnx`.
 - **Decision defaults** come from `rust-rewrite-plan-2026.md` section 10. Do not ask; record the default used in the commit body.
 - **Stop and report** only if: a golden vector cannot be matched after implementing the listed parity hazard fix, a crate pinned in the plan fails to build on the current stable, or the parity harness shows a difference that is not an ID, timestamp or float formatting artefact.
-- **Environment prerequisites:** `cargo >= 1.88` (`rustup update stable`), `cargo install cargo-nextest cargo-deny cargo-insta`, `python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"`.
+- **Environment prerequisites:** `cargo >= 1.89` (`rustup update stable`), `cargo install cargo-nextest cargo-deny cargo-insta`, `python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"`.
 
 ---
 
@@ -186,7 +186,7 @@ Steps:
 
 Steps:
 
-- [ ] Port `models.py` record types (`ResearchRun`, `EvidenceRecord`, `EvidenceGap`, `ClaimRecord`, `VerificationRecord`, `utc_now`, `stable_json_hash` with sorted keys and `ensure_ascii=False` semantics) to `re-verify/src/models.rs`.
+- [ ] Port `models.py` record types (`ResearchRun`, `EvidenceRecord`, `EvidenceGap`, `ClaimRecord`, `VerificationRecord`, `utc_now`) to a new `re-model` crate, and `stable_json_hash` (sorted keys, compact separators, Python's default `ensure_ascii=True`) to `re_core::hashing`. *Changed in execution:* the original target `re-verify/src/models.rs` would make `re-store` depend on `re-verify` while Task 15 makes `re-verify` depend on `re-store`, a crate cycle.
 - [ ] Port `store.py`: `save_run`, `save_evidence` (snippet hash), `save_gap`, `save_claim`, `save_verification`, `save_gate`, `append_provenance`, `list_*` ordered by `rowid`.
 - [ ] Re-express `tests/test_verifiable_store.py` and `tests/test_verifiable_models.py`.
 - [ ] Cross-check `stable_json_hash` against three hashes produced by the Python function on the same inputs (add them to the generator in this task).

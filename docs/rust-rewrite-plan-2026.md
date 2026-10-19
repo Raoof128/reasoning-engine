@@ -8,7 +8,8 @@ the accuracy ceilings the Python MVP documents about itself.
 ## 1. TL;DR
 
 - **Do it as a 7-crate Cargo workspace** on Rust stable (1.99 today, MSRV
-  1.88 set by rmcp) / edition 2024, using the official `rmcp` 3.5.1 SDK (which
+  1.89 for the default build, set by uuid; `semantic` needs 1.92 for ort and
+  `wasm-adapters` needs 1.97 for wasmtime) / edition 2024, using the official `rmcp` 3.5.1 SDK (which
   implements MCP `2026-07-28`), `tokio`, `reqwest`, `rusqlite` (bundled, WAL),
   `schemars` for tool schemas.
 - **Speed wins are real but specific.** Hypothesis to be measured in Phase 1
@@ -127,7 +128,7 @@ Source: official changelog (modelcontextprotocol.io/specification/2026-07-28/cha
 ## 3. Target architecture
 
 ```
-reasoning-engine/            (Cargo workspace, edition 2024, MSRV 1.88 for rmcp)
+reasoning-engine/            (Cargo workspace, edition 2024, MSRV 1.89)
   crates/
     re-core/        pure, no I/O:  difficulty, dora, ucb, sanitizer, research
                     planning, claim typing, quality gate, newtypes (Score, Depth)
@@ -568,8 +569,8 @@ Verified against the Python code and `golden_vectors.json` on 2026-10-18.
 | Sanitize twice | Not idempotent (section 5). | Call once per field; keep the behaviour. |
 | Set iteration | `plan_research_angles` iterates `set(words)`, so with two or more domain hints the angle order depends on `PYTHONHASHSEED` (22 orders across 64 seeds for one query; found in Phase 1 Task 7). | First-occurrence order. Golden expected values come from Python's own algorithm with `set` swapped for an insertion-ordered dict; the generator asserts this is a no-op wherever Python is stable. Fixing the Python side to match is a one-line change worth making before cut-over. |
 | Claim IDs | `claim_0001` zero-padded, sentence split on `(?<=[.!?])\s+` (lookbehind). | `regex` has no lookbehind: split on `[.!?]\s+` while keeping the terminator, then `trim_end_matches(['.', '!', '?'])`. |
-| Timestamps and UUIDs | `utc_now()` ISO-8601 with `+00:00`; `uuid4`. | `time` or `chrono` formatted identically; parity harness ignores these fields by name. |
-| JSON output | `json.dumps(..., ensure_ascii=False)`, `sort_keys=True` in run packs. | `serde_json` with sorted keys for run-pack files (BTreeMap or `preserve_order` off there) so hashes match. |
+| Timestamps and UUIDs | `utc_now()` is second-precision ISO-8601 with a `Z` suffix (`2026-10-18T22:34:00Z`); IDs are `uuid4`. | `re_model::clock::utc_now` formats identically; parity harness ignores these fields by name. |
+| JSON text | Everything hashed or stored (`stable_json_hash`, DB payloads, run-pack files) uses Python's default `ensure_ascii=True`, so non-ASCII becomes `\uXXXX` with surrogate pairs. Floats use `float.__repr__` (`1e-05`, `1e+16`). Only MCP tool responses use `ensure_ascii=False`. | `serde_json` writes `1e-5`, `1e16` and raw UTF-8, so it cannot be used for these bytes. Use `re_core::pyjson::dumps`, checked byte-for-byte against Python in four modes (found in Phase 2). |
 
 ## 12. Gauntlet log (2026-10-18)
 
@@ -596,6 +597,8 @@ Line-by-line review of this plan. Each row was fixed in place.
 | *Phase 1 execution:* "sanitize output matches no injection pattern" is false; nested payloads bypass the live Python sanitizer. | Property corrected; fixed in both implementations (section 7). |
 | *Phase 1 execution:* Python angle planning is hash-seed dependent. | Deterministic port plus hazard row. |
 | *Phase 1 execution:* Task 7 listed `auto` as a research mode; it is a profile value. | Golden uses real modes plus error vectors. |
+| *Phase 2 execution:* MSRV 1.88 was wrong; `uuid` 1.28 needs 1.89, `ort` 1.92, `wasmtime` 1.97. | Default-build MSRV 1.89, optional floors documented, CI checks 1.89. |
+| *Phase 2 execution:* the plan put record types in `re-verify`, creating a `re-store`/`re-verify` cycle. | New `re-model` crate. |
 | No list of Python-vs-Rust parity traps. | Section 11 added, with verified examples. |
 
 ## References (Harvard, Australian style)
