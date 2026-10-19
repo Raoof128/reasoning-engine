@@ -21,7 +21,7 @@ fn opens_a_python_database_without_changing_it() {
         let expected = i64::try_from(expected).unwrap();
         assert_eq!(store.count_rows(table).unwrap(), expected, "table {table}");
     }
-    assert_eq!(store.user_version().unwrap(), 2);
+    assert_eq!(store.user_version().unwrap(), 3);
     drop(store);
     assert_eq!(
         schema_of(&db),
@@ -38,6 +38,107 @@ fn fresh_rust_database_has_python_schema() {
     make_python_db(&py_db);
     Store::open(&rs_db).unwrap();
     assert_eq!(schema_of(&rs_db), schema_of(&py_db));
+}
+
+/// The claim tables as Python and Rust created them before version 3: keyed
+/// by the bare per-run claim and verification IDs.
+const V2_CLAIM_TABLES: &str = "
+CREATE TABLE claims (
+    claim_id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL REFERENCES research_runs(run_id),
+    payload TEXT NOT NULL,
+    status TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE claim_verifications (
+    verification_id TEXT PRIMARY KEY,
+    claim_id TEXT NOT NULL REFERENCES claims(claim_id),
+    run_id TEXT NOT NULL REFERENCES research_runs(run_id),
+    payload TEXT NOT NULL,
+    support_status TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+";
+
+#[test]
+fn migrates_version_2_claim_tables_keeping_every_row() {
+    use re_model::records::ClaimRecord;
+
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("v2.db");
+    let fresh = dir.path().join("fresh.db");
+    {
+        let conn = rusqlite::Connection::open(&db).unwrap();
+        conn.execute_batch(V2_CLAIM_TABLES).unwrap();
+        conn.execute_batch(re_store::schema::SCHEMA_SQL).unwrap();
+        conn.execute_batch(
+            r#"
+            PRAGMA user_version = 2;
+            INSERT INTO research_runs VALUES
+                ('run_a', 'A', 'general', 'standard', 'complete', '2026-01-01T00:00:00Z'),
+                ('run_b', 'B', 'general', 'standard', 'complete', '2026-01-02T00:00:00Z');
+            -- run_b's claim_0001 already overwrote run_a's.
+            INSERT INTO claims VALUES
+                ('claim_0001', 'run_b', '{"text": "B1"}', 'supported', '2026-01-02 00:00:00'),
+                ('claim_0002', 'run_a', '{"text": "A2"}', 'supported', '2026-01-01 00:00:00');
+            INSERT INTO claim_verifications VALUES
+                ('ver_a1', 'claim_0001', 'run_a', '{"v": "a1"}', 'supported', '2026-01-01 00:00:00'),
+                ('ver_a2', 'claim_0002', 'run_a', '{"v": "a2"}', 'supported', '2026-01-01 00:00:00'),
+                ('ver_b1', 'claim_0001', 'run_b', '{"v": "b1"}', 'supported', '2026-01-02 00:00:00');
+            "#,
+        )
+        .unwrap();
+    }
+    Store::open(&fresh).unwrap();
+
+    let store = Store::open(&db).unwrap();
+    assert_eq!(schema_of(&db), schema_of(&fresh));
+    assert_eq!(store.user_version().unwrap(), 3);
+    assert_eq!(
+        store.list_claims("run_a").unwrap(),
+        [serde_json::json!({"text": "A2"})]
+    );
+    assert_eq!(
+        store.list_claims("run_b").unwrap(),
+        [serde_json::json!({"text": "B1"})]
+    );
+    assert_eq!(store.list_verifications("run_a").unwrap().len(), 2);
+    assert_eq!(store.list_verifications("run_b").unwrap().len(), 1);
+    let created: String = rusqlite::Connection::open(&db)
+        .unwrap()
+        .query_row(
+            "SELECT created_at FROM claims WHERE run_id = 'run_a'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(created, "2026-01-01 00:00:00");
+
+    // From now on run_a can store its claim_0001 beside run_b's.
+    let claim = ClaimRecord::new(
+        "claim_0001",
+        "run_a",
+        "A1",
+        "empirical",
+        "general",
+        "high",
+        "low",
+        true,
+        "test",
+    )
+    .unwrap();
+    store.save_claim(&claim).unwrap();
+    assert_eq!(store.list_claims("run_a").unwrap().len(), 2);
+    assert_eq!(
+        store.list_claims("run_b").unwrap(),
+        [serde_json::json!({"text": "B1"})]
+    );
+    drop(store);
+
+    // Reopening is a no-op.
+    let schema = schema_of(&db);
+    Store::open(&db).unwrap();
+    assert_eq!(schema_of(&db), schema);
 }
 
 #[test]

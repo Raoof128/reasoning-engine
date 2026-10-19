@@ -89,6 +89,42 @@ async fn offline_pipeline_exports_a_pack_python_accepts() {
 }
 
 #[tokio::test]
+async fn two_pipelines_on_one_store_keep_both_runs_claims() {
+    let dir = tempfile::tempdir().expect("tmp");
+    let service = service(dir.path());
+    let mut runs = Vec::new();
+    for draft in [
+        "Mock evidence for MCP prompt injection defences. Teams should audit tools.",
+        "Mock evidence for MCP prompt injection defences.",
+    ] {
+        let result = service
+            .run_research_pipeline(
+                "MCP prompt injection defences",
+                draft,
+                "standard",
+                "auto",
+                false,
+            )
+            .await
+            .expect("pipeline");
+        runs.push(result["run_id"].as_str().expect("run id").to_string());
+    }
+
+    // Both runs number their claims from claim_0001; neither may overwrite
+    // the other's rows.
+    let store = service.store();
+    for (run_id, expected) in runs.iter().zip([2, 1]) {
+        let claims = store.list_claims(run_id).expect("claims");
+        assert_eq!(claims.len(), expected, "{run_id}");
+        assert_eq!(claims[0]["claim_id"], "claim_0001");
+        assert!(claims.iter().all(|c| c["run_id"] == run_id.as_str()));
+        let verifications = store.list_verifications(run_id).expect("verifications");
+        assert_eq!(verifications.len(), expected, "{run_id}");
+    }
+    assert_eq!(store.count_rows("claims").expect("count"), 3);
+}
+
+#[tokio::test]
 async fn empty_search_records_a_gap_and_blocks_cited_claims() {
     let dir = tempfile::tempdir().expect("tmp");
     let service = service(dir.path());

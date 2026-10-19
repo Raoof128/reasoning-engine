@@ -35,6 +35,33 @@ def test_service_runs_pipeline_and_exports_attested_pack(tmp_path, db_path):
     assert result["evidence"][0]["snippet"] in result["verified_against_snippets"]
 
 
+def test_two_pipelines_on_one_store_keep_both_runs_claims(tmp_path, db_path):
+    init_db(db_path)
+    service = VerifiableResearchService(db_path=db_path, runs_dir=tmp_path)
+
+    run_ids = [
+        service.run_research_pipeline(
+            query="Scholar Gateway exposes semantic search",
+            draft=draft,
+            mode="standard",
+            profile="general",
+        )["run_id"]
+        for draft in [
+            "Scholar Gateway exposes semantic search. Teams should audit tools.",
+            "Scholar Gateway exposes semantic search.",
+        ]
+    ]
+
+    # Both runs number their claims from claim_0001; neither may overwrite
+    # the other's rows.
+    for run_id, expected in zip(run_ids, [2, 1], strict=True):
+        claims = service.store.list_claims(run_id)
+        assert len(claims) == expected
+        assert claims[0]["claim_id"] == "claim_0001"
+        assert all(claim["run_id"] == run_id for claim in claims)
+        assert len(service.store.list_verifications(run_id)) == expected
+
+
 def test_repeated_empty_searches_record_distinct_gaps(tmp_path, db_path):
     init_db(db_path)
     service = VerifiableResearchService(db_path=db_path, runs_dir=tmp_path)
