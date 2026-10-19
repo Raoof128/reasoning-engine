@@ -35,6 +35,9 @@ fulltext = ["re-verify/fulltext"]
 graph = ["re-mcp/graph", "re-verify/graph"]
 # Learned prior, evidence memory and living reports (plan Phase 11).
 learn = ["re-mcp/learn", "re-verify/learn", "re-store/learn", "re-core/learn"]
+# Persian: normalisation, Persian reports, and with `semantic` the
+# multilingual bge-m3 embedder (plan Phase 12).
+fa = ["re-verify/fa", "re-core/fa"]
 # Sandboxed third-party source adapters loaded from the adapters directory
 # (plan Phase 12; needs Rust 1.97).
 wasm-adapters = ["re-retrieval/wasm-adapters"]

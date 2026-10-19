@@ -33,6 +33,33 @@ pub trait Embedder: Send + Sync {
     /// # Errors
     /// Inference failures.
     fn embed(&self, texts: &[&str]) -> Result<Vec<Vec<f32>>, String>;
+    /// The embedder for a set of texts that will be compared with each
+    /// other, when that depends on the texts (Persian goes to a
+    /// multilingual model). `None` means this one.
+    fn route(&self, texts: &[&str]) -> Option<&dyn Embedder> {
+        let _ = texts;
+        None
+    }
+    /// Best-cosine cut-offs `(supported, partially_supported)` for this
+    /// model's vectors.
+    fn cutoffs(&self) -> (f32, f32) {
+        (HYBRID_SUPPORTED, HYBRID_PARTIAL)
+    }
+}
+
+/// The embedder [`shortlist`] uses for these claims and evidence: claims
+/// and snippets must share one vector space.
+pub(crate) fn routed<'a>(
+    embedder: &'a dyn Embedder,
+    claims: &[&str],
+    evidence: &[EvidenceRecord],
+) -> &'a dyn Embedder {
+    let all: Vec<&str> = claims
+        .iter()
+        .copied()
+        .chain(evidence.iter().map(|e| e.snippet.as_str()))
+        .collect();
+    embedder.route(&all).unwrap_or(embedder)
 }
 
 /// Dot product, which is cosine for unit vectors.
@@ -65,6 +92,7 @@ pub fn shortlist(
         return Ok(vec![Vec::new(); claims.len()]);
     }
     let snippets: Vec<&str> = evidence.iter().map(|e| e.snippet.as_str()).collect();
+    let embedder = routed(embedder, claims, evidence);
     let snippet_vectors = embedder.embed(&snippets)?;
     let claim_vectors = embedder.embed(claims)?;
     Ok(claims
@@ -204,6 +232,7 @@ impl<E: Embedder> Verifier for HybridVerifier<E> {
     ) -> Vec<VerificationRecord> {
         let texts: Vec<&str> = claims.iter().map(|c| c.text.as_str()).collect();
         let shortlists = shortlist(&self.embedder, &texts, evidence);
+        let cutoffs = routed(&self.embedder, &texts, evidence).cutoffs();
         claims
             .iter_mut()
             .enumerate()
@@ -216,7 +245,7 @@ impl<E: Embedder> Verifier for HybridVerifier<E> {
                     Ok(lists) => match lists[i].iter().max_by(|a, b| a.cosine.total_cmp(&b.cosine))
                     {
                         None => no_evidence(),
-                        Some(best) => decide(*best, evidence),
+                        Some(best) => decide(*best, evidence, cutoffs),
                     },
                 };
                 finish(claim, self.method(), outcome)
@@ -225,17 +254,23 @@ impl<E: Embedder> Verifier for HybridVerifier<E> {
     }
 }
 
-fn decide(best: Candidate, evidence: &[EvidenceRecord]) -> Outcome {
+/// The status for the best shortlisted candidate, given the embedder's
+/// `(supported, partially_supported)` cut-offs.
+pub(crate) fn decide(
+    best: Candidate,
+    evidence: &[EvidenceRecord],
+    (supported, partial): (f32, f32),
+) -> Outcome {
     let id = vec![evidence[best.index].evidence_id.clone()];
     let confidence = f64::from(best.cosine).clamp(0.0, 1.0);
-    let (status, evidence_ids, rationale, missing) = if best.cosine >= HYBRID_SUPPORTED {
+    let (status, evidence_ids, rationale, missing) = if best.cosine >= supported {
         (
             "supported",
             id,
             "Evidence is semantically close to the claim (hybrid retrieval).",
             None,
         )
-    } else if best.cosine >= HYBRID_PARTIAL {
+    } else if best.cosine >= partial {
         (
             "partially_supported",
             id,

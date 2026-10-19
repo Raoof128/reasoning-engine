@@ -92,7 +92,7 @@ Needs Rust 1.89 or newer (1.92 for `semantic`).
 git clone https://github.com/Raoof128/reasoning-engine.git
 cd reasoning-engine
 cargo install --locked --path crates/re-cli                          # stdio MCP only
-cargo install --locked --path crates/re-cli --features local-host,trust,tasks,semantic,fulltext,graph,learn,wasm-adapters   # everything
+cargo install --locked --path crates/re-cli --features local-host,trust,tasks,semantic,fulltext,graph,learn,fa,wasm-adapters   # everything
 ```
 
 ### Docker
@@ -153,6 +153,7 @@ cp skill/deep-research.md ~/.claude/skills/
 | `fulltext` | Claims verified against open-access full text; publication-type scoring and retraction flags | no |
 | `graph` | Evidence graph and retraction cascades, contradiction search, conformal calibration, adversarial angle, budget re-estimation | no |
 | `learn` | Learned branch prior (`prior train`), cross-session evidence memory, living reports (`watch`) | no |
+| `fa` | Persian: spelling normalisation, Persian terms in `lexical`, a right-to-left Persian report, and with `semantic` the multilingual bge-m3 embedder | no |
 | `wasm-adapters` | Sandboxed third-party search sources loaded from `~/.reasoning-engine/adapters` (needs Rust 1.97) | no |
 | `semantic` | `hybrid` and `nli` verifier tiers (ONNX models, downloaded on first use) | no |
 | `scholar-gateway` | Token-gated Scholar Gateway as an extra search source | no |
@@ -162,7 +163,7 @@ cp skill/deep-research.md ~/.claude/skills/
 | Tier | How it decides | Accuracy | Contradiction recall |
 |---|---|---:|---:|
 | `lexical` (default) | Word overlap | 0.585 | 0.00 |
-| `hybrid` | BM25 + RRF shortlist, then BGE-small cosine | 0.565 | 0.00 |
+| `hybrid` | BM25 + RRF shortlist, then BGE-small cosine | 0.571 | 0.00 |
 | `nli` (recommended with `semantic`) | DeBERTa-v3 cross-encoder: entail / contradict / neutral | **0.912** | **0.98** |
 
 The numbers come from `reasoning-engine bench verify` on 147 labelled claim/evidence pairs in `tests/fixtures/verify/labelled_pairs.json`. The labels were AI-written and have not yet been reviewed by a person. Lexical cannot detect contradiction at all, and embeddings cannot see negation, so `hybrid` mainly serves as NLI's shortlist. `high_stakes` runs always use `nli` when the build and models allow it. Models are pinned by revision and SHA-256 and checked on every load.
@@ -402,6 +403,19 @@ With a prior in place:
 - It writes `runs/<run_id>/watch/<date>.diff.md`, covering changed verdicts, sources newly retracted or flagged, sources gained or lost, and new retraction cascades.
 - It exits `3` when anything changed, so it slots into cron or CI.
 - `--every 7d` keeps watching.
+
+## Persian (`fa`)
+
+Ask in Persian, verify against the English literature.
+
+- **Spelling.** Arabic yeh and kaf, short vowels, tatweel, Persian and Arabic-Indic digits, and stray or missing half-spaces (ZWNJ) are normalised, so `ميشود`, `میشود` and `می‌شود` match. The `lexical` tier then counts Persian terms as well as English ones.
+- **Cross-lingual embeddings.** With `semantic` too, any claim set containing Persian is embedded with [bge-m3](https://huggingface.co/BAAI/bge-m3) (int8 ONNX, 570 MB, downloaded once and pinned by SHA-256), so a Persian claim and an English abstract share one vector space. English-only text stays on BGE-small, unchanged. bge-m3 uses its own cut-offs (0.70 supported, 0.62 partial).
+- **NLI.** The NLI model reads English only. For a pair with Persian on either side, `nli` falls back to the hybrid decision and says so in the rationale.
+- **Report.** A Persian query gets `report.md` in Persian, right to left, with statuses and the gate verdict translated. Set `REASONING_ENGINE_PERSIAN_DIGITS=1` to show the query and claims in Persian digits.
+
+On 30 Persian claims checked against English evidence (`tests/fixtures/verify/fa_pairs.json`), `hybrid` finds half of the supported pairs, at precision 1.000. That is up from 0.2 recall with the English cut-offs. No contradicted or neutral pair is marked supported. `lexical` cannot match across languages at all. The claims are AI translations of pairs from the English set, not yet reviewed by a person, and the cut-offs were chosen on this same set.
+
+Persian databases (SID, Magiran, ISC) are not built in: none of them could be reached from the build environment to record test fixtures. A [WASM adapter](#third-party-sources-wasm-adapters) can add any of them.
 
 ## Third-party sources (`wasm-adapters`)
 

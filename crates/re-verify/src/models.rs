@@ -283,8 +283,10 @@ fn inputs(
         .collect()
 }
 
-/// `bge-small-en-v1.5` sentence embeddings: CLS pooling, L2-normalised.
+/// BGE sentence embeddings (`bge-small-en-v1.5` unless loaded with
+/// [`OnnxEmbedder::load_spec`]): CLS pooling, L2-normalised.
 pub struct OnnxEmbedder {
+    spec: &'static ModelSpec,
     session: Mutex<Session>,
     tokenizer: Tokenizer,
 }
@@ -295,10 +297,130 @@ impl OnnxEmbedder {
     /// # Errors
     /// See [`ensure`] and [`ModelError::Load`].
     pub async fn load(models_dir: &Path, offline: bool) -> Result<Self, ModelError> {
-        let dir = ensure(&BGE_SMALL, models_dir, offline).await?;
-        let (session, tokenizer) = load(&BGE_SMALL, &dir)?;
-        Ok(Self { session, tokenizer })
+        Self::load_spec(&BGE_SMALL, models_dir, offline).await
     }
+
+    /// Load another CLS-pooled BGE model, such as [`BGE_M3`].
+    ///
+    /// # Errors
+    /// See [`ensure`] and [`ModelError::Load`].
+    pub async fn load_spec(
+        spec: &'static ModelSpec,
+        models_dir: &Path,
+        offline: bool,
+    ) -> Result<Self, ModelError> {
+        let dir = ensure(spec, models_dir, offline).await?;
+        let (session, tokenizer) = load(spec, &dir)?;
+        Ok(Self {
+            spec,
+            session,
+            tokenizer,
+        })
+    }
+}
+
+/// `BAAI/bge-m3`, int8-quantised ONNX: multilingual, so a Persian claim
+/// and an English abstract land in one vector space (`fa` feature).
+#[cfg(feature = "fa")]
+pub const BGE_M3: ModelSpec = ModelSpec {
+    name: "bge-m3-q",
+    repo: "Xenova/bge-m3",
+    revision: "4de13258303883538bd53b696b452bf8099f0858",
+    files: [
+        ModelFile {
+            remote: "onnx/model_quantized.onnx",
+            local: "model.onnx",
+            sha256: "0826f8c1ab9edf1801db86c61919d4d108e8bfc0b809ec823ad366882ff0b77d",
+        },
+        ModelFile {
+            remote: "tokenizer.json",
+            local: "tokenizer.json",
+            sha256: "6710678b12670bc442b99edc952c4d996ae309a7020c1fa0096dd245c2faf790",
+        },
+    ],
+};
+
+/// `bge-m3`'s cross-lingual cosines run lower than `bge-small`'s English
+/// ones. Chosen on `tests/fixtures/verify/fa_pairs.json` (Persian claims,
+/// English evidence), so tuned on the set they are scored on: no
+/// contradicted or neutral pair reaches 0.70 there.
+#[cfg(feature = "fa")]
+pub const M3_SUPPORTED: f32 = 0.70;
+/// Best `bge-m3` cosine at or above this is `partially_supported`.
+#[cfg(feature = "fa")]
+pub const M3_PARTIAL: f32 = 0.62;
+
+/// English texts go to `bge-small-en-v1.5`, unchanged; any set of texts
+/// with Persian in it goes to [`BGE_M3`] (`fa` feature).
+#[cfg(feature = "fa")]
+pub struct Multilingual {
+    english: OnnxEmbedder,
+    multilingual: Option<OnnxEmbedder>,
+}
+
+#[cfg(feature = "fa")]
+impl Multilingual {
+    /// Load both models. Without `bge-m3` (offline before its first
+    /// download, say) Persian falls back to the English model, with a
+    /// warning.
+    ///
+    /// # Errors
+    /// The English model failing to load.
+    pub async fn load(models_dir: &Path, offline: bool) -> Result<Self, ModelError> {
+        let english = OnnxEmbedder::load(models_dir, offline).await?;
+        let multilingual = OnnxEmbedder::load_spec(&BGE_M3, models_dir, offline)
+            .await
+            .inspect_err(|error| {
+                eprintln!("warning: Persian text will use the English embedder: {error}");
+            })
+            .ok();
+        Ok(Self {
+            english,
+            multilingual,
+        })
+    }
+}
+
+#[cfg(feature = "fa")]
+impl Embedder for Multilingual {
+    fn id(&self) -> String {
+        match &self.multilingual {
+            Some(m) => format!("{}+{}", self.english.id(), m.id()),
+            None => self.english.id(),
+        }
+    }
+
+    fn embed(&self, texts: &[&str]) -> Result<Vec<Vec<f32>>, String> {
+        self.route(texts).unwrap_or(&self.english).embed(texts)
+    }
+
+    fn route(&self, texts: &[&str]) -> Option<&dyn Embedder> {
+        let persian = texts.iter().any(|t| re_core::fa::is_persian(t));
+        Some(match &self.multilingual {
+            Some(m) if persian => m,
+            _ => &self.english,
+        })
+    }
+}
+
+/// The embedder the model tiers use: [`Multilingual`] with `fa`, else
+/// `bge-small-en-v1.5`.
+///
+/// # Errors
+/// See [`OnnxEmbedder::load`].
+#[cfg(feature = "fa")]
+pub async fn embedder(models_dir: &Path, offline: bool) -> Result<Multilingual, ModelError> {
+    Multilingual::load(models_dir, offline).await
+}
+
+/// The embedder the model tiers use: [`Multilingual`] with `fa`, else
+/// `bge-small-en-v1.5`.
+///
+/// # Errors
+/// See [`OnnxEmbedder::load`].
+#[cfg(not(feature = "fa"))]
+pub async fn embedder(models_dir: &Path, offline: bool) -> Result<OnnxEmbedder, ModelError> {
+    OnnxEmbedder::load(models_dir, offline).await
 }
 
 /// Encodings are padded to one length per batch; keep batches modest.
@@ -306,7 +428,19 @@ const BATCH: usize = 16;
 
 impl Embedder for OnnxEmbedder {
     fn id(&self) -> String {
-        BGE_SMALL.id()
+        self.spec.id()
+    }
+
+    #[cfg(feature = "fa")]
+    fn cutoffs(&self) -> (f32, f32) {
+        if self.spec.name == BGE_M3.name {
+            (M3_SUPPORTED, M3_PARTIAL)
+        } else {
+            (
+                crate::hybrid::HYBRID_SUPPORTED,
+                crate::hybrid::HYBRID_PARTIAL,
+            )
+        }
     }
 
     fn embed(&self, texts: &[&str]) -> Result<Vec<Vec<f32>>, String> {

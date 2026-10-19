@@ -1,0 +1,221 @@
+{
+  "description": "Persian claims against English evidence: the claims of 30 pairs from labelled_pairs.json translated into Persian, evidence and labels unchanged.",
+  "translator": "Claude (AI); not yet reviewed by a person",
+  "counts": {
+    "supported": 10,
+    "contradicted": 10,
+    "neutral": 10
+  },
+  "pairs": [
+    {
+      "id": "fa_001",
+      "source": "pair_001",
+      "claim": "BNRM تحلیل عاملی نامنفی را در مدل ترجیح بردلی–تری ادغام می‌کند.",
+      "evidence": "We propose Bayesian Non-Negative Reward Model (BNRM), a principled reward modeling framework that integrates non-negative factor analysis into Bradley-Terry (BT) preference model.",
+      "label": "supported"
+    },
+    {
+      "id": "fa_004",
+      "source": "pair_004",
+      "claim": "یک شبکهٔ استنتاج وردشی سرشکن‌شده به BNRM امکان می‌دهد تا به مدل‌های زبانی بزرگ امروزی مقیاس یابد.",
+      "evidence": "To scale BNRM to modern LLMs, we develop an amortized variational inference network conditioned on deep model representations, allowing efficient end-to-end training.",
+      "label": "supported"
+    },
+    {
+      "id": "fa_006",
+      "source": "pair_006",
+      "claim": "BNRM بهینه‌سازی بیش از حد پاداش را به‌طور چشمگیری کاهش می‌دهد.",
+      "evidence": "Extensive empirical results demonstrate that BNRM substantially mitigates reward over-optimization, improves robustness under distribution shifts, and yields more interpretable reward decompositions than strong baselines.",
+      "label": "supported"
+    },
+    {
+      "id": "fa_009",
+      "source": "pair_009",
+      "claim": "RLHF روش اصلی همسو کردن مدل‌های زبانی بزرگ با ترجیحات انسانی است.",
+      "evidence": "Reinforcement learning from human feedback (RLHF) has emerged as the primary method for aligning large language models (LLMs) with human preferences.",
+      "label": "supported"
+    },
+    {
+      "id": "fa_011",
+      "source": "pair_011",
+      "claim": "فرایند RLHF معمولاً با آموزش یک مدل پاداش روی داده‌های ترجیح انسانی آغاز می‌شود.",
+      "evidence": "The RLHF process typically starts by training a reward model (RM) using human preference data.",
+      "label": "supported"
+    },
+    {
+      "id": "fa_013",
+      "source": "pair_013",
+      "claim": "مدل‌های پاداش متعارف روی پاسخ‌های جفتی به یک درخواست یکسان آموزش می‌بینند.",
+      "evidence": "Conventional RMs are trained on pairwise responses to the same user request, with relative ratings indicating which response humans prefer.",
+      "label": "supported"
+    },
+    {
+      "id": "fa_015",
+      "source": "pair_015",
+      "claim": "خروجی مدل‌های پاداش تفسیرپذیر نیست، چون این مدل‌ها جعبهٔ سیاه‌اند.",
+      "evidence": "However, due to the black-box nature of RMs, their outputs lack interpretability, as humans cannot intuitively understand why an RM thinks a response is good or not.",
+      "label": "supported"
+    },
+    {
+      "id": "fa_018",
+      "source": "pair_018",
+      "claim": "ArmoRM با Llama-3 8B و یک شبکهٔ دروازه‌ای متشکل از یک MLP کم‌عمق آموزش داده شد.",
+      "evidence": "We efficiently trained an ArmoRM with Llama-3 8B and a gating network consisting of a shallow MLP on top of the ArmoRM.",
+      "label": "supported"
+    },
+    {
+      "id": "fa_021",
+      "source": "pair_021",
+      "claim": "بازی با مشخصات زمانی رخ می‌دهد که سامانه‌های هوش مصنوعی رفتارهای ناخواسته‌ای را بیاموزند که پاداش بالایی دارند.",
+      "evidence": "In reinforcement learning, specification gaming occurs when AI systems learn undesired behaviors that are highly rewarded due to misspecified training goals.",
+      "label": "supported"
+    },
+    {
+      "id": "fa_023",
+      "source": "pair_023",
+      "claim": "دستکاری پاداش یعنی مدل مستقیماً سازوکار پاداش خود را تغییر دهد.",
+      "evidence": "Specification gaming can range from simple behaviors like sycophancy to sophisticated and pernicious behaviors like reward-tampering, where a model directly modifies its own reward mechanism.",
+      "label": "supported"
+    },
+    {
+      "id": "fa_002",
+      "source": "pair_002",
+      "claim": "BNRM مدل ترجیح بردلی–تری را به‌کلی کنار می‌گذارد.",
+      "evidence": "We propose Bayesian Non-Negative Reward Model (BNRM), a principled reward modeling framework that integrates non-negative factor analysis into Bradley-Terry (BT) preference model.",
+      "label": "contradicted"
+    },
+    {
+      "id": "fa_005",
+      "source": "pair_005",
+      "claim": "BNRM را نمی‌توان به‌صورت سرتاسری آموزش داد.",
+      "evidence": "To scale BNRM to modern LLMs, we develop an amortized variational inference network conditioned on deep model representations, allowing efficient end-to-end training.",
+      "label": "contradicted"
+    },
+    {
+      "id": "fa_007",
+      "source": "pair_007",
+      "claim": "BNRM بهینه‌سازی بیش از حد پاداش را به‌طور چشمگیری بدتر می‌کند.",
+      "evidence": "Extensive empirical results demonstrate that BNRM substantially mitigates reward over-optimization, improves robustness under distribution shifts, and yields more interpretable reward decompositions than strong baselines.",
+      "label": "contradicted"
+    },
+    {
+      "id": "fa_010",
+      "source": "pair_010",
+      "claim": "RLHF به‌عنوان روشی برای همسو کردن مدل‌های زبانی بزرگ کنار گذاشته شده است.",
+      "evidence": "Reinforcement learning from human feedback (RLHF) has emerged as the primary method for aligning large language models (LLMs) with human preferences.",
+      "label": "contradicted"
+    },
+    {
+      "id": "fa_012",
+      "source": "pair_012",
+      "claim": "فرایند RLHF معمولاً بدون هیچ مدل پاداشی آغاز می‌شود.",
+      "evidence": "The RLHF process typically starts by training a reward model (RM) using human preference data.",
+      "label": "contradicted"
+    },
+    {
+      "id": "fa_014",
+      "source": "pair_014",
+      "claim": "مدل‌های پاداش متعارف فقط روی پاسخ‌های تکی با امتیازهای مطلق آموزش می‌بینند.",
+      "evidence": "Conventional RMs are trained on pairwise responses to the same user request, with relative ratings indicating which response humans prefer.",
+      "label": "contradicted"
+    },
+    {
+      "id": "fa_016",
+      "source": "pair_016",
+      "claim": "انسان‌ها به‌آسانی می‌فهمند چرا یک مدل پاداش پاسخی را ترجیح می‌دهد.",
+      "evidence": "However, due to the black-box nature of RMs, their outputs lack interpretability, as humans cannot intuitively understand why an RM thinks a response is good or not.",
+      "label": "contradicted"
+    },
+    {
+      "id": "fa_019",
+      "source": "pair_019",
+      "claim": "ArmoRM با یک مدل ۷۰ میلیارد پارامتری و بدون شبکهٔ دروازه‌ای آموزش داده شد.",
+      "evidence": "We efficiently trained an ArmoRM with Llama-3 8B and a gating network consisting of a shallow MLP on top of the ArmoRM.",
+      "label": "contradicted"
+    },
+    {
+      "id": "fa_022",
+      "source": "pair_022",
+      "claim": "بازی با مشخصات فقط زمانی رخ می‌دهد که اهداف آموزش کاملاً دقیق مشخص شده باشند.",
+      "evidence": "In reinforcement learning, specification gaming occurs when AI systems learn undesired behaviors that are highly rewarded due to misspecified training goals.",
+      "label": "contradicted"
+    },
+    {
+      "id": "fa_026",
+      "source": "pair_026",
+      "claim": "آموزش روی محیط‌های آغازین برنامهٔ درسی، بازی با مشخصات را در محیط‌های بعدی از میان می‌برد.",
+      "evidence": "We construct a curriculum of increasingly sophisticated gameable environments and find that training on early-curriculum environments leads to more specification gaming on remaining environments.",
+      "label": "contradicted"
+    },
+    {
+      "id": "fa_003",
+      "source": "pair_003",
+      "claim": "BNRM روی بیش از یک تریلیون توکن آموزش داده شد.",
+      "evidence": "We propose Bayesian Non-Negative Reward Model (BNRM), a principled reward modeling framework that integrates non-negative factor analysis into Bradley-Terry (BT) preference model.",
+      "label": "neutral"
+    },
+    {
+      "id": "fa_008",
+      "source": "pair_008",
+      "claim": "BNRM روی پرسش‌وپاسخ پزشکی ارزیابی شد.",
+      "evidence": "Extensive empirical results demonstrate that BNRM substantially mitigates reward over-optimization, improves robustness under distribution shifts, and yields more interpretable reward decompositions than strong baselines.",
+      "label": "neutral"
+    },
+    {
+      "id": "fa_017",
+      "source": "pair_017",
+      "claim": "آموزش مدل‌های پاداش تفسیرپذیر ارزان‌تر است.",
+      "evidence": "However, due to the black-box nature of RMs, their outputs lack interpretability, as humans cannot intuitively understand why an RM thinks a response is good or not.",
+      "label": "neutral"
+    },
+    {
+      "id": "fa_020",
+      "source": "pair_020",
+      "claim": "ArmoRM در کمتر از یک ساعت آموزش داده شد.",
+      "evidence": "We efficiently trained an ArmoRM with Llama-3 8B and a gating network consisting of a shallow MLP on top of the ArmoRM.",
+      "label": "neutral"
+    },
+    {
+      "id": "fa_024",
+      "source": "pair_024",
+      "claim": "چاپلوسی خطرناک‌ترین شکل بازی با مشخصات است.",
+      "evidence": "Specification gaming can range from simple behaviors like sycophancy to sophisticated and pernicious behaviors like reward-tampering, where a model directly modifies its own reward mechanism.",
+      "label": "neutral"
+    },
+    {
+      "id": "fa_033",
+      "source": "pair_033",
+      "claim": "آموزش بی‌آزاری، چاپلوسی را به نصف کاهش می‌دهد.",
+      "evidence": "Moreover, adding harmlessness training to our gameable environments does not prevent reward-tampering.",
+      "label": "neutral"
+    },
+    {
+      "id": "fa_038",
+      "source": "pair_038",
+      "claim": "LearningEMS را یک خودروساز توسعه داده است.",
+      "evidence": "LearningEMS is distinguished by its ability to support a variety of EV configurations, including hybrid EVs, fuel cell EVs, and plug-in EVs, offering a general platform for the development of EMS.",
+      "label": "neutral"
+    },
+    {
+      "id": "fa_043",
+      "source": "pair_043",
+      "claim": "مجموعه‌دادهٔ این چارچوب در اروپا گردآوری شده است.",
+      "evidence": "In summary, we offer a unified and comprehensive framework that comes with three distinct EV platforms, over 10 000 km of EMS policy data set, ten state-of-the-art algorithms, and over 160 benchmark tasks, along with three learning libraries.",
+      "label": "neutral"
+    },
+    {
+      "id": "fa_046",
+      "source": "pair_046",
+      "claim": "رفتار وسواسی ناشی از یک ژن واحد است.",
+      "evidence": "IntroductionCompulsive behavior has been proposed as a transdiagnostic trait observed in different neuropsychiatric disorders, such as obsessive-compulsive disorder, autism, and schizophrenia.",
+      "label": "neutral"
+    },
+    {
+      "id": "fa_053",
+      "source": "pair_053",
+      "claim": "بیشتر پاسخ‌دهندگان به دلیل بیماری بازنشسته شدند.",
+      "evidence": "METHODS: We included 1735 respondents from the Swedish Longitudinal Occupational Survey of Health (SLOSH), retiring during 2008–2016 (mean retirement age 66 years).",
+      "label": "neutral"
+    }
+  ]
+}
