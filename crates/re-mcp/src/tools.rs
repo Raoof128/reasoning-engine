@@ -44,6 +44,8 @@ pub struct Tools {
     service: Arc<VerifiableResearchService>,
     directional: bool,
     memory_fts: bool,
+    #[cfg(feature = "tasks")]
+    prefetcher: crate::tasks::Prefetcher,
 }
 
 impl Tools {
@@ -58,7 +60,16 @@ impl Tools {
             service,
             directional: env_is("REASONING_ENGINE_DORA", "directional"),
             memory_fts: env_is("REASONING_ENGINE_MEMORY", "fts"),
+            #[cfg(feature = "tasks")]
+            prefetcher: crate::tasks::Prefetcher::default(),
         }
+    }
+
+    /// Background prefetch tasks (`tasks` feature).
+    #[cfg(feature = "tasks")]
+    #[must_use]
+    pub fn prefetcher(&self) -> &crate::tasks::Prefetcher {
+        &self.prefetcher
     }
 
     /// Turn directional DORA advice on or off, overriding the environment.
@@ -102,7 +113,7 @@ impl Tools {
             "save_to_memory" => self.save_to_memory(&a),
             "recall_memory_tool" => self.recall_memory(&a),
             "sanitize_content" => Self::sanitize(&a),
-            "plan_research_angles_tool" => Self::plan_research_angles(&a),
+            "plan_research_angles_tool" => self.plan_research_angles(&a),
             "evidence_gap_questions_tool" => Self::evidence_gap_questions(&a),
             "start_research_run" => self.start_research_run(&a),
             "classify_research_mode_tool" => Self::classify_research_mode(&a),
@@ -320,15 +331,30 @@ impl Tools {
         Ok(json!({"cleaned": sanitize_content(&raw)}))
     }
 
-    fn plan_research_angles(a: &Args<'_>) -> ToolResult {
+    #[cfg_attr(not(feature = "tasks"), allow(clippy::unused_self))]
+    fn plan_research_angles(&self, a: &Args<'_>) -> ToolResult {
         let query = a.str("query")?;
         let max_angles = a.int_or("max_angles", 6)?;
+        #[cfg(feature = "tasks")]
+        let prefetch = a.bool_or("prefetch", false)?;
         let query = validate::text(&query, "query", MAX_QUERY_CHARS, false)?;
         let max_angles = validate::limited_int(max_angles, "max_angles", 1, cap(MAX_ANGLES))?;
-        Ok(to_value(&plan_research_angles(
-            &query,
-            usize::try_from(max_angles).unwrap_or(1),
-        )?))
+        let angles = plan_research_angles(&query, usize::try_from(max_angles).unwrap_or(1))?;
+        #[cfg(feature = "tasks")]
+        if prefetch {
+            // The bare query too: the verification pipeline searches it.
+            let mut queries = vec![query.trim().to_string()];
+            queries.extend(angles.iter().map(|a| crate::tasks::search_query(&query, a)));
+            let task = self.prefetcher.start(
+                self.service.search_aggregator(),
+                queries.clone(),
+                // scholar_search_tool's default limit, which is also the
+                // pipeline's, so the cache keys match.
+                re_verify::service::PIPELINE_SEARCH_LIMIT,
+            );
+            return Ok(crate::tasks::response(&query, &angles, &task, &queries));
+        }
+        Ok(to_value(&angles))
     }
 
     fn evidence_gap_questions(a: &Args<'_>) -> ToolResult {

@@ -13,6 +13,8 @@ pub enum Kind {
     Int,
     /// `float`
     Float,
+    /// `bool` (Rust-only parameters; Python's tools have none)
+    Bool,
     /// `list[str] | str`
     StrListOrStr,
     /// `list[dict] | str`
@@ -60,6 +62,17 @@ const fn opt(name: &'static str, kind: Kind, default: &'static str) -> Param {
         default: Some(default),
     }
 }
+
+/// `plan_research_angles_tool` parameters. The `tasks` feature adds
+/// `prefetch`, which Python's tool does not have.
+#[cfg(not(feature = "tasks"))]
+const PLAN_ANGLES: &[Param] = &[QUERY, opt("max_angles", Kind::Int, "6")];
+#[cfg(feature = "tasks")]
+const PLAN_ANGLES: &[Param] = &[
+    QUERY,
+    opt("max_angles", Kind::Int, "6"),
+    opt("prefetch", Kind::Bool, "false"),
+];
 
 const SESSION: Param = req("session_id", Kind::Str);
 const BRANCH: Param = req("branch_id", Kind::Str);
@@ -177,7 +190,7 @@ pub const TOOLS: [ToolSpec; 20] = [
     tool(
         "plan_research_angles_tool",
         "Return prioritized research angles and starter questions for a query.",
-        &[QUERY, opt("max_angles", Kind::Int, "6")],
+        PLAN_ANGLES,
         true,
     ),
     tool(
@@ -255,6 +268,7 @@ fn property(param: &Param) -> Value {
         Kind::Str => json!({"type": "string"}),
         Kind::Int => json!({"type": "integer"}),
         Kind::Float => json!({"type": "number"}),
+        Kind::Bool => json!({"type": "boolean"}),
         Kind::StrListOrStr => {
             json!({"anyOf": [{"items": {"type": "string"}, "type": "array"}, {"type": "string"}]})
         }

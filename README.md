@@ -82,7 +82,7 @@ gh attestation verify reasoning-engine-v0.2.0-linux-x86_64.tar.gz --repo Raoof12
 tar -xzf reasoning-engine-v0.2.0-linux-x86_64.tar.gz reasoning-engine
 ```
 
-Release binaries include the local HTTP server (`local-host`, off until you enable it) and signed, replayable run packs (`trust`).
+Release binaries include the local HTTP server (`local-host`, off until you enable it), signed, replayable run packs (`trust`) and speculative retrieval (`tasks`).
 
 ### From source
 
@@ -92,7 +92,7 @@ Needs Rust 1.89 or newer (1.92 for `semantic`).
 git clone https://github.com/Raoof128/reasoning-engine.git
 cd reasoning-engine
 cargo install --locked --path crates/re-cli                          # stdio MCP only
-cargo install --locked --path crates/re-cli --features local-host,trust,semantic   # everything
+cargo install --locked --path crates/re-cli --features local-host,trust,tasks,semantic   # everything
 ```
 
 ### Docker
@@ -149,6 +149,7 @@ cp skill/deep-research.md ~/.claude/skills/
 | *(default)* | stdio MCP server (20 tools), `research`, `scholar search`, `setup`, `bench`, `verify-runpack` | yes |
 | `local-host` | `serve` (Streamable HTTP with bearer auth) and the `/ui` audit UI | yes |
 | `trust` | Signed run packs with a transparency log, `research --record` and `replay`, styled reference lists, the numeric claim check | yes |
+| `tasks` | Evidence cache, cost ledger, and angle prefetch over the MCP tasks extension | yes |
 | `semantic` | `hybrid` and `nli` verifier tiers (ONNX models, downloaded on first use) | no |
 | `scholar-gateway` | Token-gated Scholar Gateway as an extra search source | no |
 
@@ -188,6 +189,7 @@ reasoning-engine verify-runpack ~/.reasoning-engine/runs/<run_id>
 | `REASONING_ENGINE_VERIFIER` | `lexical`, `hybrid` or `nli` (overrides `setup`) |
 | `REASONING_ENGINE_MODELS_DIR` | Where ONNX models are cached (default `<data_dir>/models`) |
 | `REASONING_ENGINE_SIGNING_KEY` | Run-pack signing key (default `<data_dir>/signing.key`; `trust` builds) |
+| `REASONING_ENGINE_CACHE=off` | Disable the evidence cache (`tasks` builds) |
 | `REASONING_ENGINE_OFFLINE=1` | Deterministic mock evidence; never downloads models |
 | `REASONING_ENGINE_SOURCES=openalex,crossref` | Narrow which sources are enabled |
 | `REASONING_ENGINE_CONTACT_EMAIL` | Contact address for OpenAlex/Crossref's polite pool |
@@ -252,6 +254,30 @@ Providers may still echo request metadata, though: DBLP's JSON includes the call
 - years and confidence levels never count as the match.
 
 Otherwise the claim is capped at `partially_supported` and flagged for review.
+
+## Speculative retrieval (`tasks`)
+
+**Prefetch.** Call `plan_research_angles_tool` with `prefetch: true` and it answers at once with the angles, each carrying a `search_query`. One background task then searches the bare query and every angle query concurrently.
+
+- Clients that support the MCP tasks extension can poll progress with `tasks/get` or cancel it.
+- Every other client, Claude Code included, still gets an ordinary result and a warm cache.
+- The `/deep-research` skill passes `prefetch` when the server offers it.
+
+**Evidence cache.** Each source's results are cached in the database per source, normalised query and limit: arXiv for 6 hours, everything else for 24.
+
+- Only successful results are cached.
+- A hit is rebound to the asking run but keeps its original `retrieved_at`.
+- Recorded runs never use the cache, so `replay` stays exact.
+
+**Cost ledger.** Every search appends a `retrieval_cost` provenance event with:
+
+- bytes fetched;
+- OpenAlex credits;
+- sources fetched and cache hits;
+- estimated tokens (characters / 4);
+- elapsed time.
+
+Each pipeline run adds a `cost_ledger` total before export, so the costs land in `provenance.jsonl`.
 
 ## Local HTTP server and audit UI
 

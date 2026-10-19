@@ -7,7 +7,8 @@
 #     -e REASONING_ENGINE_HTTP_TOKEN="$(openssl rand -hex 32)" reasoning-engine
 #
 # The image's only job is serving MCP over HTTP, so it is built with the
-# `local-host` feature (plus `trust`: signed run packs, key in /data) and
+# `local-host` feature (plus `trust`: signed run packs, key in /data; and
+# `tasks`: evidence cache and prefetch) and
 # starts `serve --http`. A public bind always needs
 # the bearer token; the server refuses to start without it. Add `--ui` to
 # the command to mount the read-only audit UI at /ui (same token).
@@ -21,7 +22,7 @@ COPY Cargo.toml Cargo.lock ./
 COPY crates ./crates
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/src/target \
-    cargo build --release --locked -p re-cli --features local-host,trust \
+    cargo build --release --locked -p re-cli --features local-host,trust,tasks \
  && cp target/release/reasoning-engine /reasoning-engine \
  && mkdir -p /data/runs
 

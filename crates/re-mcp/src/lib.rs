@@ -10,6 +10,8 @@ pub mod http;
 pub mod limits;
 pub mod schema;
 pub mod server;
+#[cfg(feature = "tasks")]
+pub mod tasks;
 pub mod tools;
 pub mod validate;
 

@@ -149,6 +149,10 @@ impl SourceAdapter for HttpAdapter {
                 Ok(fetched) => {
                     let mut result = self.source.parse_body(run_id, query, limit, &fetched.body);
                     result.diagnostics = self.source.diagnostics(&fetched.headers);
+                    // For the cost ledger (Rust-only, never serialised into evidence).
+                    result
+                        .diagnostics
+                        .insert("bytes".into(), fetched.body.len().into());
                     result
                 }
                 Err(error) => RetrievalResult::failed(error.to_retrieval_error(self.source.name())),

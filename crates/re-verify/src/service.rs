@@ -99,6 +99,7 @@ pub struct VerifiableResearchService {
     offline: bool,
     recorder: Option<Recorder>,
     signer: Option<Arc<dyn AttestationSigner>>,
+    ledger: bool,
 }
 
 /// Print the high-stakes fallback warning once per process.
@@ -129,7 +130,16 @@ impl VerifiableResearchService {
             offline: std::env::var("REASONING_ENGINE_OFFLINE").is_ok_and(|v| v == "1"),
             recorder: None,
             signer: None,
+            ledger: false,
         }
+    }
+
+    /// Record each search's cost (`retrieval_cost`) and each pipeline's
+    /// totals (`cost_ledger`) in provenance.
+    #[must_use]
+    pub fn with_ledger(mut self) -> Self {
+        self.ledger = true;
+        self
     }
 
     /// Sign every exported run pack with `signer` and append it to the
@@ -195,6 +205,12 @@ impl VerifiableResearchService {
         let verifier = load_verifier(name.as_deref(), &models_dir, offline).await?;
         let search = Arc::new(AcademicSearchAggregator::from_env()?);
         Ok(Self::new(store, runs_dir, search, verifier).with_models(models_dir, offline))
+    }
+
+    /// The search aggregator (shared, for background prefetch).
+    #[must_use]
+    pub fn search_aggregator(&self) -> Arc<AcademicSearchAggregator> {
+        Arc::clone(&self.search)
     }
 
     /// The underlying store.
@@ -275,11 +291,22 @@ impl VerifiableResearchService {
             "scholar_search_requested",
             &payload(&[("query", query.into()), ("limit", limit.into())]),
         )?;
+        let started = std::time::Instant::now();
         let result = if use_mock_empty {
             RetrievalResult::default()
         } else {
             self.search.search(run_id, query, limit).await
         };
+        if self.ledger {
+            let returned: usize = result
+                .evidence
+                .iter()
+                .map(|e| e.to_dict().to_string().len())
+                .sum();
+            let cost = crate::ledger::search_cost(&result.diagnostics, returned, started.elapsed());
+            self.store
+                .append_provenance(run_id, "retrieval_cost", &cost)?;
+        }
         if let Some(error) = result.error {
             let gap = self.record_gap(run_id, query, &error.message)?;
             let Value::Object(details) = to_value(&error) else {
@@ -348,6 +375,14 @@ impl VerifiableResearchService {
         }
         for verification in &verifications {
             self.store.save_verification(&run.run_id, verification)?;
+        }
+        if self.ledger {
+            let so_far = self.store.list_provenance(&run.run_id)?;
+            self.store.append_provenance(
+                &run.run_id,
+                "cost_ledger",
+                &crate::ledger::totals(&so_far),
+            )?;
         }
         let gaps = self.store.list_gaps(&run.run_id)?;
         let gate = gate_records(&run.run_id, &claims, &verifications, gaps.len());

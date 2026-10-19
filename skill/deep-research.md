@@ -42,7 +42,7 @@ The research query is `$ARGUMENTS` (or the user's message if invoked automatical
 2. Call `mcp__reasoning-engine__init_research_session` with the query. Keep the returned `session_id`.
 3. Call `mcp__reasoning-engine__classify_research_mode_tool` with the query. Keep the returned `mode` — it escalates to `high_stakes` for medical, legal, security, and similar topics.
 4. Call `mcp__reasoning-engine__start_research_run` with the query and the mode from step 3. Keep the returned `run_id` — every evidence search in Phases 2 and 5 uses this `run_id`.
-5. Call `mcp__reasoning-engine__plan_research_angles_tool` with the query and `max_angles = budget.total_branches`.
+5. Call `mcp__reasoning-engine__plan_research_angles_tool` with the query and `max_angles = budget.total_branches`. If the server accepts `prefetch: true` (builds with the `tasks` feature), pass it: the angles then come back under `angles`, each with a `search_query` to use in Phase 2, and their evidence is fetched in the background while you work.
 6. Report: "Research session initialized. Difficulty: {difficulty:.2f}, Strategy: {strategy}, Budget: {budget.total_branches} branches, {budget.max_steps} max steps."
 
 ## Phase 2: GENERATE (Actor)

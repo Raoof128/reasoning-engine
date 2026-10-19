@@ -16,11 +16,18 @@ fn tool_list_matches_python() {
     for (spec, theirs) in TOOLS.iter().zip(python) {
         assert_eq!(spec.name, theirs["name"], "order");
         assert_eq!(spec.description, theirs["description"], "{}", spec.name);
-        assert_eq!(
-            Value::Object(input_schema(spec)),
-            theirs["inputSchema"],
-            "{}",
-            spec.name
-        );
+        #[cfg_attr(not(feature = "tasks"), allow(unused_mut))]
+        let mut ours = input_schema(spec);
+        // `prefetch` is Rust-only (tasks feature); everything else matches.
+        #[cfg(feature = "tasks")]
+        if spec.name == "plan_research_angles_tool" {
+            let prefetch = ours["properties"]
+                .as_object_mut()
+                .and_then(|p| p.remove("prefetch"))
+                .expect("prefetch parameter");
+            assert_eq!(prefetch["type"], "boolean");
+            assert_eq!(prefetch["default"], false);
+        }
+        assert_eq!(Value::Object(ours), theirs["inputSchema"], "{}", spec.name);
     }
 }

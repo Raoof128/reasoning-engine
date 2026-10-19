@@ -95,6 +95,24 @@ fn as_int(value: &Value) -> Result<i64, &'static str> {
     }
 }
 
+/// Pydantic's lax `bool`: booleans, `0`/`1`, and the usual words.
+fn as_bool(value: &Value) -> Result<bool, &'static str> {
+    match value {
+        Value::Bool(b) => Ok(*b),
+        Value::Number(n) => match n.as_f64() {
+            Some(f) if f.abs() < f64::EPSILON => Ok(false),
+            Some(f) if (f - 1.0).abs() < f64::EPSILON => Ok(true),
+            _ => Err("Input should be a valid boolean, unable to interpret input"),
+        },
+        Value::String(s) => match re_core::pystr::py_strip(s).to_lowercase().as_str() {
+            "0" | "off" | "f" | "false" | "n" | "no" => Ok(false),
+            "1" | "on" | "t" | "true" | "y" | "yes" => Ok(true),
+            _ => Err("Input should be a valid boolean, unable to interpret input"),
+        },
+        _ => Err("Input should be a valid boolean"),
+    }
+}
+
 fn as_float(value: &Value) -> Result<f64, &'static str> {
     match value {
         Value::Bool(b) => Ok(f64::from(u8::from(*b))),
@@ -172,6 +190,11 @@ pub fn check(spec: &ToolSpec, map: &Map<String, Value>) -> Result<(), ToolError>
             }
             Kind::Float => {
                 if let Err(message) = as_float(&value) {
+                    errors.push((field.into(), message.into()));
+                }
+            }
+            Kind::Bool => {
+                if let Err(message) = as_bool(&value) {
                     errors.push((field.into(), message.into()));
                 }
             }
@@ -266,6 +289,16 @@ impl<'a> Args<'a> {
     pub fn int_or(&self, field: &str, default: i64) -> Result<i64, ToolError> {
         self.map.get(field).map_or(Ok(default), |v| {
             as_int(&pre_parse(v)).map_err(|m| self.fail(field, m))
+        })
+    }
+
+    /// An optional `bool` with a default.
+    ///
+    /// # Errors
+    /// Not coercible to a boolean.
+    pub fn bool_or(&self, field: &str, default: bool) -> Result<bool, ToolError> {
+        self.map.get(field).map_or(Ok(default), |v| {
+            as_bool(&pre_parse(v)).map_err(|m| self.fail(field, m))
         })
     }
 
