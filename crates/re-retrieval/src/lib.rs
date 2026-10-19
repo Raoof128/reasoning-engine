@@ -20,6 +20,8 @@ pub mod quality;
 pub mod result;
 pub mod sources;
 pub mod tape;
+#[cfg(feature = "wasm-adapters")]
+pub mod wasm;
 
 pub use aggregate::{AcademicSearchAggregator, adapters_from, adapters_with, default_adapters};
 pub use client::HttpClient;

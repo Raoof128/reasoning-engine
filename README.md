@@ -92,7 +92,7 @@ Needs Rust 1.89 or newer (1.92 for `semantic`).
 git clone https://github.com/Raoof128/reasoning-engine.git
 cd reasoning-engine
 cargo install --locked --path crates/re-cli                          # stdio MCP only
-cargo install --locked --path crates/re-cli --features local-host,trust,tasks,semantic,fulltext,graph,learn   # everything
+cargo install --locked --path crates/re-cli --features local-host,trust,tasks,semantic,fulltext,graph,learn,wasm-adapters   # everything
 ```
 
 ### Docker
@@ -153,6 +153,7 @@ cp skill/deep-research.md ~/.claude/skills/
 | `fulltext` | Claims verified against open-access full text; publication-type scoring and retraction flags | no |
 | `graph` | Evidence graph and retraction cascades, contradiction search, conformal calibration, adversarial angle, budget re-estimation | no |
 | `learn` | Learned branch prior (`prior train`), cross-session evidence memory, living reports (`watch`) | no |
+| `wasm-adapters` | Sandboxed third-party search sources loaded from `~/.reasoning-engine/adapters` (needs Rust 1.97) | no |
 | `semantic` | `hybrid` and `nli` verifier tiers (ONNX models, downloaded on first use) | no |
 | `scholar-gateway` | Token-gated Scholar Gateway as an extra search source | no |
 
@@ -387,6 +388,24 @@ With a prior in place:
 - It writes `runs/<run_id>/watch/<date>.diff.md`, covering changed verdicts, sources newly retracted or flagged, sources gained or lost, and new retraction cascades.
 - It exits `3` when anything changed, so it slots into cron or CI.
 - `--every 7d` keeps watching.
+
+## Third-party sources (`wasm-adapters`)
+
+Add a search source without forking the engine: drop a WebAssembly module into `~/.reasoning-engine/adapters/` (or `REASONING_ENGINE_ADAPTERS_DIR`) and name it in `REASONING_ENGINE_SOURCES`, like a built-in.
+
+```bash
+cp my-index.wasm ~/.reasoning-engine/adapters/
+REASONING_ENGINE_SOURCES=openalex,my-index reasoning-engine research "..."
+```
+
+Each adapter runs in a fresh sandbox per search:
+
+- **Fuel:** 10 million instructions, then it is cut off.
+- **Memory:** 64 MiB.
+- **No WASI:** no filesystem, clock, environment or sockets. The host offers only `http_get` and `log`.
+- **Network:** `http_get` fetches over HTTPS, only from the public hosts the adapter declares in `allowed_hosts`, through the engine's own client. That means recorded runs tape it and replays stay offline.
+
+A broken or missing module is skipped with a warning. The ABI and a working example (in WAT, so no toolchain is needed) are in [`examples/adapters/hello-adapter`](examples/adapters/hello-adapter/README.md).
 
 ## Local HTTP server and audit UI
 
