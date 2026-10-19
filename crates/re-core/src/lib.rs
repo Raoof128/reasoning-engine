@@ -9,6 +9,7 @@
 
 pub mod claims;
 pub mod difficulty;
+pub mod directional;
 pub mod dora;
 pub mod gate;
 pub mod hashing;
@@ -19,6 +20,7 @@ pub mod planning;
 pub mod profiles;
 pub mod pyjson;
 pub mod pystr;
+pub mod rank;
 pub mod sanitize;
 pub mod types;
 pub mod ucb;

@@ -401,3 +401,70 @@ fn stored_text_is_sanitised() {
     assert_eq!(row.trace, "[\"ok\"]");
     assert_eq!(row.critique, "fine");
 }
+
+#[test]
+fn fts_recall_ranks_by_bm25_and_reads_learnings() {
+    let dir = tempfile::tempdir().expect("tmp");
+    let store = re_store::Store::open(dir.path().join("r.db")).expect("store");
+    let sid = store.create_session("q").expect("session").id;
+    let learnings = |items: &[&str]| items.iter().map(|s| (*s).to_string()).collect::<Vec<_>>();
+    store
+        .save_memory(
+            &sid,
+            "gardening in spring",
+            &learnings(&["tomatoes need sun"]),
+            &learnings(&["garden"]),
+        )
+        .expect("save");
+    let best = store
+        .save_memory(
+            &sid,
+            "process reward models",
+            &learnings(&["PRMs score each step"]),
+            &learnings(&["reward-models"]),
+        )
+        .expect("save")
+        .id;
+    store
+        .save_memory(
+            &sid,
+            "reward shaping",
+            &learnings(&["dense rewards"]),
+            &learnings(&["rl"]),
+        )
+        .expect("save");
+
+    let hits = store
+        .recall_memory_fts("process reward step", 5)
+        .expect("recall");
+    assert_eq!(hits[0].id, best);
+    assert_eq!(hits.len(), 2, "the gardening memory shares no word");
+    assert_eq!(hits[0].relevance, 3);
+    // Learnings are indexed: legacy recall cannot see "tomatoes".
+    assert_eq!(
+        store
+            .recall_memory_fts("tomatoes", 5)
+            .expect("recall")
+            .len(),
+        1
+    );
+    assert_eq!(store.recall_memory("tomatoes", 5).expect("recall").len(), 0);
+    assert_eq!(store.recall_memory_fts("?!", 5).expect("recall").len(), 0);
+    assert_eq!(
+        store.recall_memory_fts("reward", 1).expect("recall").len(),
+        1
+    );
+    // Rebuilt per call: a memory saved now is found immediately.
+    store
+        .save_memory(
+            &sid,
+            "tomato blight",
+            &learnings(&["copper spray"]),
+            &learnings(&["garden"]),
+        )
+        .expect("save");
+    assert_eq!(
+        store.recall_memory_fts("blight", 5).expect("recall").len(),
+        1
+    );
+}

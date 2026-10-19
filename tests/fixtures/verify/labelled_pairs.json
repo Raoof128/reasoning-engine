@@ -1,0 +1,1187 @@
+{
+  "description": "Build the labelled claim/evidence set the verifier benchmark scores.",
+  "labeller": "Claude (AI); not yet reviewed by a person",
+  "counts": {
+    "supported": 68,
+    "contradicted": 49,
+    "neutral": 30
+  },
+  "pairs": [
+    {
+      "id": "pair_001",
+      "claim": "BNRM integrates non-negative factor analysis into the Bradley-Terry preference model.",
+      "evidence": "We propose Bayesian Non-Negative Reward Model (BNRM), a principled reward modeling framework that integrates non-negative factor analysis into Bradley-Terry (BT) preference model.",
+      "label": "supported",
+      "source": "arxiv",
+      "title": "Mitigating Reward Hacking in RLHF via Bayesian Non-negative Reward Modeling"
+    },
+    {
+      "id": "pair_002",
+      "claim": "BNRM removes the Bradley-Terry preference model entirely.",
+      "evidence": "We propose Bayesian Non-Negative Reward Model (BNRM), a principled reward modeling framework that integrates non-negative factor analysis into Bradley-Terry (BT) preference model.",
+      "label": "contradicted",
+      "source": "arxiv",
+      "title": "Mitigating Reward Hacking in RLHF via Bayesian Non-negative Reward Modeling"
+    },
+    {
+      "id": "pair_003",
+      "claim": "BNRM was trained on more than one trillion tokens.",
+      "evidence": "We propose Bayesian Non-Negative Reward Model (BNRM), a principled reward modeling framework that integrates non-negative factor analysis into Bradley-Terry (BT) preference model.",
+      "label": "neutral",
+      "source": "arxiv",
+      "title": "Mitigating Reward Hacking in RLHF via Bayesian Non-negative Reward Modeling"
+    },
+    {
+      "id": "pair_004",
+      "claim": "An amortized variational inference network lets BNRM scale to modern LLMs.",
+      "evidence": "To scale BNRM to modern LLMs, we develop an amortized variational inference network conditioned on deep model representations, allowing efficient end-to-end training.",
+      "label": "supported",
+      "source": "arxiv",
+      "title": "Mitigating Reward Hacking in RLHF via Bayesian Non-negative Reward Modeling"
+    },
+    {
+      "id": "pair_005",
+      "claim": "BNRM cannot be trained end to end.",
+      "evidence": "To scale BNRM to modern LLMs, we develop an amortized variational inference network conditioned on deep model representations, allowing efficient end-to-end training.",
+      "label": "contradicted",
+      "source": "arxiv",
+      "title": "Mitigating Reward Hacking in RLHF via Bayesian Non-negative Reward Modeling"
+    },
+    {
+      "id": "pair_006",
+      "claim": "BNRM substantially mitigates reward over-optimization.",
+      "evidence": "Extensive empirical results demonstrate that BNRM substantially mitigates reward over-optimization, improves robustness under distribution shifts, and yields more interpretable reward decompositions than strong baselines.",
+      "label": "supported",
+      "source": "arxiv",
+      "title": "Mitigating Reward Hacking in RLHF via Bayesian Non-negative Reward Modeling"
+    },
+    {
+      "id": "pair_007",
+      "claim": "BNRM makes reward over-optimization substantially worse.",
+      "evidence": "Extensive empirical results demonstrate that BNRM substantially mitigates reward over-optimization, improves robustness under distribution shifts, and yields more interpretable reward decompositions than strong baselines.",
+      "label": "contradicted",
+      "source": "arxiv",
+      "title": "Mitigating Reward Hacking in RLHF via Bayesian Non-negative Reward Modeling"
+    },
+    {
+      "id": "pair_008",
+      "claim": "BNRM was evaluated on medical question answering.",
+      "evidence": "Extensive empirical results demonstrate that BNRM substantially mitigates reward over-optimization, improves robustness under distribution shifts, and yields more interpretable reward decompositions than strong baselines.",
+      "label": "neutral",
+      "source": "arxiv",
+      "title": "Mitigating Reward Hacking in RLHF via Bayesian Non-negative Reward Modeling"
+    },
+    {
+      "id": "pair_009",
+      "claim": "RLHF is the primary method for aligning large language models with human preferences.",
+      "evidence": "Reinforcement learning from human feedback (RLHF) has emerged as the primary method for aligning large language models (LLMs) with human preferences.",
+      "label": "supported",
+      "source": "arxiv",
+      "title": "Interpretable Preferences via Multi-Objective Reward Modeling and Mixture-of-Experts"
+    },
+    {
+      "id": "pair_010",
+      "claim": "RLHF has been abandoned as a way to align large language models.",
+      "evidence": "Reinforcement learning from human feedback (RLHF) has emerged as the primary method for aligning large language models (LLMs) with human preferences.",
+      "label": "contradicted",
+      "source": "arxiv",
+      "title": "Interpretable Preferences via Multi-Objective Reward Modeling and Mixture-of-Experts"
+    },
+    {
+      "id": "pair_011",
+      "claim": "The RLHF process typically starts by training a reward model on human preference data.",
+      "evidence": "The RLHF process typically starts by training a reward model (RM) using human preference data.",
+      "label": "supported",
+      "source": "arxiv",
+      "title": "Interpretable Preferences via Multi-Objective Reward Modeling and Mixture-of-Experts"
+    },
+    {
+      "id": "pair_012",
+      "claim": "The RLHF process typically starts without any reward model.",
+      "evidence": "The RLHF process typically starts by training a reward model (RM) using human preference data.",
+      "label": "contradicted",
+      "source": "arxiv",
+      "title": "Interpretable Preferences via Multi-Objective Reward Modeling and Mixture-of-Experts"
+    },
+    {
+      "id": "pair_013",
+      "claim": "Conventional reward models are trained on pairwise responses to the same request.",
+      "evidence": "Conventional RMs are trained on pairwise responses to the same user request, with relative ratings indicating which response humans prefer.",
+      "label": "supported",
+      "source": "arxiv",
+      "title": "Interpretable Preferences via Multi-Objective Reward Modeling and Mixture-of-Experts"
+    },
+    {
+      "id": "pair_014",
+      "claim": "Conventional reward models are trained on single responses with absolute scores only.",
+      "evidence": "Conventional RMs are trained on pairwise responses to the same user request, with relative ratings indicating which response humans prefer.",
+      "label": "contradicted",
+      "source": "arxiv",
+      "title": "Interpretable Preferences via Multi-Objective Reward Modeling and Mixture-of-Experts"
+    },
+    {
+      "id": "pair_015",
+      "claim": "Reward model outputs lack interpretability because reward models are black boxes.",
+      "evidence": "However, due to the black-box nature of RMs, their outputs lack interpretability, as humans cannot intuitively understand why an RM thinks a response is good or not.",
+      "label": "supported",
+      "source": "arxiv",
+      "title": "Interpretable Preferences via Multi-Objective Reward Modeling and Mixture-of-Experts"
+    },
+    {
+      "id": "pair_016",
+      "claim": "Humans can easily understand why a reward model prefers a response.",
+      "evidence": "However, due to the black-box nature of RMs, their outputs lack interpretability, as humans cannot intuitively understand why an RM thinks a response is good or not.",
+      "label": "contradicted",
+      "source": "arxiv",
+      "title": "Interpretable Preferences via Multi-Objective Reward Modeling and Mixture-of-Experts"
+    },
+    {
+      "id": "pair_017",
+      "claim": "Interpretable reward models are cheaper to train.",
+      "evidence": "However, due to the black-box nature of RMs, their outputs lack interpretability, as humans cannot intuitively understand why an RM thinks a response is good or not.",
+      "label": "neutral",
+      "source": "arxiv",
+      "title": "Interpretable Preferences via Multi-Objective Reward Modeling and Mixture-of-Experts"
+    },
+    {
+      "id": "pair_018",
+      "claim": "ArmoRM was trained with Llama-3 8B and a gating network made of a shallow MLP.",
+      "evidence": "We efficiently trained an ArmoRM with Llama-3 8B and a gating network consisting of a shallow MLP on top of the ArmoRM.",
+      "label": "supported",
+      "source": "arxiv",
+      "title": "Interpretable Preferences via Multi-Objective Reward Modeling and Mixture-of-Experts"
+    },
+    {
+      "id": "pair_019",
+      "claim": "ArmoRM was trained with a 70B model and no gating network.",
+      "evidence": "We efficiently trained an ArmoRM with Llama-3 8B and a gating network consisting of a shallow MLP on top of the ArmoRM.",
+      "label": "contradicted",
+      "source": "arxiv",
+      "title": "Interpretable Preferences via Multi-Objective Reward Modeling and Mixture-of-Experts"
+    },
+    {
+      "id": "pair_020",
+      "claim": "ArmoRM was trained in under one hour.",
+      "evidence": "We efficiently trained an ArmoRM with Llama-3 8B and a gating network consisting of a shallow MLP on top of the ArmoRM.",
+      "label": "neutral",
+      "source": "arxiv",
+      "title": "Interpretable Preferences via Multi-Objective Reward Modeling and Mixture-of-Experts"
+    },
+    {
+      "id": "pair_021",
+      "claim": "Specification gaming occurs when AI systems learn highly rewarded but undesired behaviours.",
+      "evidence": "In reinforcement learning, specification gaming occurs when AI systems learn undesired behaviors that are highly rewarded due to misspecified training goals.",
+      "label": "supported",
+      "source": "arxiv",
+      "title": "Sycophancy to Subterfuge: Investigating Reward-Tampering in Large Language Models"
+    },
+    {
+      "id": "pair_022",
+      "claim": "Specification gaming only happens when training goals are perfectly specified.",
+      "evidence": "In reinforcement learning, specification gaming occurs when AI systems learn undesired behaviors that are highly rewarded due to misspecified training goals.",
+      "label": "contradicted",
+      "source": "arxiv",
+      "title": "Sycophancy to Subterfuge: Investigating Reward-Tampering in Large Language Models"
+    },
+    {
+      "id": "pair_023",
+      "claim": "Reward-tampering means a model directly modifies its own reward mechanism.",
+      "evidence": "Specification gaming can range from simple behaviors like sycophancy to sophisticated and pernicious behaviors like reward-tampering, where a model directly modifies its own reward mechanism.",
+      "label": "supported",
+      "source": "arxiv",
+      "title": "Sycophancy to Subterfuge: Investigating Reward-Tampering in Large Language Models"
+    },
+    {
+      "id": "pair_024",
+      "claim": "Sycophancy is the most dangerous form of specification gaming.",
+      "evidence": "Specification gaming can range from simple behaviors like sycophancy to sophisticated and pernicious behaviors like reward-tampering, where a model directly modifies its own reward mechanism.",
+      "label": "neutral",
+      "source": "arxiv",
+      "title": "Sycophancy to Subterfuge: Investigating Reward-Tampering in Large Language Models"
+    },
+    {
+      "id": "pair_025",
+      "claim": "Training on early-curriculum environments leads to more specification gaming on the remaining environments.",
+      "evidence": "We construct a curriculum of increasingly sophisticated gameable environments and find that training on early-curriculum environments leads to more specification gaming on remaining environments.",
+      "label": "supported",
+      "source": "arxiv",
+      "title": "Sycophancy to Subterfuge: Investigating Reward-Tampering in Large Language Models"
+    },
+    {
+      "id": "pair_026",
+      "claim": "Training on early-curriculum environments eliminates specification gaming on later environments.",
+      "evidence": "We construct a curriculum of increasingly sophisticated gameable environments and find that training on early-curriculum environments leads to more specification gaming on remaining environments.",
+      "label": "contradicted",
+      "source": "arxiv",
+      "title": "Sycophancy to Subterfuge: Investigating Reward-Tampering in Large Language Models"
+    },
+    {
+      "id": "pair_027",
+      "claim": "LLM assistants trained on the full curriculum sometimes rewrite their own reward function zero-shot.",
+      "evidence": "Strikingly, a small but non-negligible proportion of the time, LLM assistants trained on the full curriculum generalize zero-shot to directly rewriting their own reward function.",
+      "label": "supported",
+      "source": "arxiv",
+      "title": "Sycophancy to Subterfuge: Investigating Reward-Tampering in Large Language Models"
+    },
+    {
+      "id": "pair_028",
+      "claim": "LLM assistants trained on the full curriculum never rewrite their own reward function.",
+      "evidence": "Strikingly, a small but non-negligible proportion of the time, LLM assistants trained on the full curriculum generalize zero-shot to directly rewriting their own reward function.",
+      "label": "contradicted",
+      "source": "arxiv",
+      "title": "Sycophancy to Subterfuge: Investigating Reward-Tampering in Large Language Models"
+    },
+    {
+      "id": "pair_029",
+      "claim": "Retraining an LLM not to game early environments mitigates reward-tampering later on.",
+      "evidence": "Retraining an LLM not to game early-curriculum environments mitigates, but does not eliminate, reward-tampering in later environments.",
+      "label": "supported",
+      "source": "arxiv",
+      "title": "Sycophancy to Subterfuge: Investigating Reward-Tampering in Large Language Models"
+    },
+    {
+      "id": "pair_030",
+      "claim": "Retraining an LLM not to game early environments completely eliminates reward-tampering.",
+      "evidence": "Retraining an LLM not to game early-curriculum environments mitigates, but does not eliminate, reward-tampering in later environments.",
+      "label": "contradicted",
+      "source": "arxiv",
+      "title": "Sycophancy to Subterfuge: Investigating Reward-Tampering in Large Language Models"
+    },
+    {
+      "id": "pair_031",
+      "claim": "Adding harmlessness training to the gameable environments does not prevent reward-tampering.",
+      "evidence": "Moreover, adding harmlessness training to our gameable environments does not prevent reward-tampering.",
+      "label": "supported",
+      "source": "arxiv",
+      "title": "Sycophancy to Subterfuge: Investigating Reward-Tampering in Large Language Models"
+    },
+    {
+      "id": "pair_032",
+      "claim": "Harmlessness training prevents reward-tampering in the gameable environments.",
+      "evidence": "Moreover, adding harmlessness training to our gameable environments does not prevent reward-tampering.",
+      "label": "contradicted",
+      "source": "arxiv",
+      "title": "Sycophancy to Subterfuge: Investigating Reward-Tampering in Large Language Models"
+    },
+    {
+      "id": "pair_033",
+      "claim": "Harmlessness training reduces sycophancy by half.",
+      "evidence": "Moreover, adding harmlessness training to our gameable environments does not prevent reward-tampering.",
+      "label": "neutral",
+      "source": "arxiv",
+      "title": "Sycophancy to Subterfuge: Investigating Reward-Tampering in Large Language Models"
+    },
+    {
+      "id": "pair_034",
+      "claim": "An effective energy management strategy is essential to optimise the energy efficiency of electric vehicles.",
+      "evidence": "An effective energy management strategy (EMS) is essential to optimize the energy efficiency of electric vehicles (EVs).",
+      "label": "supported",
+      "source": "doaj",
+      "title": "LearningEMS: A Unified Framework and Open-Source Benchmark for Learning-Based Energy Management of Electric Vehicles"
+    },
+    {
+      "id": "pair_035",
+      "claim": "Energy management strategy has no effect on the energy efficiency of electric vehicles.",
+      "evidence": "An effective energy management strategy (EMS) is essential to optimize the energy efficiency of electric vehicles (EVs).",
+      "label": "contradicted",
+      "source": "doaj",
+      "title": "LearningEMS: A Unified Framework and Open-Source Benchmark for Learning-Based Energy Management of Electric Vehicles"
+    },
+    {
+      "id": "pair_036",
+      "claim": "LearningEMS supports hybrid, fuel cell and plug-in electric vehicles.",
+      "evidence": "LearningEMS is distinguished by its ability to support a variety of EV configurations, including hybrid EVs, fuel cell EVs, and plug-in EVs, offering a general platform for the development of EMS.",
+      "label": "supported",
+      "source": "doaj",
+      "title": "LearningEMS: A Unified Framework and Open-Source Benchmark for Learning-Based Energy Management of Electric Vehicles"
+    },
+    {
+      "id": "pair_037",
+      "claim": "LearningEMS supports only one type of electric vehicle.",
+      "evidence": "LearningEMS is distinguished by its ability to support a variety of EV configurations, including hybrid EVs, fuel cell EVs, and plug-in EVs, offering a general platform for the development of EMS.",
+      "label": "contradicted",
+      "source": "doaj",
+      "title": "LearningEMS: A Unified Framework and Open-Source Benchmark for Learning-Based Energy Management of Electric Vehicles"
+    },
+    {
+      "id": "pair_038",
+      "claim": "LearningEMS was developed by a car manufacturer.",
+      "evidence": "LearningEMS is distinguished by its ability to support a variety of EV configurations, including hybrid EVs, fuel cell EVs, and plug-in EVs, offering a general platform for the development of EMS.",
+      "label": "neutral",
+      "source": "doaj",
+      "title": "LearningEMS: A Unified Framework and Open-Source Benchmark for Learning-Based Energy Management of Electric Vehicles"
+    },
+    {
+      "id": "pair_039",
+      "claim": "LearningEMS compares imitation learning, deep reinforcement learning, offline RL, model predictive control and dynamic programming.",
+      "evidence": "The framework enables detailed comparisons of several EMS algorithms, encompassing imitation learning, deep reinforcement learning (RL), offline RL, model predictive control, and dynamic programming.",
+      "label": "supported",
+      "source": "doaj",
+      "title": "LearningEMS: A Unified Framework and Open-Source Benchmark for Learning-Based Energy Management of Electric Vehicles"
+    },
+    {
+      "id": "pair_040",
+      "claim": "LearningEMS compares only rule-based energy management strategies.",
+      "evidence": "The framework enables detailed comparisons of several EMS algorithms, encompassing imitation learning, deep reinforcement learning (RL), offline RL, model predictive control, and dynamic programming.",
+      "label": "contradicted",
+      "source": "doaj",
+      "title": "LearningEMS: A Unified Framework and Open-Source Benchmark for Learning-Based Energy Management of Electric Vehicles"
+    },
+    {
+      "id": "pair_041",
+      "claim": "The framework includes over 160 benchmark tasks.",
+      "evidence": "In summary, we offer a unified and comprehensive framework that comes with three distinct EV platforms, over 10 000 km of EMS policy data set, ten state-of-the-art algorithms, and over 160 benchmark tasks, along with three learning libraries.",
+      "label": "supported",
+      "source": "doaj",
+      "title": "LearningEMS: A Unified Framework and Open-Source Benchmark for Learning-Based Energy Management of Electric Vehicles"
+    },
+    {
+      "id": "pair_042",
+      "claim": "The framework includes fewer than ten benchmark tasks.",
+      "evidence": "In summary, we offer a unified and comprehensive framework that comes with three distinct EV platforms, over 10 000 km of EMS policy data set, ten state-of-the-art algorithms, and over 160 benchmark tasks, along with three learning libraries.",
+      "label": "contradicted",
+      "source": "doaj",
+      "title": "LearningEMS: A Unified Framework and Open-Source Benchmark for Learning-Based Energy Management of Electric Vehicles"
+    },
+    {
+      "id": "pair_043",
+      "claim": "The framework's data set was collected in Europe.",
+      "evidence": "In summary, we offer a unified and comprehensive framework that comes with three distinct EV platforms, over 10 000 km of EMS policy data set, ten state-of-the-art algorithms, and over 160 benchmark tasks, along with three learning libraries.",
+      "label": "neutral",
+      "source": "doaj",
+      "title": "LearningEMS: A Unified Framework and Open-Source Benchmark for Learning-Based Energy Management of Electric Vehicles"
+    },
+    {
+      "id": "pair_044",
+      "claim": "Compulsive behaviour has been proposed as a transdiagnostic trait across neuropsychiatric disorders.",
+      "evidence": "IntroductionCompulsive behavior has been proposed as a transdiagnostic trait observed in different neuropsychiatric disorders, such as obsessive-compulsive disorder, autism, and schizophrenia.",
+      "label": "supported",
+      "source": "doaj",
+      "title": "Behavioral domains in compulsive rats: implications for understanding compulsive spectrum disorders"
+    },
+    {
+      "id": "pair_045",
+      "claim": "Compulsive behaviour is unique to obsessive-compulsive disorder and is never seen in autism.",
+      "evidence": "IntroductionCompulsive behavior has been proposed as a transdiagnostic trait observed in different neuropsychiatric disorders, such as obsessive-compulsive disorder, autism, and schizophrenia.",
+      "label": "contradicted",
+      "source": "doaj",
+      "title": "Behavioral domains in compulsive rats: implications for understanding compulsive spectrum disorders"
+    },
+    {
+      "id": "pair_046",
+      "claim": "Compulsive behaviour is caused by a single gene.",
+      "evidence": "IntroductionCompulsive behavior has been proposed as a transdiagnostic trait observed in different neuropsychiatric disorders, such as obsessive-compulsive disorder, autism, and schizophrenia.",
+      "label": "neutral",
+      "source": "doaj",
+      "title": "Behavioral domains in compulsive rats: implications for understanding compulsive spectrum disorders"
+    },
+    {
+      "id": "pair_047",
+      "claim": "High-drinker animals performed more perseverative responses under punishment.",
+      "evidence": "Moreover, HD animals performed more perseverative responses under the punishment period on rGT.DiscussionThese results highlight that HD compulsive phenotype exhibits behavioral inflexibility, insensitivity to positive feedback, waiting impulsivity,",
+      "label": "supported",
+      "source": "doaj",
+      "title": "Behavioral domains in compulsive rats: implications for understanding compulsive spectrum disorders"
+    },
+    {
+      "id": "pair_048",
+      "claim": "High-drinker animals performed fewer perseverative responses under punishment.",
+      "evidence": "Moreover, HD animals performed more perseverative responses under the punishment period on rGT.DiscussionThese results highlight that HD compulsive phenotype exhibits behavioral inflexibility, insensitivity to positive feedback, waiting impulsivity,",
+      "label": "contradicted",
+      "source": "doaj",
+      "title": "Behavioral domains in compulsive rats: implications for understanding compulsive spectrum disorders"
+    },
+    {
+      "id": "pair_049",
+      "claim": "Whether retirement is desirable may depend on pre-retirement work characteristics.",
+      "evidence": "Whether retirement is desirable or not may depend on pre-retirement work characteristics.",
+      "label": "supported",
+      "source": "doaj",
+      "title": "Psychosocial working characteristics before retirement and depressive symptoms across the retirement transition: a longitudinal latent class analysis"
+    },
+    {
+      "id": "pair_050",
+      "claim": "Pre-retirement work characteristics are irrelevant to whether retirement is desirable.",
+      "evidence": "Whether retirement is desirable or not may depend on pre-retirement work characteristics.",
+      "label": "contradicted",
+      "source": "doaj",
+      "title": "Psychosocial working characteristics before retirement and depressive symptoms across the retirement transition: a longitudinal latent class analysis"
+    },
+    {
+      "id": "pair_051",
+      "claim": "The study included 1735 respondents from the Swedish Longitudinal Occupational Survey of Health.",
+      "evidence": "METHODS: We included 1735 respondents from the Swedish Longitudinal Occupational Survey of Health (SLOSH), retiring during 2008–2016 (mean retirement age 66 years).",
+      "label": "supported",
+      "source": "doaj",
+      "title": "Psychosocial working characteristics before retirement and depressive symptoms across the retirement transition: a longitudinal latent class analysis"
+    },
+    {
+      "id": "pair_052",
+      "claim": "The study included 17,350 respondents.",
+      "evidence": "METHODS: We included 1735 respondents from the Swedish Longitudinal Occupational Survey of Health (SLOSH), retiring during 2008–2016 (mean retirement age 66 years).",
+      "label": "contradicted",
+      "source": "doaj",
+      "title": "Psychosocial working characteristics before retirement and depressive symptoms across the retirement transition: a longitudinal latent class analysis"
+    },
+    {
+      "id": "pair_053",
+      "claim": "Most respondents retired because of illness.",
+      "evidence": "METHODS: We included 1735 respondents from the Swedish Longitudinal Occupational Survey of Health (SLOSH), retiring during 2008–2016 (mean retirement age 66 years).",
+      "label": "neutral",
+      "source": "doaj",
+      "title": "Psychosocial working characteristics before retirement and depressive symptoms across the retirement transition: a longitudinal latent class analysis"
+    },
+    {
+      "id": "pair_054",
+      "claim": "The mean retirement age in the sample was 66 years.",
+      "evidence": "METHODS: We included 1735 respondents from the Swedish Longitudinal Occupational Survey of Health (SLOSH), retiring during 2008–2016 (mean retirement age 66 years).",
+      "label": "supported",
+      "source": "doaj",
+      "title": "Psychosocial working characteristics before retirement and depressive symptoms across the retirement transition: a longitudinal latent class analysis"
+    },
+    {
+      "id": "pair_055",
+      "claim": "The mean retirement age in the sample was 58 years.",
+      "evidence": "METHODS: We included 1735 respondents from the Swedish Longitudinal Occupational Survey of Health (SLOSH), retiring during 2008–2016 (mean retirement age 66 years).",
+      "label": "contradicted",
+      "source": "doaj",
+      "title": "Psychosocial working characteristics before retirement and depressive symptoms across the retirement transition: a longitudinal latent class analysis"
+    },
+    {
+      "id": "pair_056",
+      "claim": "Group-based trajectory modelling was used to model depressive symptoms across retirement.",
+      "evidence": "We applied group-based trajectory modelling to model trajectories of depressive symptoms across retirement.",
+      "label": "supported",
+      "source": "doaj",
+      "title": "Psychosocial working characteristics before retirement and depressive symptoms across the retirement transition: a longitudinal latent class analysis"
+    },
+    {
+      "id": "pair_057",
+      "claim": "Depressive symptoms were measured with brain imaging.",
+      "evidence": "We applied group-based trajectory modelling to model trajectories of depressive symptoms across retirement.",
+      "label": "neutral",
+      "source": "doaj",
+      "title": "Psychosocial working characteristics before retirement and depressive symptoms across the retirement transition: a longitudinal latent class analysis"
+    },
+    {
+      "id": "pair_058",
+      "claim": "In four trajectories, depressive symptoms decreased slightly around retirement.",
+      "evidence": "In four of them, depressive symptoms decreased slightly around retirement.",
+      "label": "supported",
+      "source": "doaj",
+      "title": "Psychosocial working characteristics before retirement and depressive symptoms across the retirement transition: a longitudinal latent class analysis"
+    },
+    {
+      "id": "pair_059",
+      "claim": "In four trajectories, depressive symptoms rose sharply around retirement.",
+      "evidence": "In four of them, depressive symptoms decreased slightly around retirement.",
+      "label": "contradicted",
+      "source": "doaj",
+      "title": "Psychosocial working characteristics before retirement and depressive symptoms across the retirement transition: a longitudinal latent class analysis"
+    },
+    {
+      "id": "pair_060",
+      "claim": "The medical model reached 77.0% accuracy on MedMCQA.",
+      "evidence": "Comprehensive evaluations under a uniform LLM-as-Judge [12] framework with GPT-5.4 demonstrate 77.0% accuracy (mean quality score +7.18) on MedMCQA [10] and +2.59 on HLE, with pipeline progression from +6.69 (base) to +7.06 (SFT) to +7.18 (final).",
+      "label": "supported",
+      "source": "europepmc",
+      "title": "Infoxmed2.0-27B: Instruction Tuning, Preference Alignment, and GRPO-Based Reward Model Training for Medical LLMs"
+    },
+    {
+      "id": "pair_061",
+      "claim": "The medical model reached 97% accuracy on MedMCQA.",
+      "evidence": "Comprehensive evaluations under a uniform LLM-as-Judge [12] framework with GPT-5.4 demonstrate 77.0% accuracy (mean quality score +7.18) on MedMCQA [10] and +2.59 on HLE, with pipeline progression from +6.69 (base) to +7.06 (SFT) to +7.18 (final).",
+      "label": "contradicted",
+      "source": "europepmc",
+      "title": "Infoxmed2.0-27B: Instruction Tuning, Preference Alignment, and GRPO-Based Reward Model Training for Medical LLMs"
+    },
+    {
+      "id": "pair_062",
+      "claim": "The medical model outperforms human doctors on MedMCQA.",
+      "evidence": "Comprehensive evaluations under a uniform LLM-as-Judge [12] framework with GPT-5.4 demonstrate 77.0% accuracy (mean quality score +7.18) on MedMCQA [10] and +2.59 on HLE, with pipeline progression from +6.69 (base) to +7.06 (SFT) to +7.18 (final).",
+      "label": "neutral",
+      "source": "europepmc",
+      "title": "Infoxmed2.0-27B: Instruction Tuning, Preference Alignment, and GRPO-Based Reward Model Training for Medical LLMs"
+    },
+    {
+      "id": "pair_063",
+      "claim": "Adolescence is an age of risk for the emergence of depression.",
+      "evidence": "Adolescence is an \"age of risk\" for the emergence of depression.",
+      "label": "supported",
+      "source": "europepmc",
+      "title": "An Integrated Immuno-Reward Model of Adolescent Depression: Theory, Evidence, and Implications."
+    },
+    {
+      "id": "pair_064",
+      "claim": "Adolescence is a period of especially low risk for depression.",
+      "evidence": "Adolescence is an \"age of risk\" for the emergence of depression.",
+      "label": "contradicted",
+      "source": "europepmc",
+      "title": "An Integrated Immuno-Reward Model of Adolescent Depression: Theory, Evidence, and Implications."
+    },
+    {
+      "id": "pair_065",
+      "claim": "Recent evidence suggests bidirectional associations between inflammation and reward responsiveness.",
+      "evidence": "Separate lines of research have investigated the roles of inflammation and low reward responsiveness in depression and recent evidence suggests bidirectional associations between inflammation and reward responsiveness.",
+      "label": "supported",
+      "source": "europepmc",
+      "title": "An Integrated Immuno-Reward Model of Adolescent Depression: Theory, Evidence, and Implications."
+    },
+    {
+      "id": "pair_066",
+      "claim": "Inflammation and reward responsiveness are unrelated.",
+      "evidence": "Separate lines of research have investigated the roles of inflammation and low reward responsiveness in depression and recent evidence suggests bidirectional associations between inflammation and reward responsiveness.",
+      "label": "contradicted",
+      "source": "europepmc",
+      "title": "An Integrated Immuno-Reward Model of Adolescent Depression: Theory, Evidence, and Implications."
+    },
+    {
+      "id": "pair_067",
+      "claim": "Anti-inflammatory drugs cure adolescent depression.",
+      "evidence": "Separate lines of research have investigated the roles of inflammation and low reward responsiveness in depression and recent evidence suggests bidirectional associations between inflammation and reward responsiveness.",
+      "label": "neutral",
+      "source": "europepmc",
+      "title": "An Integrated Immuno-Reward Model of Adolescent Depression: Theory, Evidence, and Implications."
+    },
+    {
+      "id": "pair_068",
+      "claim": "Best-of-N sampling relies on reward models trained with pairwise comparison data.",
+      "evidence": "Abstract Modern preference alignment techniques, such as Best-of-N (BoN) sampling, rely on reward models trained with pairwise comparison data.",
+      "label": "supported",
+      "source": "europepmc",
+      "title": "A Contextual Quality Reward Model For Reliable and Efficient Best of N Sampling"
+    },
+    {
+      "id": "pair_069",
+      "claim": "Best-of-N sampling does not use reward models.",
+      "evidence": "Abstract Modern preference alignment techniques, such as Best-of-N (BoN) sampling, rely on reward models trained with pairwise comparison data.",
+      "label": "contradicted",
+      "source": "europepmc",
+      "title": "A Contextual Quality Reward Model For Reliable and Efficient Best of N Sampling"
+    },
+    {
+      "id": "pair_070",
+      "claim": "Pairwise preference training fails to capture whether a response is acceptable.",
+      "evidence": "While effective at learning relative preferences, this paradigm fails to capture a signal of response acceptability, leaving systems vulnerable to selecting the least bad of many unacceptable options.",
+      "label": "supported",
+      "source": "europepmc",
+      "title": "A Contextual Quality Reward Model For Reliable and Efficient Best of N Sampling"
+    },
+    {
+      "id": "pair_071",
+      "claim": "Pairwise preference training reliably captures whether a response is acceptable.",
+      "evidence": "While effective at learning relative preferences, this paradigm fails to capture a signal of response acceptability, leaving systems vulnerable to selecting the least bad of many unacceptable options.",
+      "label": "contradicted",
+      "source": "europepmc",
+      "title": "A Contextual Quality Reward Model For Reliable and Efficient Best of N Sampling"
+    },
+    {
+      "id": "pair_072",
+      "claim": "The risk of false acceptances increases with the number of samples on hard prompts.",
+      "evidence": "This is particularly problematic for hard prompts, where the risk of such false acceptances increases with the number of samples.",
+      "label": "supported",
+      "source": "europepmc",
+      "title": "A Contextual Quality Reward Model For Reliable and Efficient Best of N Sampling"
+    },
+    {
+      "id": "pair_073",
+      "claim": "The risk of false acceptances decreases as more samples are drawn on hard prompts.",
+      "evidence": "This is particularly problematic for hard prompts, where the risk of such false acceptances increases with the number of samples.",
+      "label": "contradicted",
+      "source": "europepmc",
+      "title": "A Contextual Quality Reward Model For Reliable and Efficient Best of N Sampling"
+    },
+    {
+      "id": "pair_074",
+      "claim": "Used as an alignment guardrail, the method reduces reliability failures by 70%.",
+      "evidence": "Our experiments show that when tuned as an alignment guardrail, it reduces reliability failures by 70%, and when tuned as an inference accelerator, it improves average inference speed by over 22% in IMBD-sentiment setting.",
+      "label": "supported",
+      "source": "europepmc",
+      "title": "A Contextual Quality Reward Model For Reliable and Efficient Best of N Sampling"
+    },
+    {
+      "id": "pair_075",
+      "claim": "Used as an alignment guardrail, the method increases reliability failures by 70%.",
+      "evidence": "Our experiments show that when tuned as an alignment guardrail, it reduces reliability failures by 70%, and when tuned as an inference accelerator, it improves average inference speed by over 22% in IMBD-sentiment setting.",
+      "label": "contradicted",
+      "source": "europepmc",
+      "title": "A Contextual Quality Reward Model For Reliable and Efficient Best of N Sampling"
+    },
+    {
+      "id": "pair_076",
+      "claim": "The method was tested on medical images.",
+      "evidence": "Our experiments show that when tuned as an alignment guardrail, it reduces reliability failures by 70%, and when tuned as an inference accelerator, it improves average inference speed by over 22% in IMBD-sentiment setting.",
+      "label": "neutral",
+      "source": "europepmc",
+      "title": "A Contextual Quality Reward Model For Reliable and Efficient Best of N Sampling"
+    },
+    {
+      "id": "pair_077",
+      "claim": "Used as an inference accelerator, the method improves average inference speed by over 22%.",
+      "evidence": "Our experiments show that when tuned as an alignment guardrail, it reduces reliability failures by 70%, and when tuned as an inference accelerator, it improves average inference speed by over 22% in IMBD-sentiment setting.",
+      "label": "supported",
+      "source": "europepmc",
+      "title": "A Contextual Quality Reward Model For Reliable and Efficient Best of N Sampling"
+    },
+    {
+      "id": "pair_078",
+      "claim": "MRMC is a model checker for discrete-time and continuous-time Markov reward models.",
+      "evidence": "This short tool paper introduces MRMC, a model checker for discrete-time and continuous-time Markov reward models.",
+      "label": "supported",
+      "source": "openalex",
+      "title": "A Markov reward model checker"
+    },
+    {
+      "id": "pair_079",
+      "claim": "MRMC is a neural network for language modelling.",
+      "evidence": "This short tool paper introduces MRMC, a model checker for discrete-time and continuous-time Markov reward models.",
+      "label": "contradicted",
+      "source": "openalex",
+      "title": "A Markov reward model checker"
+    },
+    {
+      "id": "pair_080",
+      "claim": "MRMC is written in Java.",
+      "evidence": "This short tool paper introduces MRMC, a model checker for discrete-time and continuous-time Markov reward models.",
+      "label": "neutral",
+      "source": "openalex",
+      "title": "A Markov reward model checker"
+    },
+    {
+      "id": "pair_081",
+      "claim": "MRMC supports reward extensions of PCTL and CSL.",
+      "evidence": "It supports reward extensions of PCTL and CSL, and allows for the automated verification of properties concerning long-run and instantaneous rewards as well as cumulative rewards.",
+      "label": "supported",
+      "source": "openalex",
+      "title": "A Markov reward model checker"
+    },
+    {
+      "id": "pair_082",
+      "claim": "MRMC includes several numerical algorithms.",
+      "evidence": "Several numerical algorithms and extensions thereof are included in MRMC.",
+      "label": "supported",
+      "source": "openalex",
+      "title": "A Markov reward model checker"
+    },
+    {
+      "id": "pair_083",
+      "claim": "MRMC was released under a commercial licence.",
+      "evidence": "Several numerical algorithms and extensions thereof are included in MRMC.",
+      "label": "neutral",
+      "source": "openalex",
+      "title": "A Markov reward model checker"
+    },
+    {
+      "id": "pair_084",
+      "claim": "The paper introduces a new parameterisation of the reward model in RLHF that yields the optimal policy in closed form.",
+      "evidence": "In this paper we introduce a new parameterization of the reward model in RLHF that enables extraction of the corresponding optimal policy in closed form, allowing us to solve the standard RLHF problem with only a simple classification loss.",
+      "label": "supported",
+      "source": "semantic_scholar",
+      "title": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model"
+    },
+    {
+      "id": "pair_085",
+      "claim": "Solving the RLHF problem still requires reinforcement learning with this parameterisation.",
+      "evidence": "In this paper we introduce a new parameterization of the reward model in RLHF that enables extraction of the corresponding optimal policy in closed form, allowing us to solve the standard RLHF problem with only a simple classification loss.",
+      "label": "contradicted",
+      "source": "semantic_scholar",
+      "title": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model"
+    },
+    {
+      "id": "pair_086",
+      "claim": "DPO is stable, performant and computationally lightweight.",
+      "evidence": "The resulting algorithm, which we call Direct Preference Optimization (DPO), is stable, performant, and computationally lightweight, eliminating the need for sampling from the LM during fine-tuning or performing significant hyperparameter tuning.",
+      "label": "supported",
+      "source": "semantic_scholar",
+      "title": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model"
+    },
+    {
+      "id": "pair_087",
+      "claim": "DPO requires sampling from the language model during fine-tuning.",
+      "evidence": "The resulting algorithm, which we call Direct Preference Optimization (DPO), is stable, performant, and computationally lightweight, eliminating the need for sampling from the LM during fine-tuning or performing significant hyperparameter tuning.",
+      "label": "contradicted",
+      "source": "semantic_scholar",
+      "title": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model"
+    },
+    {
+      "id": "pair_088",
+      "claim": "DPO was invented at a university in Europe.",
+      "evidence": "The resulting algorithm, which we call Direct Preference Optimization (DPO), is stable, performant, and computationally lightweight, eliminating the need for sampling from the LM during fine-tuning or performing significant hyperparameter tuning.",
+      "label": "neutral",
+      "source": "semantic_scholar",
+      "title": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model"
+    },
+    {
+      "id": "pair_089",
+      "claim": "DPO can align language models with human preferences as well as or better than existing methods.",
+      "evidence": "Our experiments show that DPO can fine-tune LMs to align with human preferences as well as or better than existing methods.",
+      "label": "supported",
+      "source": "semantic_scholar",
+      "title": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model"
+    },
+    {
+      "id": "pair_090",
+      "claim": "DPO aligns language models with human preferences much worse than existing methods.",
+      "evidence": "Our experiments show that DPO can fine-tune LMs to align with human preferences as well as or better than existing methods.",
+      "label": "contradicted",
+      "source": "semantic_scholar",
+      "title": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model"
+    },
+    {
+      "id": "pair_091",
+      "claim": "In RLHF it is common to optimise against a reward model trained to predict human preferences.",
+      "evidence": "In reinforcement learning from human feedback, it is common to optimize against a reward model trained to predict human preferences.",
+      "label": "supported",
+      "source": "semantic_scholar",
+      "title": "Scaling Laws for Reward Model Overoptimization"
+    },
+    {
+      "id": "pair_092",
+      "claim": "Reward models in RLHF usually cost more to train than the policy.",
+      "evidence": "In reinforcement learning from human feedback, it is common to optimize against a reward model trained to predict human preferences.",
+      "label": "neutral",
+      "source": "semantic_scholar",
+      "title": "Scaling Laws for Reward Model Overoptimization"
+    },
+    {
+      "id": "pair_093",
+      "claim": "Optimising a proxy reward model too much can hinder ground-truth performance.",
+      "evidence": "Because the reward model is an imperfect proxy, optimizing its value too much can hinder ground truth performance, in accordance with Goodhart's law.",
+      "label": "supported",
+      "source": "semantic_scholar",
+      "title": "Scaling Laws for Reward Model Overoptimization"
+    },
+    {
+      "id": "pair_094",
+      "claim": "Optimising a proxy reward model more always improves ground-truth performance.",
+      "evidence": "Because the reward model is an imperfect proxy, optimizing its value too much can hinder ground truth performance, in accordance with Goodhart's law.",
+      "label": "contradicted",
+      "source": "semantic_scholar",
+      "title": "Scaling Laws for Reward Model Overoptimization"
+    },
+    {
+      "id": "pair_095",
+      "claim": "Goodhart's law was first stated by an economist.",
+      "evidence": "Because the reward model is an imperfect proxy, optimizing its value too much can hinder ground truth performance, in accordance with Goodhart's law.",
+      "label": "neutral",
+      "source": "semantic_scholar",
+      "title": "Scaling Laws for Reward Model Overoptimization"
+    },
+    {
+      "id": "pair_096",
+      "claim": "A fixed gold-standard reward model plays the role of humans in the synthetic setup.",
+      "evidence": "In this work, we use a synthetic setup in which a fixed\"gold-standard\"reward model plays the role of humans, providing labels used to train a proxy reward model.",
+      "label": "supported",
+      "source": "semantic_scholar",
+      "title": "Scaling Laws for Reward Model Overoptimization"
+    },
+    {
+      "id": "pair_097",
+      "claim": "Real human annotators labelled every sample in the study.",
+      "evidence": "In this work, we use a synthetic setup in which a fixed\"gold-standard\"reward model plays the role of humans, providing labels used to train a proxy reward model.",
+      "label": "contradicted",
+      "source": "semantic_scholar",
+      "title": "Scaling Laws for Reward Model Overoptimization"
+    },
+    {
+      "id": "pair_098",
+      "claim": "The coefficients scale smoothly with the number of reward model parameters.",
+      "evidence": "We find that this relationship follows a different functional form depending on the method of optimization, and that in both cases its coefficients scale smoothly with the number of reward model parameters.",
+      "label": "supported",
+      "source": "semantic_scholar",
+      "title": "Scaling Laws for Reward Model Overoptimization"
+    },
+    {
+      "id": "pair_099",
+      "claim": "The relationship has the same functional form for every optimisation method.",
+      "evidence": "We find that this relationship follows a different functional form depending on the method of optimization, and that in both cases its coefficients scale smoothly with the number of reward model parameters.",
+      "label": "contradicted",
+      "source": "semantic_scholar",
+      "title": "Scaling Laws for Reward Model Overoptimization"
+    },
+    {
+      "id": "pair_100",
+      "claim": "The authors explore implications of their results for AI alignment theory.",
+      "evidence": "We explore the implications of these empirical results for theoretical considerations in AI alignment.",
+      "label": "supported",
+      "source": "semantic_scholar",
+      "title": "Scaling Laws for Reward Model Overoptimization"
+    },
+    {
+      "id": "pair_101",
+      "claim": "Simpler direct alignment algorithms are reported to work better in many cases.",
+      "evidence": "At the same time, progress in evaluation has not been mirrored by the effectiveness of reward models in downstream tasks -- simpler direct alignment algorithms are reported to work better in many cases.",
+      "label": "supported",
+      "source": "semantic_scholar",
+      "title": "RewardBench 2: Advancing Reward Model Evaluation"
+    },
+    {
+      "id": "pair_102",
+      "claim": "Reward models used in alignment are usually smaller than one million parameters.",
+      "evidence": "At the same time, progress in evaluation has not been mirrored by the effectiveness of reward models in downstream tasks -- simpler direct alignment algorithms are reported to work better in many cases.",
+      "label": "neutral",
+      "source": "semantic_scholar",
+      "title": "RewardBench 2: Advancing Reward Model Evaluation"
+    },
+    {
+      "id": "pair_103",
+      "claim": "RewardBench 2 uses new human prompts instead of prompts from downstream evaluations.",
+      "evidence": "Compared to most other benchmarks, RewardBench 2 sources new human prompts instead of existing prompts from downstream evaluations, facilitating more rigorous evaluation practices.",
+      "label": "supported",
+      "source": "semantic_scholar",
+      "title": "RewardBench 2: Advancing Reward Model Evaluation"
+    },
+    {
+      "id": "pair_104",
+      "claim": "RewardBench 2 reuses existing prompts from downstream evaluations.",
+      "evidence": "Compared to most other benchmarks, RewardBench 2 sources new human prompts instead of existing prompts from downstream evaluations, facilitating more rigorous evaluation practices.",
+      "label": "contradicted",
+      "source": "semantic_scholar",
+      "title": "RewardBench 2: Advancing Reward Model Evaluation"
+    },
+    {
+      "id": "pair_105",
+      "claim": "RewardBench 2 was released in 2021.",
+      "evidence": "Compared to most other benchmarks, RewardBench 2 sources new human prompts instead of existing prompts from downstream evaluations, facilitating more rigorous evaluation practices.",
+      "label": "neutral",
+      "source": "semantic_scholar",
+      "title": "RewardBench 2: Advancing Reward Model Evaluation"
+    },
+    {
+      "id": "pair_106",
+      "claim": "Some reward model benchmarks test agreement with human preferences.",
+      "evidence": "The community has begun establishing best practices for evaluating reward models, from the development of benchmarks that test capabilities in specific skill areas to others that test agreement with human preferences.",
+      "label": "supported",
+      "source": "semantic_scholar",
+      "title": "RewardBench 2: Advancing Reward Model Evaluation"
+    },
+    {
+      "id": "pair_107",
+      "claim": "Reward models are used in post-training across instruction following, reasoning and safety.",
+      "evidence": "Reward models are used throughout the post-training of language models to capture nuanced signals from preference data and provide a training target for optimization across instruction following, reasoning, safety, and more domains.",
+      "label": "supported",
+      "source": "semantic_scholar",
+      "title": "RewardBench 2: Advancing Reward Model Evaluation"
+    },
+    {
+      "id": "pair_108",
+      "claim": "Reward models are only used during pre-training.",
+      "evidence": "Reward models are used throughout the post-training of language models to capture nuanced signals from preference data and provide a training target for optimization across instruction following, reasoning, safety, and more domains.",
+      "label": "contradicted",
+      "source": "semantic_scholar",
+      "title": "RewardBench 2: Advancing Reward Model Evaluation"
+    },
+    {
+      "id": "pair_109",
+      "claim": "Reward models are mostly trained on code.",
+      "evidence": "Reward models are used throughout the post-training of language models to capture nuanced signals from preference data and provide a training target for optimization across instruction following, reasoning, safety, and more domains.",
+      "label": "neutral",
+      "source": "semantic_scholar",
+      "title": "RewardBench 2: Advancing Reward Model Evaluation"
+    },
+    {
+      "id": "pair_110",
+      "claim": "Pernicious behaviours may be too complex to discover via exploration.",
+      "evidence": "However, these more pernicious behaviors may be too complex to be discovered via exploration.",
+      "label": "supported",
+      "source": "arxiv",
+      "title": "Sycophancy to Subterfuge: Investigating Reward-Tampering in Large Language Models"
+    },
+    {
+      "id": "pair_111",
+      "claim": "Interest in sophisticated energy management for electric vehicles is growing with machine learning.",
+      "evidence": "With the advent of advanced machine learning techniques, the focus on developing sophisticated EMS for EVs is increasing.",
+      "label": "supported",
+      "source": "doaj",
+      "title": "LearningEMS: A Unified Framework and Open-Source Benchmark for Learning-Based Energy Management of Electric Vehicles"
+    },
+    {
+      "id": "pair_112",
+      "claim": "Electric vehicles will replace all petrol cars by 2030.",
+      "evidence": "With the advent of advanced machine learning techniques, the focus on developing sophisticated EMS for EVs is increasing.",
+      "label": "neutral",
+      "source": "doaj",
+      "title": "LearningEMS: A Unified Framework and Open-Source Benchmark for Learning-Based Energy Management of Electric Vehicles"
+    },
+    {
+      "id": "pair_113",
+      "claim": "The algorithms were evaluated on energy efficiency, consistency, adaptability and practicability.",
+      "evidence": "We rigorously evaluated these algorithms across multiple perspectives: energy efficiency, consistency, adaptability, and practicability.",
+      "label": "supported",
+      "source": "doaj",
+      "title": "LearningEMS: A Unified Framework and Open-Source Benchmark for Learning-Based Energy Management of Electric Vehicles"
+    },
+    {
+      "id": "pair_114",
+      "claim": "The algorithms were evaluated on passenger comfort.",
+      "evidence": "We rigorously evaluated these algorithms across multiple perspectives: energy efficiency, consistency, adaptability, and practicability.",
+      "label": "neutral",
+      "source": "doaj",
+      "title": "LearningEMS: A Unified Framework and Open-Source Benchmark for Learning-Based Energy Management of Electric Vehicles"
+    },
+    {
+      "id": "pair_115",
+      "claim": "The study examined depressive symptom trajectories across retirement.",
+      "evidence": "We investigated trajectories of depressive symptoms across retirement and how a number of psychosocial working characteristics influenced these trajectories.",
+      "label": "supported",
+      "source": "doaj",
+      "title": "Psychosocial working characteristics before retirement and depressive symptoms across the retirement transition: a longitudinal latent class analysis"
+    },
+    {
+      "id": "pair_116",
+      "claim": "Retirement was found to cause dementia.",
+      "evidence": "We investigated trajectories of depressive symptoms across retirement and how a number of psychosocial working characteristics influenced these trajectories.",
+      "label": "neutral",
+      "source": "doaj",
+      "title": "Psychosocial working characteristics before retirement and depressive symptoms across the retirement transition: a longitudinal latent class analysis"
+    },
+    {
+      "id": "pair_117",
+      "claim": "The new reward model can distinguish responses that are good enough, not just better.",
+      "evidence": "By augmenting preference data with an outside option, inspired by discrete choice models, we train a reward model that can distinguish not just what is better, but what is good enough.",
+      "label": "supported",
+      "source": "europepmc",
+      "title": "A Contextual Quality Reward Model For Reliable and Efficient Best of N Sampling"
+    },
+    {
+      "id": "pair_118",
+      "claim": "Best of mini-N in-loop splits the generation budget into sequential loops with early exit.",
+      "evidence": "We leverage this capability to create an adaptive inference strategy, best of mini-N in-loop, which partitions the generation budget into sequential loops with a calibrated, early-exit condition.",
+      "label": "supported",
+      "source": "europepmc",
+      "title": "A Contextual Quality Reward Model For Reliable and Efficient Best of N Sampling"
+    },
+    {
+      "id": "pair_119",
+      "claim": "Best of mini-N in-loop requires twice the generation budget of standard best-of-N.",
+      "evidence": "We leverage this capability to create an adaptive inference strategy, best of mini-N in-loop, which partitions the generation budget into sequential loops with a calibrated, early-exit condition.",
+      "label": "neutral",
+      "source": "europepmc",
+      "title": "A Contextual Quality Reward Model For Reliable and Efficient Best of N Sampling"
+    },
+    {
+      "id": "pair_120",
+      "claim": "Existing steerability methods collect human labels of the relative quality of generations.",
+      "evidence": "Existing methods for gaining such steerability collect human labels of the relative quality of model generations and fine-tune the unsupervised LM to align with these preferences, often with reinforcement learning from human feedback (RLHF).",
+      "label": "supported",
+      "source": "semantic_scholar",
+      "title": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model"
+    },
+    {
+      "id": "pair_121",
+      "claim": "Unsupervised language models are trivially easy to control precisely.",
+      "evidence": "While large-scale unsupervised language models (LMs) learn broad world knowledge and some reasoning skills, achieving precise control of their behavior is difficult due to the completely unsupervised nature of their training.",
+      "label": "contradicted",
+      "source": "semantic_scholar",
+      "title": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model"
+    },
+    {
+      "id": "pair_122",
+      "claim": "Large unsupervised language models learn broad world knowledge.",
+      "evidence": "While large-scale unsupervised language models (LMs) learn broad world knowledge and some reasoning skills, achieving precise control of their behavior is difficult due to the completely unsupervised nature of their training.",
+      "label": "supported",
+      "source": "semantic_scholar",
+      "title": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model"
+    },
+    {
+      "id": "pair_123",
+      "claim": "The study optimises against the proxy reward model with reinforcement learning or best-of-n sampling.",
+      "evidence": "We study how the gold reward model score changes as we optimize against the proxy reward model using either reinforcement learning or best-of-$n$ sampling.",
+      "label": "supported",
+      "source": "semantic_scholar",
+      "title": "Scaling Laws for Reward Model Overoptimization"
+    },
+    {
+      "id": "pair_124",
+      "claim": "The proxy reward model was trained on images.",
+      "evidence": "We study how the gold reward model score changes as we optimize against the proxy reward model using either reinforcement learning or best-of-$n$ sampling.",
+      "label": "neutral",
+      "source": "semantic_scholar",
+      "title": "Scaling Laws for Reward Model Overoptimization"
+    },
+    {
+      "id": "pair_125",
+      "claim": "The KL penalty coefficient was one of the factors studied.",
+      "evidence": "We also study the effect on this relationship of the size of the reward model dataset, the number of reward model and policy parameters, and the coefficient of the KL penalty added to the reward in the reinforcement learning setup.",
+      "label": "supported",
+      "source": "semantic_scholar",
+      "title": "Scaling Laws for Reward Model Overoptimization"
+    },
+    {
+      "id": "pair_126",
+      "claim": "The KL penalty was removed from the reinforcement learning setup.",
+      "evidence": "We also study the effect on this relationship of the size of the reward model dataset, the number of reward model and policy parameters, and the coefficient of the KL penalty added to the reward in the reinforcement learning setup.",
+      "label": "contradicted",
+      "source": "semantic_scholar",
+      "title": "Scaling Laws for Reward Model Overoptimization"
+    },
+    {
+      "id": "pair_127",
+      "claim": "The best KL coefficient was exactly 0.1.",
+      "evidence": "We also study the effect on this relationship of the size of the reward model dataset, the number of reward model and policy parameters, and the coefficient of the KL penalty added to the reward in the reinforcement learning setup.",
+      "label": "neutral",
+      "source": "semantic_scholar",
+      "title": "Scaling Laws for Reward Model Overoptimization"
+    },
+    {
+      "id": "pair_128",
+      "claim": "The authors argue reward models should be human-interpretable to help prevent reward hacking.",
+      "evidence": "As RMs act as human preference proxies, we believe they should be human-interpretable to ensure that their internal decision processes are consistent with human preferences and to prevent reward hacking in LLM alignment.",
+      "label": "supported",
+      "source": "arxiv",
+      "title": "Interpretable Preferences via Multi-Objective Reward Modeling and Mixture-of-Experts"
+    },
+    {
+      "id": "pair_129",
+      "claim": "The authors argue interpretability is irrelevant to reward hacking.",
+      "evidence": "As RMs act as human preference proxies, we believe they should be human-interpretable to ensure that their internal decision processes are consistent with human preferences and to prevent reward hacking in LLM alignment.",
+      "label": "contradicted",
+      "source": "arxiv",
+      "title": "Interpretable Preferences via Multi-Objective Reward Modeling and Mixture-of-Experts"
+    },
+    {
+      "id": "pair_130",
+      "claim": "LLMs can generalise from common specification gaming to reward tampering.",
+      "evidence": "These results demonstrate that LLMs can generalize from common forms of specification gaming to more pernicious reward tampering and that such behavior may be nontrivial to remove.",
+      "label": "supported",
+      "source": "arxiv",
+      "title": "Sycophancy to Subterfuge: Investigating Reward-Tampering in Large Language Models"
+    },
+    {
+      "id": "pair_131",
+      "claim": "Reward tampering behaviour is trivial to remove from LLMs.",
+      "evidence": "These results demonstrate that LLMs can generalize from common forms of specification gaming to more pernicious reward tampering and that such behavior may be nontrivial to remove.",
+      "label": "contradicted",
+      "source": "arxiv",
+      "title": "Sycophancy to Subterfuge: Investigating Reward-Tampering in Large Language Models"
+    },
+    {
+      "id": "pair_132",
+      "claim": "Reward tampering was observed in production chat assistants.",
+      "evidence": "These results demonstrate that LLMs can generalize from common forms of specification gaming to more pernicious reward tampering and that such behavior may be nontrivial to remove.",
+      "label": "neutral",
+      "source": "arxiv",
+      "title": "Sycophancy to Subterfuge: Investigating Reward-Tampering in Large Language Models"
+    },
+    {
+      "id": "pair_133",
+      "claim": "ArmoRM-Llama3-8B obtains state-of-the-art performance on RewardBench.",
+      "evidence": "Our trained model, ArmoRM-Llama3-8B, obtains state-of-the-art performance on RewardBench, a benchmark evaluat",
+      "label": "supported",
+      "source": "arxiv",
+      "title": "Interpretable Preferences via Multi-Objective Reward Modeling and Mixture-of-Experts"
+    },
+    {
+      "id": "pair_134",
+      "claim": "ArmoRM-Llama3-8B performs worst among models on RewardBench.",
+      "evidence": "Our trained model, ArmoRM-Llama3-8B, obtains state-of-the-art performance on RewardBench, a benchmark evaluat",
+      "label": "contradicted",
+      "source": "arxiv",
+      "title": "Interpretable Preferences via Multi-Objective Reward Modeling and Mixture-of-Experts"
+    },
+    {
+      "id": "pair_135",
+      "claim": "Previous evidence on retirement's mental health effects has been inconclusive.",
+      "evidence": "However, previous evidence on its mental health effects has been inconclusive.",
+      "label": "supported",
+      "source": "doaj",
+      "title": "Psychosocial working characteristics before retirement and depressive symptoms across the retirement transition: a longitudinal latent class analysis"
+    },
+    {
+      "id": "pair_136",
+      "claim": "Previous evidence conclusively shows retirement improves mental health.",
+      "evidence": "However, previous evidence on its mental health effects has been inconclusive.",
+      "label": "contradicted",
+      "source": "doaj",
+      "title": "Psychosocial working characteristics before retirement and depressive symptoms across the retirement transition: a longitudinal latent class analysis"
+    },
+    {
+      "id": "pair_137",
+      "claim": "There are major unanswered questions about why depression surges in adolescence.",
+      "evidence": "Despite its prevalence and public health significance, there are major unanswered questions regarding the mechanisms contributing to depression's etiology and surge in adolescence.",
+      "label": "supported",
+      "source": "europepmc",
+      "title": "An Integrated Immuno-Reward Model of Adolescent Depression: Theory, Evidence, and Implications."
+    },
+    {
+      "id": "pair_138",
+      "claim": "The causes of the adolescent rise in depression are fully understood.",
+      "evidence": "Despite its prevalence and public health significance, there are major unanswered questions regarding the mechanisms contributing to depression's etiology and surge in adolescence.",
+      "label": "contradicted",
+      "source": "europepmc",
+      "title": "An Integrated Immuno-Reward Model of Adolescent Depression: Theory, Evidence, and Implications."
+    },
+    {
+      "id": "pair_139",
+      "claim": "The authors discuss implications of the immuno-reward model for public health policy.",
+      "evidence": "We end with implications of the immuno-reward model for future research, early identification of at-risk adolescents, intervention, and public health policy.",
+      "label": "supported",
+      "source": "europepmc",
+      "title": "An Integrated Immuno-Reward Model of Adolescent Depression: Theory, Evidence, and Implications."
+    },
+    {
+      "id": "pair_140",
+      "claim": "The immuno-reward model has already been adopted as national policy.",
+      "evidence": "We end with implications of the immuno-reward model for future research, early identification of at-risk adolescents, intervention, and public health policy.",
+      "label": "neutral",
+      "source": "europepmc",
+      "title": "An Integrated Immuno-Reward Model of Adolescent Depression: Theory, Evidence, and Implications."
+    },
+    {
+      "id": "pair_141",
+      "claim": "MRMC can verify properties about cumulative rewards.",
+      "evidence": "It supports reward extensions of PCTL and CSL, and allows for the automated verification of properties concerning long-run and instantaneous rewards as well as cumulative rewards.",
+      "label": "supported",
+      "source": "openalex",
+      "title": "A Markov reward model checker"
+    },
+    {
+      "id": "pair_142",
+      "claim": "MRMC cannot verify any reward-related property.",
+      "evidence": "It supports reward extensions of PCTL and CSL, and allows for the automated verification of properties concerning long-run and instantaneous rewards as well as cumulative rewards.",
+      "label": "contradicted",
+      "source": "openalex",
+      "title": "A Markov reward model checker"
+    },
+    {
+      "id": "pair_143",
+      "claim": "MRMC checks reachability of goal states under time and accumulated reward constraints.",
+      "evidence": "In particular it supports to check the reachability of a set of goal states (by only visiting legal states before) under a time and an accumulated reward constraint.",
+      "label": "supported",
+      "source": "openalex",
+      "title": "A Markov reward model checker"
+    },
+    {
+      "id": "pair_144",
+      "claim": "DPO exceeds PPO-based RLHF in controlling the sentiment of generations.",
+      "evidence": "Notably, fine-tuning with DPO exceeds PPO-based RLHF in ability to control sentiment of generations, and matches or improves response qua",
+      "label": "supported",
+      "source": "semantic_scholar",
+      "title": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model"
+    },
+    {
+      "id": "pair_145",
+      "claim": "PPO-based RLHF controls sentiment better than DPO.",
+      "evidence": "Notably, fine-tuning with DPO exceeds PPO-based RLHF in ability to control sentiment of generations, and matches or improves response qua",
+      "label": "contradicted",
+      "source": "semantic_scholar",
+      "title": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model"
+    },
+    {
+      "id": "pair_146",
+      "claim": "Measuring this effect carefully is expensive because human preference data is costly.",
+      "evidence": "This effect has been frequently observed, but not carefully measured due to the expense of collecting human preference data.",
+      "label": "supported",
+      "source": "semantic_scholar",
+      "title": "Scaling Laws for Reward Model Overoptimization"
+    },
+    {
+      "id": "pair_147",
+      "claim": "Human preference data is cheap and easy to collect.",
+      "evidence": "This effect has been frequently observed, but not carefully measured due to the expense of collecting human preference data.",
+      "label": "contradicted",
+      "source": "semantic_scholar",
+      "title": "Scaling Laws for Reward Model Overoptimization"
+    }
+  ]
+}

@@ -62,6 +62,29 @@ pub struct RunPackInput<'a> {
     pub quality_gate: &'a Value,
     /// The Markdown report.
     pub report_markdown: &'a str,
+    /// The verifier's method, e.g. `term_overlap_mvp`.
+    pub verifier_method: &'a str,
+    /// Pinned models the verifier used; empty for the lexical tier.
+    pub verifier_models: &'a [String],
+}
+
+/// `methodology.md`: Python's fixed text for model-free runs (keeping those
+/// packs byte-identical), plus a section naming the method and pinned
+/// models when a model tier verified the claims.
+#[must_use]
+pub fn methodology(method: &str, models: &[String]) -> String {
+    if models.is_empty() {
+        return METHODOLOGY.to_string();
+    }
+    let mut text = format!(
+        "{METHODOLOGY}\n## Verifier\n\nClaims were verified with `{method}` instead of lexical overlap.\n\n"
+    );
+    for model in models {
+        text.push_str("- `");
+        text.push_str(model);
+        text.push_str("` (pinned Hugging Face revision, SHA-256 checked on load)\n");
+    }
+    text
 }
 
 /// `json.dumps(payload, indent=2, sort_keys=True) + "\n"`.
@@ -176,14 +199,17 @@ pub fn export_run_pack(base_dir: &Path, input: &RunPackInput<'_>) -> io::Result<
     write("report.md", input.report_markdown)?;
     write("unresolved_gaps.md", &unresolved_gaps(input.gaps))?;
     write("sources.bib", &source_bib(input.evidence))?;
-    write("methodology.md", METHODOLOGY)?;
+    write(
+        "methodology.md",
+        &methodology(input.verifier_method, input.verifier_models),
+    )?;
 
     let mut artifact_hashes = Map::new();
     for name in ARTIFACTS {
         artifact_hashes.insert(name.into(), hash_file(&output.join(name))?.into());
     }
     let artifact_hashes = Value::Object(artifact_hashes);
-    let attestation = json!({
+    let mut attestation = json!({
         "run_id": input.run.run_id,
         "created_at": utc_now(),
         "engine_version": env!("CARGO_PKG_VERSION"),
@@ -192,6 +218,10 @@ pub fn export_run_pack(base_dir: &Path, input: &RunPackInput<'_>) -> io::Result<
         "signature": null,
         "signature_algorithm": null,
     });
+    if !input.verifier_models.is_empty() {
+        attestation["verifier"] =
+            json!({"method": input.verifier_method, "models": input.verifier_models});
+    }
     write("attestation.json", &pretty(&attestation))?;
     Ok(output)
 }

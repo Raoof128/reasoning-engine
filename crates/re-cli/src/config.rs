@@ -168,6 +168,12 @@ impl Config {
         env_path("REASONING_ENGINE_RUNS_DIR").unwrap_or_else(|| self.data_dir().join("runs"))
     }
 
+    /// `REASONING_ENGINE_MODELS_DIR`, or `<data_dir>/models`.
+    #[must_use]
+    pub fn models_dir(&self) -> PathBuf {
+        env_path("REASONING_ENGINE_MODELS_DIR").unwrap_or_else(|| self.data_dir().join("models"))
+    }
+
     /// `REASONING_ENGINE_VERIFIER`, or the configured tier.
     #[must_use]
     pub fn verifier(&self) -> String {

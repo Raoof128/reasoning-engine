@@ -9,7 +9,18 @@ authors.workspace = true
 repository.workspace = true
 publish = false
 
+[features]
+default = []
+# Hybrid (BM25 + embeddings) and NLI verifier tiers. Needs Rust 1.92 (ort)
+# and downloads ONNX models on first use unless REASONING_ENGINE_OFFLINE=1.
+semantic = ["dep:ort", "dep:tokenizers", "dep:reqwest", "dep:sha2"]
+
 [dependencies]
+ort = { workspace = true, optional = true }
+tokenizers = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
+tokio.workspace = true
 re-core.workspace = true
 re-model.workspace = true
 re-store.workspace = true
@@ -21,7 +32,6 @@ thiserror.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
-tokio.workspace = true
 
 [lints]
 workspace = true

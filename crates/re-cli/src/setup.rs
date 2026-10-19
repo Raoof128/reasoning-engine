@@ -139,6 +139,37 @@ fn register_with_claude() -> String {
     }
 }
 
+/// Validate and apply `--verifier`, then say which tier is in effect.
+fn choose_verifier(
+    config: &mut Config,
+    requested: Option<&str>,
+    interactive: bool,
+) -> Result<(), String> {
+    if let Some(verifier) = requested {
+        if !re_verify::verify::TIERS.contains(&verifier) {
+            return Err(format!(
+                "unknown verifier: {verifier} (expected one of: {})",
+                re_verify::verify::TIERS.join(", ")
+            ));
+        }
+        config.verifier = verifier.to_string();
+    }
+    if config.verifier != "lexical" && !cfg!(feature = "semantic") {
+        eprintln!(
+            "note: verifier {} needs a build with --features semantic",
+            config.verifier
+        );
+    }
+    if interactive {
+        eprintln!(
+            "Verifier tier: {} (lexical, or nli, recommended, with --features semantic; \
+             hybrid only shortlists and does not beat lexical alone)",
+            config.verifier
+        );
+    }
+    Ok(())
+}
+
 /// Run setup. Returns the process exit code.
 ///
 /// # Errors
@@ -174,16 +205,7 @@ pub fn run(args: &SetupArgs) -> Result<u8, String> {
             .map_err(|e| e.to_string())?,
         (None, false) => config.data_dir.clone(),
     };
-    if let Some(verifier) = &args.verifier {
-        re_verify::verifier_from_name(Some(verifier)).map_err(|e| e.to_string())?;
-        config.verifier.clone_from(verifier);
-    }
-    if interactive {
-        eprintln!(
-            "Verifier tier: {} (hybrid and nli arrive with the semantic verifier)",
-            config.verifier
-        );
-    }
+    choose_verifier(&mut config, args.verifier.as_deref(), interactive)?;
 
     config.http.enabled = ask.confirm(
         flag(args.http, args.no_http),

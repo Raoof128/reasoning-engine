@@ -1,10 +1,18 @@
 # cargo-deny policy. Run: cargo deny check
+# Audit optional features too (semantic, local-host, scholar-gateway), so a
+# dependency cannot hide behind a feature flag.
 [graph]
-all-features = false
+all-features = true
 
 [advisories]
 version = 2
 unmaintained = "all"
+ignore = [
+    # paste is archived (unmaintained, no known vulnerability); it is a
+    # compile-time macro pulled in by tokenizers (semantic feature) with no
+    # maintained release that drops it yet.
+    { id = "RUSTSEC-2024-0436", reason = "unmaintained, compile-time only, via tokenizers; revisit on tokenizers 1.0" },
+]
 yanked = "deny"
 
 [licenses]
@@ -27,6 +35,8 @@ unused-allowed-license = "allow"
 # CDLA-Permissive-2.0 is a permissive data licence; scoped to this crate only.
 exceptions = [
     { allow = ["CDLA-Permissive-2.0"], crate = "webpki-root-certs" },
+    # The same CA data, used by ort's build-time runtime download (semantic).
+    { allow = ["CDLA-Permissive-2.0"], crate = "webpki-roots" },
 ]
 
 [bans]
