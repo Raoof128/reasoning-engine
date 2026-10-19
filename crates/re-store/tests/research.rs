@@ -13,6 +13,7 @@ fn store() -> (tempfile::TempDir, Store) {
 
 fn evidence(run: &ResearchRun) -> EvidenceRecord {
     EvidenceRecord {
+        hints: re_model::records::QualityHints::default(),
         evidence_id: "ev_0001".into(),
         run_id: run.run_id.clone(),
         source_adapter: "scholar_gateway".into(),

@@ -52,6 +52,10 @@ fn network(dir: &Path) -> Arc<Tape> {
 }
 
 async fn record(root: &Path) -> (PathBuf, Value) {
+    record_with(root, false).await
+}
+
+async fn record_with(root: &Path, quality: bool) -> (PathBuf, Value) {
     let tape = network(&root.join("network"));
     // The recording run has an API key; the replay below has none.
     let adapters = adapters_with(
@@ -60,7 +64,10 @@ async fn record(root: &Path) -> (PathBuf, Value) {
     )
     .unwrap();
     let sources = adapters.iter().map(|a| a.name().to_string()).collect();
-    let plan = RecordPlan::now(sources, false, "lexical");
+    let plan = RecordPlan {
+        quality,
+        ..RecordPlan::now(sources, false, "lexical")
+    };
     let service = VerifiableResearchService::new(
         Store::open(root.join("record.db")).unwrap(),
         root.join("runs"),
@@ -68,6 +75,11 @@ async fn record(root: &Path) -> (PathBuf, Value) {
         Box::new(LexicalOverlap),
     )
     .with_recorder(plan.recorder(tape));
+    let service = if quality {
+        service.with_quality()
+    } else {
+        service
+    };
     let result = run_recorded(&service, &plan, QUERY, DRAFT, "standard", "auto")
         .await
         .unwrap();
@@ -163,4 +175,33 @@ fn walk(dir: &Path) -> Vec<PathBuf> {
         }
     }
     out
+}
+
+#[tokio::test]
+async fn quality_scoring_is_recorded_and_replayed() {
+    let root = tempfile::tempdir().unwrap();
+    let (plain, plain_result) = record_with(&root.path().join("plain"), false).await;
+    let (pack, result) = record_with(&root.path().join("quality"), true).await;
+    let settings = |pack: &Path| -> Value {
+        serde_json::from_str(&std::fs::read_to_string(pack.join("replay.json")).unwrap()).unwrap()
+    };
+    assert_eq!(settings(&pack)["quality"], true);
+    assert!(
+        settings(&plain).get("quality").is_none(),
+        "absent when off, as in older packs"
+    );
+    let scores = |result: &Value| -> Vec<Value> {
+        result["evidence"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|e| e["score"].clone())
+            .collect()
+    };
+    assert_ne!(scores(&result), scores(&plain_result), "quality rescored");
+
+    let report = replay_pack(&pack, &root.path().join("replay"), root.path(), true)
+        .await
+        .unwrap();
+    assert_eq!(report["identical"], true, "{report}");
 }

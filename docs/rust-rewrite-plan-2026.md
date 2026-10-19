@@ -654,6 +654,9 @@ Line-by-line review of this plan. Each row was fixed in place.
 | *Phase 8:* a cache hit would leave a response off a recording, and ledger timings are not deterministic. | `research --record` and `replay` build their own uncached, ledger-free service. |
 | *Phase 8:* the plan exposed the ledger in `get_session_state`, but searches belong to research runs, not ACPR sessions. | `retrieval_cost` per search and `cost_ledger` per pipeline run in the run's provenance (so in `provenance.jsonl` and the audit UI). |
 | *Phase 8:* exit criterion. | Met in tests: prefetch of 3 angles answers in under 500 ms while a 2 s source is pending, the task completes in the background, and the angle-2 search is served from the cache with no source called again. |
+| *Phase 9 execution (Task 6):* adapters kept only a display label; the provider fields quality needs never reached the pipeline. | `EvidenceRecord.hints` (`#[serde(skip)]`, so never in `to_dict`, packs or Python parity) carries publication types, venue type, retraction, open access, PMCID and the OA PDF URL from OpenAlex and Europe PMC. The evidence cache stores hints beside each record. |
+| *Phase 9:* Python's labels and scores are the parity contract. | Quality scoring is opt-in (`with_quality`, on in `fulltext` builds). `research --record` writes `"quality": true` to `replay.json` only when on, so older packs replay unchanged. |
+| *Phase 9:* "retracted sources are flagged, never used as support". | The retracted record stays in the evidence list with a `retracted` risk flag; the verifier and the numeric check only see citable records. |
 
 ## References (Harvard, Australian style)
 

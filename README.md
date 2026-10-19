@@ -150,6 +150,7 @@ cp skill/deep-research.md ~/.claude/skills/
 | `local-host` | `serve` (Streamable HTTP with bearer auth) and the `/ui` audit UI | yes |
 | `trust` | Signed run packs with a transparency log, `research --record` and `replay`, styled reference lists, the numeric claim check | yes |
 | `tasks` | Evidence cache, cost ledger, and angle prefetch over the MCP tasks extension | yes |
+| `fulltext` | Profile-aware source quality: publication-type scoring and retraction flags | no |
 | `semantic` | `hybrid` and `nli` verifier tiers (ONNX models, downloaded on first use) | no |
 | `scholar-gateway` | Token-gated Scholar Gateway as an extra search source | no |
 
@@ -278,6 +279,17 @@ Otherwise the claim is capped at `partially_supported` and flagged for review.
 - elapsed time.
 
 Each pipeline run adds a `cost_ledger` total before export, so the costs land in `provenance.jsonl`.
+
+## Source quality (`fulltext`)
+
+OpenAlex and Europe PMC report what kind of work each result is. With `fulltext`, that drives ranking per research profile:
+
+- Each result's `source_type` becomes `systematic_review`, `clinical_guideline`, `preprint`, `peer_reviewed_article`, `technical_report`, `dataset` or `book`. Results a provider says nothing about keep their old type.
+- Types the profile prefers gain 0.1; types it treats as weak lose 0.2. Results are re-ranked.
+- Retracted work is flagged (`risk_flags: ["retracted"]`). It stays in the evidence ledger but **never supports a claim**.
+- Recorded runs store the setting in `replay.json`, so `replay` reproduces them exactly.
+
+Without the feature, labels and scores match the Python server.
 
 ## Local HTTP server and audit UI
 

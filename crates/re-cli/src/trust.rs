@@ -44,7 +44,10 @@ pub async fn record(
     let adapters = adapters_with(|var| std::env::var(var).ok(), Some(Arc::clone(&tape)))?;
     let sources = adapters.iter().map(|a| a.name().to_string()).collect();
     let tier = config.verifier();
-    let plan = RecordPlan::now(sources, offline(), &tier);
+    let plan = RecordPlan {
+        quality: cfg!(feature = "fulltext"),
+        ..RecordPlan::now(sources, offline(), &tier)
+    };
     let verifier = load_verifier(Some(&tier), &config.models_dir(), offline()).await?;
     let service = VerifiableResearchService::new(
         Store::open(config.db_path())?,
@@ -54,6 +57,11 @@ pub async fn record(
     )
     .with_models(config.models_dir(), offline())
     .with_recorder(plan.recorder(tape));
+    let service = if plan.quality {
+        service.with_quality()
+    } else {
+        service
+    };
     let service = sign(config, service);
     Ok(run_recorded(&service, &plan, query, draft, mode, profile).await?)
 }

@@ -186,6 +186,8 @@ async fn service(config: &Config) -> Result<VerifiableResearchService, Failure> 
         .with_models(models_dir, offline);
     #[cfg(feature = "tasks")]
     let service = service.with_ledger();
+    #[cfg(feature = "fulltext")]
+    let service = service.with_quality();
     #[cfg(feature = "trust")]
     let service = trust::sign(config, service);
     Ok(service)

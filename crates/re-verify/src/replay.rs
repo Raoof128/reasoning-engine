@@ -45,6 +45,9 @@ pub struct RecordPlan {
     pub offline: bool,
     /// The configured verifier tier.
     pub verifier: String,
+    /// Whether source-quality scoring was on
+    /// ([`VerifiableResearchService::with_quality`]).
+    pub quality: bool,
 }
 
 impl RecordPlan {
@@ -57,6 +60,7 @@ impl RecordPlan {
             sources,
             offline,
             verifier: verifier.to_string(),
+            quality: false,
         }
     }
 
@@ -72,6 +76,10 @@ impl RecordPlan {
         settings.insert("sources".into(), self.sources.clone().into());
         settings.insert("offline".into(), self.offline.into());
         settings.insert("verifier".into(), self.verifier.clone().into());
+        // Only when on, so packs recorded before it existed replay as-is.
+        if self.quality {
+            settings.insert("quality".into(), true.into());
+        }
         Recorder { tape, settings }
     }
 }
@@ -156,6 +164,11 @@ pub async fn replay_pack(
         verifier,
     )
     .with_models(models_dir, offline_models);
+    let service = if inputs.get("quality").and_then(Value::as_bool) == Some(true) {
+        service.with_quality()
+    } else {
+        service
+    };
 
     let result = {
         let _pinned = pin(&clock, seed);

@@ -100,6 +100,7 @@ pub struct VerifiableResearchService {
     recorder: Option<Recorder>,
     signer: Option<Arc<dyn AttestationSigner>>,
     ledger: bool,
+    quality: bool,
 }
 
 /// Print the high-stakes fallback warning once per process.
@@ -131,7 +132,17 @@ impl VerifiableResearchService {
             recorder: None,
             signer: None,
             ledger: false,
+            quality: false,
         }
+    }
+
+    /// Score sources by the run profile's preferred and weak publication
+    /// types, flag retractions, and never let retracted work support a
+    /// claim (plan Phase 9).
+    #[must_use]
+    pub fn with_quality(mut self) -> Self {
+        self.quality = true;
+        self
     }
 
     /// Record each search's cost (`retrieval_cost`) and each pipeline's
@@ -292,11 +303,25 @@ impl VerifiableResearchService {
             &payload(&[("query", query.into()), ("limit", limit.into())]),
         )?;
         let started = std::time::Instant::now();
-        let result = if use_mock_empty {
+        let mut result = if use_mock_empty {
             RetrievalResult::default()
         } else {
             self.search.search(run_id, query, limit).await
         };
+        if self.quality && result.error.is_none() {
+            let profile = self
+                .store
+                .get_run(run_id)
+                .ok()
+                .and_then(|run| re_core::profiles::get_profile(&run.profile).ok());
+            if let Some(profile) = profile {
+                re_retrieval::quality::apply(
+                    &mut result.evidence,
+                    profile.preferred_source_types,
+                    profile.weak_source_types,
+                );
+            }
+        }
         if self.ledger {
             let returned: usize = result
                 .evidence
@@ -364,12 +389,22 @@ impl VerifiableResearchService {
         let evidence_dicts: Vec<Value> = evidence.iter().map(EvidenceRecord::to_dict).collect();
         let mut claims = extract_claims(&run.run_id, draft, &run.profile)?;
         let verifier = self.verifier_for(&run.mode).await;
+        // Retracted work stays in the ledger but may not support a claim.
+        let citable: Vec<EvidenceRecord> = if self.quality {
+            evidence
+                .iter()
+                .filter(|e| re_retrieval::quality::citable(e))
+                .cloned()
+                .collect()
+        } else {
+            evidence.clone()
+        };
         #[cfg_attr(not(feature = "trust"), allow(unused_mut))]
-        let mut verifications = verifier.verify(&mut claims, evidence);
+        let mut verifications = verifier.verify(&mut claims, &citable);
         // A quantitative claim cannot be supported by evidence without its
         // number (plan section 6.6).
         #[cfg(feature = "trust")]
-        crate::numeric::enforce(&mut claims, &mut verifications, evidence);
+        crate::numeric::enforce(&mut claims, &mut verifications, &citable);
         for claim in &claims {
             self.store.save_claim(claim)?;
         }

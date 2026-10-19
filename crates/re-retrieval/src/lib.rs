@@ -12,6 +12,7 @@ pub mod base;
 pub mod cache;
 pub mod client;
 pub mod error;
+pub mod quality;
 pub mod result;
 pub mod sources;
 pub mod tape;
