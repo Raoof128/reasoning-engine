@@ -19,6 +19,7 @@ pub mod planning;
 pub mod profiles;
 pub mod pyjson;
 pub mod pystr;
+pub mod rank;
 pub mod sanitize;
 pub mod types;
 pub mod ucb;

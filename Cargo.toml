@@ -49,7 +49,8 @@ tracing = "=0.1.44"
 
 # Semantic verifier (feature `semantic`)
 fastembed = "=7.1.1"
-ort = "=2.0.0-rc.14"
+ort = { version = "=2.0.0-rc.14", default-features = false, features = ["std", "download-binaries", "copy-dylibs", "tls-rustls"] }
+tokenizers = { version = "=0.22.2", default-features = false, features = ["fancy-regex"] }
 tantivy = "=0.27.0"
 
 # Beast mode, phases 7-12 (feature-gated in their crates)
