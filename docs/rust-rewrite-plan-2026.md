@@ -542,7 +542,7 @@ depend on for test fixtures.
 
 | # | Question | Default the executable plans assume |
 |---|---|---|
-| 1 | Default verifier tier for `standard` mode | `lexical` until Phase 5 lands, then `hybrid`; `high_stakes` always `nli` when the `semantic` feature is built. |
+| 1 | Default verifier tier for `standard` mode | `lexical`; `high_stakes` always `nli` when the `semantic` feature is built. Revised after Phase 5: `hybrid` did not beat `lexical` on the labelled set (embeddings cannot see negation), so `setup` recommends `nli` for semantic builds rather than making `hybrid` the default. |
 | 2 | Tunnel launcher: shell or CLI | Stays shell (`run-notion-mcp-laptop.sh`); `setup` only offers to run it. |
 | 3 | Scholar Gateway adapter | Kept, behind the `scholar-gateway` Cargo feature, off by default. |
 | 4 | `setup` offers model download | Yes, default answer No. |
@@ -622,6 +622,14 @@ Line-by-line review of this plan. Each row was fixed in place.
 | *Phase 4:* plan compared Rust `structuredContent` with Python text. | The harness compares text, which is byte-identical to `json.dumps(payload, ensure_ascii=False)`; `structuredContent` carries the same payload (arrays as `{"result": [...]}`). Result: 46 scripted steps identical after normalisation. |
 | *Phase 4:* Python run packs written on Windows use `\r\n`, so their hashes differ by platform. | Rust always writes `\n`. Verification also re-checks `run_pack_hash` and rejects artifact names that are not plain file names, so a rewritten attestation no longer reads valid. |
 | *Phase 4:* an empty `REASONING_ENGINE_DB` made the Rust server open path `""`. | Empty values count as unset, as in Python's `db_path or DEFAULT`. Defaults move to `~/.reasoning-engine/{reasoning.db,runs}`. |
+| *Phase 5 execution:* plan named `fastembed`; it pins its own `ort` and hides the tokenizer. | `ort` 2.0.0-rc.14 and `tokenizers` 0.22.2 directly; models pinned by revision and SHA-256 (BGE-small Q, `nli-deberta-v3-xsmall`), hash-checked on every load; `REASONING_ENGINE_OFFLINE=1` refuses downloads. |
+| *Phase 5:* plan named `tantivy` for BM25. | 60 lines of BM25 (k1 1.2, b 0.75) plus RRF (k 60) in `re-core::rank`; no index needed for a few hundred snippets. |
+| *Phase 5:* "100 hand-built pairs from run packs". | 147 pairs (68 supported, 49 contradicted, 30 neutral) with evidence verbatim from recorded abstracts, built by `tests/fixtures/verify/build_labelled_pairs.py`. Labels are AI-written and still need a human pass. |
+| *Phase 5:* exit criterion. | Met. Accuracy / contradiction recall / supported precision: lexical 0.585 / 0.00 / 0.737; hybrid 0.565 / 0.00 / 0.800; nli 0.912 / 0.98 / 1.000 (`re bench verify`). Hybrid thresholds were grid-searched on this same set, so its numbers are optimistic. |
+| *Phase 5:* hybrid as the `standard` default. | Not adopted (decision 1); hybrid's useful job is the cosine shortlist that feeds NLI. |
+| *Phase 5:* branches carry no research angle, so "directions" had no data. | A direction is a root branch and its descendants; advice is opt-in (`REASONING_ENGINE_DORA=directional`), appended as a `directions` key, sorted best first because same-second branches arrive in random order. |
+| *Phase 5:* a persistent FTS5 table or trigger would break Python on SQLite builds without FTS5. | `REASONING_ENGINE_MEMORY=fts` rebuilds a `temp` FTS5 table per recall; the DB file is unchanged (compat test). Terms are quoted so user text cannot become FTS5 syntax. |
+| *Phase 5:* `ort`/`tokenizers` pull `paste` (unmaintained, RUSTSEC-2024-0436) and CDLA-licensed root certificates. | `deny.toml` checks all features; scoped exceptions with reasons. |
 
 ## References (Harvard, Australian style)
 

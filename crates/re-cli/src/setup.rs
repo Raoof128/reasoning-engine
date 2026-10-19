@@ -162,7 +162,8 @@ fn choose_verifier(
     }
     if interactive {
         eprintln!(
-            "Verifier tier: {} (lexical, or hybrid/nli with --features semantic)",
+            "Verifier tier: {} (lexical, or nli, recommended, with --features semantic; \
+             hybrid only shortlists and does not beat lexical alone)",
             config.verifier
         );
     }
