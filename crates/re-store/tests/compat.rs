@@ -247,3 +247,27 @@ fn new_database_is_private() {
     let mode = std::fs::metadata(&db).unwrap().permissions().mode() & 0o777;
     assert_eq!(mode, 0o600);
 }
+
+#[test]
+fn fts_and_legacy_recall_agree_on_the_python_fixture() {
+    let dir = tempfile::tempdir().expect("tmp");
+    let db = dir.path().join("python.db");
+    make_python_db(&db);
+    let before = schema_of(&db);
+    let store = re_store::Store::open(&db).expect("open");
+    for query in ["How do PRMs work", "reward models", "prm"] {
+        let legacy = store.recall_memory(query, 5).expect("legacy");
+        let fts = store.recall_memory_fts(query, 5).expect("fts");
+        assert_eq!(
+            fts.first().map(|m| &m.id),
+            legacy.first().map(|m| &m.id),
+            "{query}"
+        );
+    }
+    drop(store);
+    assert_eq!(
+        schema_of(&db),
+        before,
+        "FTS5 index lives in temp, never in the file"
+    );
+}

@@ -12,7 +12,8 @@
 //!    branches, and progressive widening allows it a new child only while
 //!    `children < ceil(C * visits^alpha)` with `C = 1`, `alpha = 0.5`.
 //!
-//! The legacy `dora::select_branches` is unchanged; this only adds advice.
+//! Directions are returned best first. The legacy `dora::select_branches`
+//! is unchanged; this only adds advice.
 
 use std::collections::HashMap;
 
@@ -149,7 +150,7 @@ pub fn plan_directions(
     let shares: Vec<f64> = weights.iter().map(|w| w / total).collect();
     let steps = allocate(budget_remaining, &shares);
 
-    groups
+    let mut directions: Vec<Direction> = groups
         .into_iter()
         .zip(shares)
         .zip(steps)
@@ -181,7 +182,12 @@ pub fn plan_directions(
                 can_expand,
             }
         })
-        .collect()
+        .collect();
+    // Best first. Input order can be arbitrary (branches created in the
+    // same second tie-break on random UUIDs), so the output must not
+    // depend on it beyond breaking exact ties.
+    directions.sort_by(|a, b| b.quality.total_cmp(&a.quality));
+    directions
 }
 
 #[cfg(test)]
@@ -259,6 +265,19 @@ mod tests {
         let plan = plan_directions(&visited, 5, 0.5);
         assert_eq!(plan[0].next_branch.as_deref(), Some("a"));
         assert!(plan[0].can_expand, "1 child < ceil(sqrt(4)) = 2");
+    }
+
+    #[test]
+    fn output_is_best_first_whatever_the_input_order() {
+        let forward = [
+            b("x", None, 0.3, 1, "active"),
+            b("a", None, 0.9, 1, "active"),
+        ];
+        let reverse = [forward[1].clone(), forward[0].clone()];
+        let ids =
+            |plan: Vec<Direction>| plan.into_iter().map(|d| d.direction_id).collect::<Vec<_>>();
+        assert_eq!(ids(plan_directions(&forward, 10, 0.5)), ["a", "x"]);
+        assert_eq!(ids(plan_directions(&reverse, 10, 0.5)), ["a", "x"]);
     }
 
     #[test]

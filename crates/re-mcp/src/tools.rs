@@ -43,18 +43,21 @@ fn to_value<T: Serialize>(value: &T) -> Value {
 pub struct Tools {
     service: Arc<VerifiableResearchService>,
     directional: bool,
+    memory_fts: bool,
 }
 
 impl Tools {
     /// Tools over `service` (sessions use its store too, as Python's server
     /// shares one database path). `REASONING_ENGINE_DORA=directional` adds
-    /// per-direction advice to `select_next_branches`.
+    /// per-direction advice to `select_next_branches`;
+    /// `REASONING_ENGINE_MEMORY=fts` recalls memories by BM25.
     #[must_use]
     pub fn new(service: Arc<VerifiableResearchService>) -> Self {
-        let directional = std::env::var("REASONING_ENGINE_DORA").is_ok_and(|v| v == "directional");
+        let env_is = |var: &str, value: &str| std::env::var(var).is_ok_and(|v| v == value);
         Self {
             service,
-            directional,
+            directional: env_is("REASONING_ENGINE_DORA", "directional"),
+            memory_fts: env_is("REASONING_ENGINE_MEMORY", "fts"),
         }
     }
 
@@ -62,6 +65,14 @@ impl Tools {
     #[must_use]
     pub fn with_directional(mut self, on: bool) -> Self {
         self.directional = on;
+        self
+    }
+
+    /// Recall memories by FTS5 BM25 instead of word overlap, overriding the
+    /// environment.
+    #[must_use]
+    pub fn with_memory_fts(mut self, on: bool) -> Self {
+        self.memory_fts = on;
         self
     }
 
@@ -285,9 +296,12 @@ impl Tools {
         let limit = a.int_or("limit", 5)?;
         let query = validate::text(&query, "query", MAX_QUERY_CHARS, false)?;
         let limit = validate::limited_int(limit, "limit", 1, cap(MAX_MEMORY_LIMIT))?;
-        let results = self
-            .store()
-            .recall_memory(&query, usize::try_from(limit).unwrap_or(1))?;
+        let limit = usize::try_from(limit).unwrap_or(1);
+        let results = if self.memory_fts {
+            self.store().recall_memory_fts(&query, limit)?
+        } else {
+            self.store().recall_memory(&query, limit)?
+        };
         let results = results
             .iter()
             .map(|r| {

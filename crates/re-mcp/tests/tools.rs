@@ -459,3 +459,36 @@ async fn directional_dora_adds_directions_only_when_enabled() {
         "legacy fields first, unchanged"
     );
 }
+
+#[tokio::test]
+async fn fts_memory_recall_is_opt_in_and_reads_learnings() {
+    let dir = tempfile::tempdir().expect("tmp");
+    let store = Store::open(dir.path().join("reasoning.db")).expect("store");
+    let search = Arc::new(AcademicSearchAggregator::new(vec![Arc::new(
+        MockScholarGateway,
+    )]));
+    let service = Arc::new(VerifiableResearchService::new(
+        store,
+        dir.path().join("runs"),
+        search,
+        Box::new(LexicalOverlap),
+    ));
+    let legacy = ReasoningServer::new(Tools::new(Arc::clone(&service)).with_memory_fts(false));
+    let fts = ReasoningServer::new(Tools::new(service).with_memory_fts(true));
+    let session = ok(&legacy, "init_research_session", json!({"query": "q"})).await;
+    let sid = session["session_id"].as_str().expect("id");
+    ok(
+        &legacy,
+        "save_to_memory",
+        json!({"session_id": sid, "query": "reward models", "key_learnings": ["calibration matters"], "domain_tags": ["ml"]}),
+    )
+    .await;
+    let by_learning = json!({"query": "calibration"});
+    assert_eq!(
+        ok(&legacy, "recall_memory_tool", by_learning.clone()).await,
+        json!([])
+    );
+    let found = ok(&fts, "recall_memory_tool", by_learning).await;
+    assert_eq!(found[0]["query"], "reward models");
+    assert!(found[0].get("_relevance").is_none());
+}
