@@ -431,3 +431,25 @@ mod trust {
         assert!(String::from_utf8_lossy(&refused.stderr).contains("was not recorded"));
     }
 }
+
+#[cfg(feature = "learn")]
+#[test]
+fn a_prior_needs_enough_history() {
+    let home = tempfile::tempdir().expect("tmp");
+    let output = bin(home.path())
+        .args(["prior", "train"])
+        .output()
+        .expect("runs");
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("need at least 30 completed sessions"),
+        "{stderr}"
+    );
+    let shown = bin(home.path())
+        .args(["prior", "show"])
+        .output()
+        .expect("runs");
+    assert!(shown.status.success());
+    assert!(String::from_utf8_lossy(&shown.stdout).starts_with("no prior yet"));
+}

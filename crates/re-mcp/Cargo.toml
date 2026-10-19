@@ -19,6 +19,8 @@ local-host = ["dep:axum", "dep:subtle", "dep:tokio-util", "rmcp/transport-stream
 tasks = []
 # Evidence graph, adversarial angle and calibration (plan Phase 10).
 graph = ["re-verify/graph"]
+# Learned prior and cross-session evidence memory (plan Phase 11).
+learn = ["re-core/learn", "re-store/learn", "re-verify/learn"]
 
 [dependencies]
 axum = { workspace = true, optional = true }

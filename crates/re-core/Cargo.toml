@@ -9,6 +9,11 @@ authors.workspace = true
 repository.workspace = true
 publish = false
 
+[features]
+default = []
+# Learned process-reward prior (plan Phase 11).
+learn = []
+
 [dependencies]
 serde.workspace = true
 serde_json.workspace = true

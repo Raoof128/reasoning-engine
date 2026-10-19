@@ -33,6 +33,8 @@ tasks = ["re-mcp/tasks"]
 fulltext = ["re-verify/fulltext"]
 # Evidence graph, adversarial angle and calibration (plan Phase 10).
 graph = ["re-mcp/graph", "re-verify/graph"]
+# Learned prior, evidence memory and living reports (plan Phase 11).
+learn = ["re-mcp/learn", "re-verify/learn", "re-store/learn", "re-core/learn"]
 
 [dependencies]
 tokio-util = { workspace = true, optional = true }

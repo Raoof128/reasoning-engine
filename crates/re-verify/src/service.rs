@@ -113,6 +113,8 @@ pub struct VerifiableResearchService {
     calibration: Option<crate::calibration::Calibration>,
     #[cfg(feature = "graph")]
     links: Option<re_retrieval::links::LinkFetcher>,
+    #[cfg(feature = "learn")]
+    evidence_memory: bool,
 }
 
 /// What the `graph` stages found after verification (plan Phase 10).
@@ -197,7 +199,67 @@ impl VerifiableResearchService {
             calibration: None,
             #[cfg(feature = "graph")]
             links: None,
+            #[cfg(feature = "learn")]
+            evidence_memory: false,
         }
+    }
+
+    /// Remember every retrieved record across runs with how verification
+    /// used it, for `recall_memory_tool(include_evidence)` (plan Phase 11).
+    #[cfg(feature = "learn")]
+    #[must_use]
+    pub fn with_evidence_memory(mut self) -> Self {
+        self.evidence_memory = true;
+        self
+    }
+
+    /// Remember `evidence` with the strongest use the final verdicts made
+    /// of each record.
+    #[cfg(feature = "learn")]
+    fn remember(
+        &self,
+        run_id: &str,
+        evidence: &[EvidenceRecord],
+        verifications: &[VerificationRecord],
+    ) -> Result<(), VerifyError> {
+        if !self.evidence_memory {
+            return Ok(());
+        }
+        let status = |id: &str| {
+            let cited = |wanted: &str| {
+                verifications
+                    .iter()
+                    .any(|v| v.support_status == wanted && v.evidence_ids.iter().any(|e| e == id))
+            };
+            if cited("supported") {
+                "supported"
+            } else if cited("partially_supported") {
+                "partially_supported"
+            } else if verifications
+                .iter()
+                .any(|v| v.contradictory_evidence_ids.iter().any(|e| e == id))
+            {
+                "contradicted"
+            } else {
+                "uncited"
+            }
+        };
+        let now = utc_now();
+        let records: Vec<re_store::evidence_memory::RememberedEvidence> = evidence
+            .iter()
+            .map(|e| re_store::evidence_memory::RememberedEvidence {
+                title: e.title.clone(),
+                snippet: e.snippet.clone(),
+                source: e.source_adapter.clone(),
+                doi: e.doi.clone(),
+                url: e.url.clone(),
+                last_run_id: run_id.to_string(),
+                last_status: status(&e.evidence_id).to_string(),
+                last_verified_at: now.clone(),
+                times_seen: 1,
+            })
+            .collect();
+        Ok(self.store.remember_evidence(&records)?)
     }
 
     /// Build the evidence graph from `OpenAlex` links fetched with
@@ -801,6 +863,8 @@ impl VerifiableResearchService {
                 &citable,
             )
             .await?;
+        #[cfg(feature = "learn")]
+        self.remember(&run.run_id, evidence, &verifications)?;
         for claim in &claims {
             self.store.save_claim(claim)?;
         }
