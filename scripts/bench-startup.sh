@@ -15,12 +15,14 @@ if [[ ! -x "$PY_BIN" ]]; then
     exit 1
 fi
 if [[ ! -x "$RS_BIN" ]]; then
-    # The Rust binary arrives in Phase 4 (Task 18). Until then there is nothing to compare.
-    echo "Rust CLI not built yet ($RS_BIN); skipping until Phase 4." >&2
-    exit 0
+    echo "Rust CLI missing at $RS_BIN; run: cargo build --release -p re-cli" >&2
+    exit 1
 fi
 
+# --help measures process start; verify-runpack on a missing directory adds
+# config loading and JSON output without touching the network.
 hyperfine --warmup 3 --export-markdown target/bench-startup.md \
     "$PY_BIN --help" \
-    "$RS_BIN --help"
+    "$RS_BIN --help" \
+    "$RS_BIN verify-runpack /nonexistent || true"
 echo "Results written to target/bench-startup.md"

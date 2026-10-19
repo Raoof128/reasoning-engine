@@ -49,6 +49,12 @@ pub struct ReflectionRecorded {
     pub score_after: f64,
 }
 
+/// Python's `str.split()`: runs of Python whitespace separate words.
+fn py_words(text: &str) -> impl Iterator<Item = &str> {
+    text.split(re_core::pystr::py_is_space)
+        .filter(|w| !w.is_empty())
+}
+
 fn parse_strings(text: &str, column: &'static str) -> Result<Vec<String>, StoreError> {
     serde_json::from_str(text).map_err(|source| StoreError::Json { column, source })
 }
@@ -104,7 +110,7 @@ impl Store {
         limit: usize,
     ) -> Result<Vec<RecalledMemory>, StoreError> {
         let lowered = query.to_lowercase();
-        let query_words: HashSet<&str> = lowered.split_whitespace().collect();
+        let query_words: HashSet<&str> = py_words(&lowered).collect();
         let rows: Vec<(String, String, String, String, String, String)> = self.with_tx(|tx| {
             let mut stmt = tx.prepare(
                 "SELECT id, session_id, query, key_learnings, domain_tags, created_at FROM episodic_memory",
@@ -121,10 +127,8 @@ impl Store {
         for (id, session_id, stored_query, learnings, tags, created_at) in rows {
             let domain_tags = parse_strings(&tags, "domain_tags")?;
             let stored_lower = stored_query.to_lowercase();
-            let mut stored_words: HashSet<String> = stored_lower
-                .split_whitespace()
-                .map(str::to_string)
-                .collect();
+            let mut stored_words: HashSet<String> =
+                py_words(&stored_lower).map(str::to_string).collect();
             for tag in &domain_tags {
                 let tag = tag.to_lowercase();
                 stored_words.extend(tag.split('-').map(str::to_string));

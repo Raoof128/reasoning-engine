@@ -9,7 +9,8 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 static DIGIT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\d").expect("valid regex"));
-static WHITESPACE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\s+").expect("valid regex"));
+static WHITESPACE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"[\s\x1c-\x1f]+").expect("valid regex"));
 
 /// Domains whose claims carry medium risk.
 pub const RISKY_DOMAINS: &[&str] = &["security", "medicine", "law"];
@@ -66,7 +67,7 @@ pub fn claim_type(text: &str) -> ClaimType {
 /// run, so the results are identical.
 #[must_use]
 pub fn split_sentences(text: &str) -> Vec<&str> {
-    let text = text.trim();
+    let text = crate::pystr::py_strip(text);
     let mut parts = Vec::new();
     let mut start = 0;
     for run in WHITESPACE.find_iter(text) {
@@ -82,7 +83,7 @@ pub fn split_sentences(text: &str) -> Vec<&str> {
     parts.push(&text[start..]);
     parts
         .into_iter()
-        .map(str::trim)
+        .map(crate::pystr::py_strip)
         .filter(|p| !p.is_empty())
         .collect()
 }
@@ -145,6 +146,12 @@ mod tests {
             ["A b.", "C!D?", "E.", "F"]
         );
         assert_eq!(split_sentences("   "), Vec::<&str>::new());
+    }
+
+    #[test]
+    fn python_whitespace_separates_sentences() {
+        // Python's `\s` and `strip()` include \x1c..\x1f; Rust's do not.
+        assert_eq!(split_sentences("A b.\u{1c}C d!\u{1d}"), ["A b.", "C d!"]);
     }
 
     #[test]

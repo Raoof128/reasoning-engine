@@ -577,6 +577,11 @@ Verified against the Python code and `golden_vectors.json` on 2026-10-18.
 | XML hardening | `defusedxml` rejects entity declarations; expat rejects undefined entities, bad characters, junk after the root, unbound prefixes. | Expand only the five predefined entities and legal character references; reject any `<!ENTITY`; 4 MiB body cap. Error messages differ, types match. |
 | Dict overwrite order | `errors[name] = err` with a repeated name keeps the first position and the last value. | `IndexMap::insert` has the same semantics; the `all_fail` aggregate vector covers it. |
 | DBLP from datacenter IPs | HTTP 202 with an anti-bot HTML page; Python's `urllib` treats 202 as success and the JSON parse fails. | Any 2xx is success; the page surfaces as `malformed_response` (`dblp__bot_challenge` fixture). Recording falls back to a hand-built `dblp__realistic` body. |
+| Tool arguments | FastMCP `json.loads` a string argument for any non-`str` parameter and substitutes lists, objects and null; pydantic then validates in lax mode (`true` and `"3.0"` are ints, `"nan"` is a float) and reports every failing field and union member. | `re_mcp::args::check` runs the same pass before any tool body and formats errors like pydantic, minus its version-specific `[type=...]` and URL suffixes (found in Phase 4). |
+| Tool errors | FastMCP returns failures as results with `isError: true` and `Error executing tool <name>: <message>`, not JSON-RPC errors. | Same shape and text; the model can read and correct them. |
+| Python whitespace | `\s`, `strip()` and `split()` include `\x1c`..`\x1f`; Rust's `\s`, `trim()` and `split_whitespace()` do not. | `re_core::pystr`; used by claims, difficulty, validation, memory recall and the adapters. The sanitizer was already safe because control characters become spaces before injection matching. |
+| `json.JSONDecodeError` | Messages like `Expecting value` with a character `pos` (the opening quote for an unterminated string, the input length at EOF). | `re_mcp::validate` maps serde errors to Python's wording and position for the common cases. |
+| Branch listing order | `get_session_state` orders by `(created_at, id)`; branches created in the same second tie-break on random UUIDs, so Python's own order is undefined. | Same SQL; the parity harness compares that list unordered. |
 
 ## 12. Gauntlet log (2026-10-18)
 
@@ -612,6 +617,11 @@ Line-by-line review of this plan. Each row was fixed in place.
 | *Phase 3:* Semantic Scholar answered 429 while recording. | Recorder skips rate-limited sources and retries later; no keys or contact email are committed (`reasoning-engine@example.org`). |
 | *Phase 3:* plan asked for per-source `*.expected.json`. | One `tests/fixtures/http/expected.json` (20 cases, 21 URLs, 3 aggregator vectors) from `record_http.py expected`; the parity test was mutation-checked. |
 | *Phase 3:* `webpki-root-certs` (Mozilla CA data via reqwest) is CDLA-Permissive-2.0. | `deny.toml` exception scoped to that crate only. |
+| *Phase 4 execution:* plan said validation errors become `McpError` codes `-32000..-32019`. | Python returns `isError` tool results; the port matches it, which the current spec also prefers. |
+| *Phase 4:* plan said bool-as-int is rejected. | Pydantic accepts `true` as 1 before `_coerce_int` runs; the port matches Python. |
+| *Phase 4:* plan compared Rust `structuredContent` with Python text. | The harness compares text, which is byte-identical to `json.dumps(payload, ensure_ascii=False)`; `structuredContent` carries the same payload (arrays as `{"result": [...]}`). Result: 46 scripted steps identical after normalisation. |
+| *Phase 4:* Python run packs written on Windows use `\r\n`, so their hashes differ by platform. | Rust always writes `\n`. Verification also re-checks `run_pack_hash` and rejects artifact names that are not plain file names, so a rewritten attestation no longer reads valid. |
+| *Phase 4:* an empty `REASONING_ENGINE_DB` made the Rust server open path `""`. | Empty values count as unset, as in Python's `db_path or DEFAULT`. Defaults move to `~/.reasoning-engine/{reasoning.db,runs}`. |
 
 ## References (Harvard, Australian style)
 

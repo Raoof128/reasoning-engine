@@ -154,18 +154,7 @@ pub fn strip_tags(text: &str) -> String {
     TAG.replace_all(text, " ").into_owned()
 }
 
-/// Python's `str.isspace` for one character: Unicode `White_Space` plus the
-/// four ASCII separators `\x1c`..`\x1f` that Python also counts.
-#[must_use]
-pub fn py_is_space(c: char) -> bool {
-    c.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&c)
-}
-
-/// Python's `str.strip()`.
-#[must_use]
-pub fn py_strip(text: &str) -> &str {
-    text.trim_matches(py_is_space)
-}
+pub use re_core::pystr::{py_is_space, py_strip};
 
 /// `" ".join(text.split())[:limit]`, counting characters.
 #[must_use]

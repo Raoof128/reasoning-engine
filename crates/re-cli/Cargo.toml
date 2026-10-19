@@ -1,0 +1,42 @@
+[package]
+name = "re-cli"
+description = "The reasoning-engine binary: stdio MCP server, research pipeline and setup wizard."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish = false
+
+[[bin]]
+name = "reasoning-engine"
+path = "src/main.rs"
+
+[features]
+default = []
+# Adds the `serve` subcommand: the opt-in local Streamable HTTP server.
+local-host = ["re-mcp/local-host", "dep:tokio-util"]
+
+[dependencies]
+tokio-util = { workspace = true, optional = true }
+re-core.workspace = true
+re-mcp.workspace = true
+re-retrieval.workspace = true
+re-store.workspace = true
+re-verify.workspace = true
+clap.workspace = true
+inquire.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+toml.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+assert_cmd.workspace = true
+tempfile.workspace = true
+
+[lints]
+workspace = true

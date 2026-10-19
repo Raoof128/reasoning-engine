@@ -1,0 +1,42 @@
+[package]
+name = "re-mcp"
+description = "MCP server for the reasoning engine: twenty tools over stdio, Python-compatible."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish = false
+
+[features]
+default = []
+# Opt-in local Streamable HTTP server (plan section 3.3). Off by default so
+# the stdio build carries no HTTP server stack.
+local-host = ["dep:axum", "dep:subtle", "dep:tokio-util", "rmcp/transport-streamable-http-server"]
+
+[dependencies]
+axum = { workspace = true, optional = true }
+subtle = { workspace = true, optional = true }
+tokio-util = { workspace = true, optional = true }
+re-core.workspace = true
+indexmap.workspace = true
+re-model.workspace = true
+re-store.workspace = true
+re-retrieval.workspace = true
+re-verify.workspace = true
+rmcp.workspace = true
+schemars.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+reqwest.workspace = true
+tokio-util.workspace = true
+tempfile.workspace = true
+rmcp = { workspace = true, features = ["client"] }
+
+[lints]
+workspace = true
