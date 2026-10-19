@@ -19,6 +19,8 @@ default = []
 local-host = ["re-mcp/local-host", "dep:tokio-util", "dep:re-ui"]
 # Hybrid and NLI verifier tiers (downloads ONNX models on first use).
 semantic = ["re-verify/semantic"]
+# Token-gated Scholar Gateway MCP connector as one more search source.
+scholar-gateway = ["re-retrieval/scholar-gateway"]
 
 [dependencies]
 tokio-util = { workspace = true, optional = true }

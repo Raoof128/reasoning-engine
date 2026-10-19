@@ -1,0 +1,195 @@
+name: Release
+
+# A `v*` tag builds static binaries for four platforms, publishes them with
+# SHA-256 sums and build provenance, and pushes a multi-arch distroless
+# image to GHCR. A manual run builds everything but publishes nothing.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  # Same digest as the Dockerfile's build stage; bump both together.
+  ALPINE_RUST: rust:1.99.1-alpine3.22@sha256:2b3b5cdd9112f19366d21b94541ffcd3d58bf838f696451a0d50c8032088cb15
+
+jobs:
+  binaries:
+    name: binary (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-x86_64, os: ubuntu-24.04 }
+          - { name: linux-aarch64, os: ubuntu-24.04-arm }
+          - { name: macos-universal, os: macos-14 }
+          - { name: windows-x86_64, os: windows-2022 }
+    steps:
+      - uses: actions/checkout@v4
+
+      # Linux: build inside Alpine, whose libc is musl, so the binary is
+      # fully static and runs on any distribution.
+      - name: Build (Linux, static musl)
+        if: runner.os == 'Linux'
+        run: |
+          docker run --rm -v "$PWD":/src -w /src -e RUSTUP_TOOLCHAIN=1.99.1 "$ALPINE_RUST" \
+            sh -c 'apk add --no-cache musl-dev && cargo build --release --locked -p re-cli --features local-host'
+          mkdir -p dist && cp target/release/reasoning-engine dist/
+
+      - name: Toolchain (macOS)
+        if: runner.os == 'macOS'
+        uses: dtolnay/rust-toolchain@1.99.1
+        with:
+          targets: x86_64-apple-darwin, aarch64-apple-darwin
+      - name: Build (macOS, universal)
+        if: runner.os == 'macOS'
+        run: |
+          for target in x86_64-apple-darwin aarch64-apple-darwin; do
+            cargo build --release --locked -p re-cli --features local-host --target "$target"
+          done
+          mkdir -p dist
+          lipo -create -output dist/reasoning-engine \
+            target/x86_64-apple-darwin/release/reasoning-engine \
+            target/aarch64-apple-darwin/release/reasoning-engine
+
+      - name: Toolchain (Windows)
+        if: runner.os == 'Windows'
+        uses: dtolnay/rust-toolchain@1.99.1
+      - name: Build (Windows, static CRT)
+        if: runner.os == 'Windows'
+        shell: bash
+        env:
+          RUSTFLAGS: -C target-feature=+crt-static
+        run: |
+          cargo build --release --locked -p re-cli --features local-host
+          mkdir -p dist && cp target/release/reasoning-engine.exe dist/
+
+      - name: Smoke test
+        shell: bash
+        run: |
+          bin=dist/reasoning-engine; [ -f "$bin.exe" ] && bin="$bin.exe"
+          "$bin" --help > /dev/null
+          "$bin" serve --help | grep -q -- '--ui'
+
+      - name: Package
+        shell: bash
+        run: |
+          name="reasoning-engine-${GITHUB_REF_NAME//\//-}-${{ matrix.name }}"
+          cp LICENSE README.md dist/
+          if [ "$RUNNER_OS" = Windows ]; then
+            (cd dist && 7z a "../$name.zip" reasoning-engine.exe LICENSE README.md > /dev/null)
+          else
+            tar -C dist -czf "$name.tar.gz" reasoning-engine LICENSE README.md
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.name }}
+          path: reasoning-engine-*
+          if-no-files-found: error
+
+  publish:
+    needs: binaries
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: binary-*
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        run: cd dist && sha256sum reasoning-engine-* > SHA256SUMS && cat SHA256SUMS
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/reasoning-engine-*
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --generate-notes --verify-tag
+
+  # One native runner per architecture (no QEMU), pushed by digest and
+  # merged into one multi-arch tag.
+  image:
+    name: image (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: linux/amd64, os: ubuntu-24.04 }
+          - { platform: linux/arm64, os: ubuntu-24.04-arm }
+    steps:
+      - uses: actions/checkout@v4
+      # GHCR names must be lowercase; the owner here is not.
+      - name: Image name
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@v3
+      - if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=${{ startsWith(github.ref, 'refs/tags/v') }}
+          cache-from: type=gha,scope=${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
+      - name: Record digest
+        run: |
+          mkdir -p digests
+          touch "digests/${DIGEST#sha256:}"
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ strategy.job-index }}
+          path: digests/*
+          if-no-files-found: error
+
+  manifest:
+    needs: image
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      # GHCR names must be lowercase; the owner here is not.
+      - name: Image name
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: digest-*
+          path: digests
+          merge-multiple: true
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Tag the multi-arch image
+        working-directory: digests
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          refs=()
+          for digest in *; do refs+=("$IMAGE@sha256:$digest"); done
+          docker buildx imagetools create -t "$IMAGE:$version" -t "$IMAGE:latest" "${refs[@]}"
+          docker buildx imagetools inspect "$IMAGE:$version"
