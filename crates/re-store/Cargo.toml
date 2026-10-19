@@ -9,6 +9,11 @@ authors.workspace = true
 repository.workspace = true
 publish = false
 
+[features]
+default = []
+# Training data for the learned prior (plan Phase 11).
+learn = ["re-core/learn"]
+
 [dependencies]
 re-core.workspace = true
 re-model.workspace = true

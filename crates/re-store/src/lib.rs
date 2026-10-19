@@ -12,6 +12,10 @@ pub mod budget;
 pub mod cache;
 mod conn;
 mod error;
+#[cfg(feature = "learn")]
+pub mod evidence_memory;
+#[cfg(feature = "learn")]
+pub mod learning;
 pub mod memory;
 pub mod memory_fts;
 pub mod research;

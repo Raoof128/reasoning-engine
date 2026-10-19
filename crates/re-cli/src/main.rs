@@ -5,6 +5,8 @@
 #![forbid(unsafe_code)]
 
 mod config;
+#[cfg(feature = "learn")]
+mod learn;
 #[cfg(feature = "local-host")]
 mod serve;
 mod setup;
@@ -71,6 +73,22 @@ enum Command {
         #[command(subcommand)]
         command: ScholarCommand,
     },
+    /// Re-verify a research run and report what drifted (changed verdicts,
+    /// newly retracted or flagged sources); exits 3 when anything changed.
+    #[cfg(feature = "learn")]
+    Watch {
+        /// The run to re-verify.
+        run_id: String,
+        /// Repeat at this interval (`7d`, `12h`, `30m`) instead of once.
+        #[arg(long, value_parser = learn::parse_interval)]
+        every: Option<std::time::Duration>,
+    },
+    /// Train or inspect the learned prior that seeds branch scores.
+    #[cfg(feature = "learn")]
+    Prior {
+        #[command(subcommand)]
+        command: PriorCommand,
+    },
     /// Measure things against labelled data.
     Bench {
         #[command(subcommand)]
@@ -109,6 +127,16 @@ enum Command {
 #[derive(Debug, Subcommand)]
 enum KeysCommand {
     /// Print the public key, creating the key pair if there is none.
+    Show,
+}
+
+#[cfg(feature = "learn")]
+#[derive(Debug, Subcommand)]
+enum PriorCommand {
+    /// Fit a new prior version from the database's session history (needs
+    /// at least 30 sessions with two or more scored branches).
+    Train,
+    /// Describe the prior in use.
     Show,
 }
 
@@ -229,6 +257,8 @@ async fn service(config: &Config) -> Result<VerifiableResearchService, Failure> 
             &re_retrieval::sources::SourceConfig::from_env(),
         ))
     };
+    #[cfg(feature = "learn")]
+    let service = service.with_evidence_memory();
     #[cfg(feature = "trust")]
     let service = trust::sign(config, service);
     Ok(service)
@@ -376,6 +406,15 @@ async fn bench_full_text(set: &std::path::Path, tiers: &[String]) -> Result<u8, 
     Ok(0)
 }
 
+/// The MCP tools over the configured service, with the learned prior in
+/// `learn` builds.
+async fn tools(config: &Config) -> Result<Tools, Failure> {
+    let tools = Tools::new(Arc::new(service(config).await?));
+    #[cfg(feature = "learn")]
+    let tools = learn::tools(config, tools);
+    Ok(tools)
+}
+
 /// `print(json.dumps(payload, indent=2, sort_keys=True))`.
 fn print_json(payload: &Value) {
     println!("{}", dumps(payload, &DumpOptions::indented_sorted(2)));
@@ -386,15 +425,22 @@ async fn run(cli: Cli) -> Result<u8, Failure> {
         Command::Setup(args) => Ok(setup::run(&args)?),
         Command::Mcp => {
             let config = load_config()?;
-            let server = ReasoningServer::new(Tools::new(Arc::new(service(&config).await?)));
+            let server = ReasoningServer::new(tools(&config).await?);
             server.serve_stdio().await?;
             Ok(0)
         }
         #[cfg(feature = "local-host")]
         Command::Serve(args) => {
             let config = load_config()?;
-            let server = ReasoningServer::new(Tools::new(Arc::new(service(&config).await?)));
+            let server = ReasoningServer::new(tools(&config).await?);
             serve::run(&config, server, &args).await
+        }
+        #[cfg(feature = "learn")]
+        Command::Prior { command } => learn::run(&load_config()?, &command),
+        #[cfg(feature = "learn")]
+        Command::Watch { run_id, every } => {
+            let config = load_config()?;
+            learn::watch(&service(&config).await?, &run_id, every).await
         }
         Command::Research {
             query,

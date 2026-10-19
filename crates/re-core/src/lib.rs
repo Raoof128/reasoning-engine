@@ -17,6 +17,8 @@ pub mod hashing;
 mod html_entities;
 pub mod html_unescape;
 pub mod planning;
+#[cfg(feature = "learn")]
+pub mod prior;
 pub mod profiles;
 pub mod pyjson;
 pub mod pystr;

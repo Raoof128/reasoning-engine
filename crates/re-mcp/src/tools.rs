@@ -41,6 +41,11 @@ fn to_value<T: Serialize>(value: &T) -> Value {
     serde_json::to_value(value).unwrap_or(Value::Null)
 }
 
+/// Score gap at which `select_next_branches` reports a branch in
+/// `prior_disagreement` (`learn` feature).
+#[cfg(feature = "learn")]
+pub const PRIOR_DISAGREEMENT: f64 = 0.4;
+
 /// Executes tools against one research service.
 pub struct Tools {
     service: Arc<VerifiableResearchService>,
@@ -48,6 +53,8 @@ pub struct Tools {
     memory_fts: bool,
     #[cfg(feature = "graph")]
     adversarial: bool,
+    #[cfg(feature = "learn")]
+    prior: Option<Arc<re_core::prior::Prior>>,
     #[cfg(feature = "tasks")]
     prefetcher: crate::tasks::Prefetcher,
 }
@@ -66,9 +73,20 @@ impl Tools {
             memory_fts: env_is("REASONING_ENGINE_MEMORY", "fts"),
             #[cfg(feature = "graph")]
             adversarial: env_is("REASONING_ENGINE_ADVERSARIAL", "1"),
+            #[cfg(feature = "learn")]
+            prior: None,
             #[cfg(feature = "tasks")]
             prefetcher: crate::tasks::Prefetcher::default(),
         }
+    }
+
+    /// Seed new branches from a learned prior and report where it
+    /// disagrees with Claude's scores (`learn` feature, plan Phase 11).
+    #[cfg(feature = "learn")]
+    #[must_use]
+    pub fn with_prior(mut self, prior: re_core::prior::Prior) -> Self {
+        self.prior = Some(Arc::new(prior));
+        self
     }
 
     /// Whether hard queries plan an adversarial angle (`graph` feature;
@@ -170,7 +188,16 @@ impl Tools {
         let branch = self
             .store()
             .register_branch(&session_id, &trace, &sources, parent, depth)?;
-        Ok(json!({"branch_id": branch.id, "session_id": session_id}))
+        #[cfg_attr(not(feature = "learn"), allow(unused_mut))]
+        let mut payload = json!({"branch_id": branch.id, "session_id": session_id});
+        #[cfg(feature = "learn")]
+        if let Some(prior) = &self.prior {
+            let features = self.store().branch_features(&branch.id)?;
+            let seed = py_round(prior.seed(&features), 4);
+            self.store().seed_branch_score(&branch.id, seed)?;
+            payload["prior_score"] = seed.into();
+        }
+        Ok(payload)
     }
 
     fn score_branch(&self, a: &Args<'_>) -> ToolResult {
@@ -230,6 +257,11 @@ impl Tools {
             "kappa": py_round(result.kappa, 4),
             "budget_remaining": result.budget_remaining,
         });
+        // Plan Phase 11: branches whose score the learned prior doubts.
+        #[cfg(feature = "learn")]
+        if let Some(disagreement) = self.prior_disagreement(&session_id)? {
+            payload["prior_disagreement"] = disagreement;
+        }
         // Plan Phase 10: the one-off budget change, when it happened now.
         #[cfg(feature = "graph")]
         if let Some((change, _)) = reestimate {
@@ -254,6 +286,31 @@ impl Tools {
             payload["directions"] = to_value(&directions);
         }
         Ok(payload)
+    }
+
+    /// Scored branches whose score and the prior's estimate differ by more
+    /// than [`PRIOR_DISAGREEMENT`]: candidates for reflexion. `None` without
+    /// a prior.
+    #[cfg(feature = "learn")]
+    fn prior_disagreement(&self, session_id: &str) -> Result<Option<Value>, ToolError> {
+        let Some(prior) = &self.prior else {
+            return Ok(None);
+        };
+        let mut flagged = Vec::new();
+        for branch in self.store().get_session_branches(session_id)? {
+            if branch.visits == 0 {
+                continue;
+            }
+            let estimate = prior.predict(&self.store().branch_features(&branch.id)?);
+            if (estimate - branch.q_score).abs() > PRIOR_DISAGREEMENT {
+                flagged.push(json!({
+                    "branch_id": branch.id,
+                    "q_score": branch.q_score,
+                    "prior": py_round(estimate, 4),
+                }));
+            }
+        }
+        Ok(Some(Value::from(flagged)))
     }
 
     /// Re-estimate the session's budget once, after the first evaluation
@@ -375,6 +432,8 @@ impl Tools {
         let query = validate::text(&query, "query", MAX_QUERY_CHARS, false)?;
         let limit = validate::limited_int(limit, "limit", 1, cap(MAX_MEMORY_LIMIT))?;
         let limit = usize::try_from(limit).unwrap_or(1);
+        #[cfg(feature = "learn")]
+        let include_evidence = a.bool_or("include_evidence", false)?;
         let results = if self.memory_fts {
             self.store().recall_memory_fts(&query, limit)?
         } else {
@@ -390,6 +449,13 @@ impl Tools {
                 v
             })
             .collect();
+        // Plan Phase 11: past evidence too, only when asked, so the default
+        // result keeps Python's shape.
+        #[cfg(feature = "learn")]
+        if include_evidence {
+            let evidence = self.store().recall_evidence(&query, limit)?;
+            return Ok(json!({"memories": results, "evidence": evidence}));
+        }
         Ok(Value::Array(results))
     }
 

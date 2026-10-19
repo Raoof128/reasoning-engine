@@ -14,6 +14,8 @@ pub mod citations;
 pub mod claims;
 #[cfg(feature = "graph")]
 pub mod counter;
+#[cfg(feature = "learn")]
+pub mod diff;
 pub mod error;
 pub mod gate;
 #[cfg(feature = "graph")]

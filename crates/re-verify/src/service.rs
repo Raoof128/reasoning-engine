@@ -113,6 +113,8 @@ pub struct VerifiableResearchService {
     calibration: Option<crate::calibration::Calibration>,
     #[cfg(feature = "graph")]
     links: Option<re_retrieval::links::LinkFetcher>,
+    #[cfg(feature = "learn")]
+    evidence_memory: bool,
 }
 
 /// What the `graph` stages found after verification (plan Phase 10).
@@ -197,7 +199,129 @@ impl VerifiableResearchService {
             calibration: None,
             #[cfg(feature = "graph")]
             links: None,
+            #[cfg(feature = "learn")]
+            evidence_memory: false,
         }
+    }
+
+    /// Remember every retrieved record across runs with how verification
+    /// used it, for `recall_memory_tool(include_evidence)` (plan Phase 11).
+    #[cfg(feature = "learn")]
+    #[must_use]
+    pub fn with_evidence_memory(mut self) -> Self {
+        self.evidence_memory = true;
+        self
+    }
+
+    /// Re-run a finished research run (same query, profile, mode, and the
+    /// claims in its pack) and report what drifted since: changed verdicts, newly
+    /// flagged or retracted sources, sources gained or lost, and new
+    /// retraction cascades (plan Phase 11). The report is written to
+    /// `<runs_dir>/<run_id>/watch/<date>.diff.md`, beside the attested
+    /// files.
+    ///
+    /// # Errors
+    /// An unknown run, a run without its pack, or pipeline failures.
+    #[cfg(feature = "learn")]
+    pub async fn watch(&self, run_id: &str) -> Result<Value, VerifyError> {
+        let run = self.store.get_run(run_id)?;
+        let pack = self.runs_dir.join(run_id);
+        if !pack.join("attestation.json").exists() {
+            return Err(VerifyError::Io(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!("no run pack for {run_id} in {}", self.runs_dir.display()),
+            )));
+        }
+        // The pack's attested claims: the database keys claims by a
+        // per-run `claim_0001`, so later runs overwrite its rows.
+        let claims: Vec<Value> =
+            serde_json::from_str(&std::fs::read_to_string(pack.join("claims.json"))?)
+                .map_err(|e| VerifyError::Io(std::io::Error::other(e)))?;
+        let sentences: Vec<String> = claims
+            .iter()
+            .filter_map(|c| c.get("text").and_then(Value::as_str))
+            .map(|text| {
+                let text = text.trim();
+                if text.ends_with(['.', '!', '?']) {
+                    text.to_string()
+                } else {
+                    format!("{text}.")
+                }
+            })
+            .collect();
+        let result = self
+            .run_research_pipeline(
+                &run.query,
+                &sentences.join(" "),
+                &run.mode,
+                &run.profile,
+                false,
+            )
+            .await?;
+        let new_run_id = result["run_id"].as_str().unwrap_or_default().to_string();
+        let new_pack = std::path::PathBuf::from(result["run_pack"].as_str().unwrap_or_default());
+        let drift = crate::diff::diff(&pack, &new_pack);
+        let date: String = utc_now().chars().take(10).collect();
+        let dir = pack.join("watch");
+        std::fs::create_dir_all(&dir)?;
+        let path = dir.join(format!("{date}.diff.md"));
+        std::fs::write(&path, drift.markdown(run_id, &new_run_id, &date))?;
+        Ok(json!({
+            "run_id": run_id,
+            "new_run_id": new_run_id,
+            "changed": !drift.is_empty(),
+            "report": path.to_string_lossy(),
+            "drift": to_value(&drift),
+        }))
+    }
+
+    /// Remember `evidence` with the strongest use the final verdicts made
+    /// of each record.
+    #[cfg(feature = "learn")]
+    fn remember(
+        &self,
+        run_id: &str,
+        evidence: &[EvidenceRecord],
+        verifications: &[VerificationRecord],
+    ) -> Result<(), VerifyError> {
+        if !self.evidence_memory {
+            return Ok(());
+        }
+        let status = |id: &str| {
+            let cited = |wanted: &str| {
+                verifications
+                    .iter()
+                    .any(|v| v.support_status == wanted && v.evidence_ids.iter().any(|e| e == id))
+            };
+            if cited("supported") {
+                "supported"
+            } else if cited("partially_supported") {
+                "partially_supported"
+            } else if verifications
+                .iter()
+                .any(|v| v.contradictory_evidence_ids.iter().any(|e| e == id))
+            {
+                "contradicted"
+            } else {
+                "uncited"
+            }
+        };
+        let now = utc_now();
+        let records: Vec<re_store::evidence_memory::RememberedEvidence> = evidence
+            .iter()
+            .map(|e| re_store::evidence_memory::RememberedEvidence {
+                title: e.title.clone(),
+                snippet: e.snippet.clone(),
+                source: e.source_adapter.clone(),
+                doi: e.doi.clone(),
+                url: e.url.clone(),
+                last_run_id: run_id.to_string(),
+                last_status: status(&e.evidence_id).to_string(),
+                last_verified_at: now.clone(),
+                times_seen: 1,
+            })
+            .collect();
+        Ok(self.store.remember_evidence(&records)?)
     }
 
     /// Build the evidence graph from `OpenAlex` links fetched with
@@ -801,6 +925,8 @@ impl VerifiableResearchService {
                 &citable,
             )
             .await?;
+        #[cfg(feature = "learn")]
+        self.remember(&run.run_id, evidence, &verifications)?;
         for claim in &claims {
             self.store.save_claim(claim)?;
         }

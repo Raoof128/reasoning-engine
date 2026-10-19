@@ -63,6 +63,17 @@ const fn opt(name: &'static str, kind: Kind, default: &'static str) -> Param {
     }
 }
 
+/// `recall_memory_tool` parameters. The `learn` feature adds
+/// `include_evidence`, which Python's tool does not have.
+#[cfg(not(feature = "learn"))]
+const RECALL_MEMORY: &[Param] = &[QUERY, opt("limit", Kind::Int, "5")];
+#[cfg(feature = "learn")]
+const RECALL_MEMORY: &[Param] = &[
+    QUERY,
+    opt("limit", Kind::Int, "5"),
+    opt("include_evidence", Kind::Bool, "false"),
+];
+
 /// `plan_research_angles_tool` parameters. The `tasks` feature adds
 /// `prefetch`, which Python's tool does not have.
 #[cfg(not(feature = "tasks"))]
@@ -178,7 +189,7 @@ pub const TOOLS: [ToolSpec; 20] = [
     tool(
         "recall_memory_tool",
         "Retrieve relevant episodic memories from past research sessions.",
-        &[QUERY, opt("limit", Kind::Int, "5")],
+        RECALL_MEMORY,
         true,
     ),
     tool(
