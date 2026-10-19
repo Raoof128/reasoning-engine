@@ -5,6 +5,8 @@
 #![forbid(unsafe_code)]
 
 mod config;
+#[cfg(feature = "local-host")]
+mod serve;
 mod setup;
 
 use std::path::PathBuf;
@@ -39,6 +41,9 @@ enum Command {
     Setup(setup::SetupArgs),
     /// Serve the MCP tools over stdio (what Claude Code runs).
     Mcp,
+    /// Serve the MCP tools over local Streamable HTTP (opt-in; see `setup`).
+    #[cfg(feature = "local-host")]
+    Serve(serve::ServeArgs),
     /// Run the verifiable research pipeline and export an attested run pack.
     Research {
         /// The research question.
@@ -116,6 +121,12 @@ async fn run(cli: Cli) -> Result<u8, Failure> {
             let server = ReasoningServer::new(Tools::new(Arc::new(service(&config)?)));
             server.serve_stdio().await?;
             Ok(0)
+        }
+        #[cfg(feature = "local-host")]
+        Command::Serve(args) => {
+            let config = load_config()?;
+            let server = ReasoningServer::new(Tools::new(Arc::new(service(&config)?)));
+            serve::run(&config, server, &args).await
         }
         Command::Research {
             query,

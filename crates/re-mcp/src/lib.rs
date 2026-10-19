@@ -5,6 +5,8 @@
 
 pub mod args;
 pub mod error;
+#[cfg(feature = "local-host")]
+pub mod http;
 pub mod limits;
 pub mod schema;
 pub mod server;

@@ -13,7 +13,13 @@ publish = false
 name = "reasoning-engine"
 path = "src/main.rs"
 
+[features]
+default = []
+# Adds the `serve` subcommand: the opt-in local Streamable HTTP server.
+local-host = ["re-mcp/local-host", "dep:tokio-util"]
+
 [dependencies]
+tokio-util = { workspace = true, optional = true }
 re-core.workspace = true
 re-mcp.workspace = true
 re-retrieval.workspace = true

@@ -206,3 +206,120 @@ fn mcp_answers_initialize_on_stdio() {
         "Actor-Critic-Planner-Reflexion reasoning backend for deep research"
     );
 }
+
+#[cfg(not(feature = "local-host"))]
+#[test]
+fn default_builds_have_no_http_server() {
+    let home = tempfile::tempdir().expect("tmp");
+    bin(home.path()).args(["serve", "--http"]).assert().code(2);
+}
+
+#[cfg(feature = "local-host")]
+mod serve {
+    use std::io::{BufRead, BufReader, Read, Write};
+    use std::net::{TcpListener, TcpStream};
+    use std::process::{Command as StdCommand, Stdio};
+
+    use super::{ENGINE_VARS, bin};
+
+    #[test]
+    fn serve_refuses_until_enabled() {
+        let home = tempfile::tempdir().expect("tmp");
+        let output = bin(home.path()).arg("serve").output().expect("runs");
+        assert_eq!(output.status.code(), Some(2));
+        assert!(String::from_utf8_lossy(&output.stderr).contains("setup --http"));
+        let missing = bin(home.path())
+            .args(["serve", "--http", "--bearer-token-env", "NO_SUCH_TOKEN_VAR"])
+            .output()
+            .expect("runs");
+        assert_eq!(missing.status.code(), Some(1));
+        assert!(
+            String::from_utf8_lossy(&missing.stderr)
+                .contains("NO_SUCH_TOKEN_VAR is not set or is empty")
+        );
+    }
+
+    fn post(port: u16, token: Option<&str>) -> String {
+        let body = r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"t","version":"0"}}}"#;
+        let auth = token
+            .map(|t| format!("Authorization: Bearer {t}\r\n"))
+            .unwrap_or_default();
+        let request = format!(
+            "POST /mcp HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nContent-Type: application/json\r\n\
+             Accept: application/json, text/event-stream\r\n{auth}Content-Length: {}\r\nConnection: close\r\n\r\n{body}",
+            body.len()
+        );
+        let mut stream = TcpStream::connect(("127.0.0.1", port)).expect("connect");
+        stream.write_all(request.as_bytes()).expect("write");
+        let mut status = String::new();
+        BufReader::new(&mut stream)
+            .read_line(&mut status)
+            .expect("status line");
+        let mut rest = String::new();
+        let _ = stream.read_to_string(&mut rest);
+        status
+    }
+
+    #[test]
+    fn serve_uses_the_token_from_setup() {
+        let home = tempfile::tempdir().expect("tmp");
+        let port = TcpListener::bind("127.0.0.1:0")
+            .expect("bind")
+            .local_addr()
+            .expect("addr")
+            .port();
+        bin(home.path())
+            .args([
+                "setup",
+                "--yes",
+                "--http",
+                "--no-register",
+                "--port",
+                &port.to_string(),
+            ])
+            .assert()
+            .success();
+        let token_file =
+            std::fs::read_to_string(home.path().join(".reasoning-engine/http.env")).expect("token");
+        let token = token_file
+            .trim()
+            .strip_prefix("REASONING_ENGINE_HTTP_TOKEN=")
+            .expect("key")
+            .to_string();
+
+        let mut command = StdCommand::new(assert_cmd::cargo::cargo_bin("reasoning-engine"));
+        for var in ENGINE_VARS {
+            command.env_remove(var);
+        }
+        let mut child = command
+            .arg("serve")
+            .env("HOME", home.path())
+            .env("USERPROFILE", home.path())
+            .env("REASONING_ENGINE_CONFIG", home.path().join("config.toml"))
+            .env("REASONING_ENGINE_OFFLINE", "1")
+            .stdout(Stdio::null())
+            .stderr(Stdio::piped())
+            .spawn()
+            .expect("spawn");
+        // Skip any hints until the server reports its address.
+        let mut stderr = BufReader::new(child.stderr.take().expect("stderr"));
+        let mut banner = String::new();
+        while !banner.contains("serving MCP") {
+            banner.clear();
+            assert_ne!(
+                stderr.read_line(&mut banner).expect("read"),
+                0,
+                "server exited before serving"
+            );
+        }
+        assert!(banner.contains("bearer token required"), "{banner}");
+        assert!(!banner.contains(&token), "the token is never printed");
+
+        let unauthorised = post(port, None);
+        let authorised = post(port, Some(&token));
+        let _ = child.kill();
+        let _ = child.wait();
+        assert!(unauthorised.contains(" 401 "), "{unauthorised}");
+        assert!(authorised.contains(" 200 "), "{authorised}");
+    }
+}

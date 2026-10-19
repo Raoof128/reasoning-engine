@@ -9,7 +9,16 @@ authors.workspace = true
 repository.workspace = true
 publish = false
 
+[features]
+default = []
+# Opt-in local Streamable HTTP server (plan section 3.3). Off by default so
+# the stdio build carries no HTTP server stack.
+local-host = ["dep:axum", "dep:subtle", "dep:tokio-util", "rmcp/transport-streamable-http-server"]
+
 [dependencies]
+axum = { workspace = true, optional = true }
+subtle = { workspace = true, optional = true }
+tokio-util = { workspace = true, optional = true }
 re-core.workspace = true
 indexmap.workspace = true
 re-model.workspace = true
@@ -24,6 +33,8 @@ thiserror.workspace = true
 tokio.workspace = true
 
 [dev-dependencies]
+reqwest.workspace = true
+tokio-util.workspace = true
 tempfile.workspace = true
 rmcp = { workspace = true, features = ["client"] }
 
