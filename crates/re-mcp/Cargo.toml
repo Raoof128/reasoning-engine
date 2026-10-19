@@ -11,6 +11,7 @@ publish = false
 
 [dependencies]
 re-core.workspace = true
+indexmap.workspace = true
 re-model.workspace = true
 re-store.workspace = true
 re-retrieval.workspace = true
@@ -24,7 +25,7 @@ tokio.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
-insta.workspace = true
+rmcp = { workspace = true, features = ["client"] }
 
 [lints]
 workspace = true
