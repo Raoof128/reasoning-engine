@@ -58,6 +58,8 @@ pub struct RecordPlan {
     /// Whether supported claims were searched for contradiction (`graph`
     /// feature).
     pub counter_search: bool,
+    /// Whether the evidence graph was built (`graph` feature).
+    pub evidence_graph: bool,
     /// The conformal calibration in force (`graph` feature), stored whole
     /// so a replay does not depend on the local file.
     pub calibration: Option<Value>,
@@ -76,6 +78,7 @@ impl RecordPlan {
             quality: false,
             fulltext: false,
             counter_search: false,
+            evidence_graph: false,
             calibration: None,
         }
     }
@@ -101,6 +104,9 @@ impl RecordPlan {
         }
         if self.counter_search {
             settings.insert("counter_search".into(), true.into());
+        }
+        if self.evidence_graph {
+            settings.insert("evidence_graph".into(), true.into());
         }
         if let Some(calibration) = &self.calibration {
             settings.insert("calibration".into(), calibration.clone());
@@ -130,11 +136,37 @@ fn with_settings(
         Some(calibration) => with_calibration(service, calibration)?,
         None => service,
     };
+    let service = if on("evidence_graph") {
+        with_evidence_graph(service, Arc::clone(&tape))?
+    } else {
+        service
+    };
     if on("fulltext") {
         with_full_text(service, tape)
     } else {
         Ok(service)
     }
+}
+
+/// Read `OpenAlex` links from the replayed tape, as the recording did.
+#[cfg(feature = "graph")]
+fn with_evidence_graph(
+    service: VerifiableResearchService,
+    tape: Arc<Tape>,
+) -> Result<VerifiableResearchService, VerifyError> {
+    let client = re_retrieval::HttpClient::new()?.with_tape(tape);
+    let config = re_retrieval::sources::SourceConfig::default();
+    Ok(service.with_evidence_graph(re_retrieval::links::LinkFetcher::new(client, &config)))
+}
+
+#[cfg(not(feature = "graph"))]
+fn with_evidence_graph(
+    _: VerifiableResearchService,
+    _: Arc<Tape>,
+) -> Result<VerifiableResearchService, VerifyError> {
+    Err(invalid(
+        "this pack built an evidence graph; replay it with a `graph` build",
+    ))
 }
 
 #[cfg(feature = "graph")]

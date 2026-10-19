@@ -111,6 +111,48 @@ pub struct VerifiableResearchService {
     counter_search: bool,
     #[cfg(feature = "graph")]
     calibration: Option<crate::calibration::Calibration>,
+    #[cfg(feature = "graph")]
+    links: Option<re_retrieval::links::LinkFetcher>,
+}
+
+/// What the `graph` stages found after verification (plan Phase 10).
+#[cfg(feature = "graph")]
+struct Scrutiny {
+    findings: Vec<crate::counter::Finding>,
+    graph: Option<(crate::graph::EvidenceGraph, Vec<crate::graph::CascadeEntry>)>,
+}
+
+#[cfg(feature = "graph")]
+impl Scrutiny {
+    /// The report's counter-view and evidence-graph sections.
+    fn report(
+        &self,
+        claims: &[ClaimRecord],
+        verifications: &[VerificationRecord],
+        evidence: &[EvidenceRecord],
+    ) -> String {
+        let mut text =
+            crate::counter::counter_view(claims, verifications, evidence, &self.findings);
+        if let Some((graph, _)) = &self.graph {
+            text.push_str(&crate::graph::report_section(
+                graph,
+                claims,
+                verifications,
+                evidence,
+            ));
+        }
+        text
+    }
+
+    /// `cascade.json`, when the graph was built.
+    fn cascade_file(&self) -> Option<(String, String)> {
+        self.graph.as_ref().map(|(_, cascade)| {
+            (
+                "cascade.json".to_string(),
+                crate::runpack::pretty(&to_value(cascade)),
+            )
+        })
+    }
 }
 
 /// Records whose full text a pipeline run fetches, best ranked first.
@@ -153,7 +195,76 @@ impl VerifiableResearchService {
             counter_search: false,
             #[cfg(feature = "graph")]
             calibration: None,
+            #[cfg(feature = "graph")]
+            links: None,
         }
+    }
+
+    /// Build the evidence graph from `OpenAlex` links fetched with
+    /// `fetcher`: corroboration independence per claim, retraction
+    /// cascades and `cascade.json` (plan Phase 10; see [`crate::graph`]).
+    #[cfg(feature = "graph")]
+    #[must_use]
+    pub fn with_evidence_graph(mut self, fetcher: re_retrieval::links::LinkFetcher) -> Self {
+        self.links = Some(fetcher);
+        self
+    }
+
+    /// Link the run's evidence, cap claims resting on retracted work, and
+    /// record the graph in an `evidence_graph` provenance event. `None`
+    /// without a link fetcher.
+    #[cfg(feature = "graph")]
+    async fn evidence_graph(
+        &self,
+        run_id: &str,
+        evidence: &[EvidenceRecord],
+        claims: &mut [ClaimRecord],
+        verifications: &mut [VerificationRecord],
+    ) -> Result<Option<(crate::graph::EvidenceGraph, Vec<crate::graph::CascadeEntry>)>, VerifyError>
+    {
+        let Some(fetcher) = &self.links else {
+            return Ok(None);
+        };
+        let (links, error) = crate::graph::load_links(fetcher, &self.store, evidence).await;
+        let graph = crate::graph::EvidenceGraph::build(evidence, &links);
+        let retracted = crate::graph::retracted(evidence);
+        let cascade = crate::graph::cascade(&graph, &retracted, claims, verifications);
+        let edges: Vec<Value> = graph
+            .edges
+            .iter()
+            .map(|&(a, b, kind)| {
+                json!({"from": graph.nodes[a], "to": graph.nodes[b], "kind": to_value(&kind)})
+            })
+            .collect();
+        let independence: Vec<Value> = verifications
+            .iter()
+            .filter(|v| !v.evidence_ids.is_empty())
+            .map(|v| {
+                json!({
+                    "claim_id": v.claim_id,
+                    "supporters": v.evidence_ids,
+                    "independence": graph.independence(&v.evidence_ids),
+                })
+            })
+            .collect();
+        let mut sorted: Vec<&String> = retracted.iter().collect();
+        sorted.sort();
+        let mut event = payload(&[
+            ("linked", links.len().into()),
+            ("edges", Value::from(edges)),
+            ("claims", Value::from(independence)),
+            ("retracted", to_value(&sorted)),
+            ("cascade", cascade.len().into()),
+        ]);
+        if let Some(error) = error {
+            event.insert(
+                "error".into(),
+                json!({"error_type": error.error_type, "message": error.message}),
+            );
+        }
+        self.store
+            .append_provenance(run_id, "evidence_graph", &event)?;
+        Ok(Some((graph, cascade)))
     }
 
     /// Attach conformal prediction sets from `calibration` to each verdict
@@ -540,6 +651,29 @@ impl VerifiableResearchService {
         })
     }
 
+    /// The `graph` stages, in order: contradiction search, the evidence
+    /// graph and its retraction cascade (both may change verdicts), then
+    /// conformal prediction sets for the final verdicts.
+    #[cfg(feature = "graph")]
+    async fn scrutinise(
+        &self,
+        run_id: &str,
+        verifier: &dyn Verifier,
+        claims: &mut [ClaimRecord],
+        verifications: &mut [VerificationRecord],
+        evidence: &[EvidenceRecord],
+        citable: &[EvidenceRecord],
+    ) -> Result<Scrutiny, VerifyError> {
+        let findings = self
+            .counter_search(run_id, verifier, claims, verifications)
+            .await?;
+        let graph = self
+            .evidence_graph(run_id, evidence, claims, verifications)
+            .await?;
+        self.calibrate(run_id, verifier, claims, verifications, citable)?;
+        Ok(Scrutiny { findings, graph })
+    }
+
     /// Search for contradictions of the supported claims when enabled and
     /// the tier can judge contradiction, recording a `counter_search`
     /// provenance event.
@@ -562,6 +696,16 @@ impl VerifiableResearchService {
             &payload(&[("searches", to_value(&findings))]),
         )?;
         Ok(findings)
+    }
+
+    /// The evidence that may support a claim: with quality scoring,
+    /// retracted work stays in the ledger but is left out here.
+    fn citable(&self, evidence: &[EvidenceRecord]) -> Vec<EvidenceRecord> {
+        evidence
+            .iter()
+            .filter(|e| !self.quality || re_retrieval::quality::citable(e))
+            .cloned()
+            .collect()
     }
 
     /// Verify `claims` against `citable` evidence (and its full text, when
@@ -641,26 +785,22 @@ impl VerifiableResearchService {
         let evidence_dicts: Vec<Value> = evidence.iter().map(EvidenceRecord::to_dict).collect();
         let mut claims = extract_claims(&run.run_id, draft, &run.profile)?;
         let verifier = self.verifier_for(&run.mode).await;
-        // Retracted work stays in the ledger but may not support a claim.
-        let citable: Vec<EvidenceRecord> = if self.quality {
-            evidence
-                .iter()
-                .filter(|e| re_retrieval::quality::citable(e))
-                .cloned()
-                .collect()
-        } else {
-            evidence.clone()
-        };
+        let citable = self.citable(evidence);
         #[cfg_attr(not(feature = "graph"), allow(unused_mut))]
         let mut verifications = self
             .verify_claims(&run.run_id, verifier, &mut claims, &citable)
             .await?;
         #[cfg(feature = "graph")]
-        let findings = self
-            .counter_search(&run.run_id, verifier, &mut claims, &mut verifications)
+        let scrutiny = self
+            .scrutinise(
+                &run.run_id,
+                verifier,
+                &mut claims,
+                &mut verifications,
+                evidence,
+                &citable,
+            )
             .await?;
-        #[cfg(feature = "graph")]
-        self.calibrate(&run.run_id, verifier, &claims, &verifications, &citable)?;
         for claim in &claims {
             self.store.save_claim(claim)?;
         }
@@ -681,12 +821,7 @@ impl VerifiableResearchService {
         #[cfg_attr(not(feature = "graph"), allow(unused_mut))]
         let mut report = build_report(&run, &claims, &verifications, &gate);
         #[cfg(feature = "graph")]
-        report.push_str(&crate::counter::counter_view(
-            &claims,
-            &verifications,
-            evidence,
-            &findings,
-        ));
+        report.push_str(&scrutiny.report(&claims, &verifications, evidence));
         let claim_dicts: Vec<Value> = claims.iter().map(to_value).collect();
         let verification_dicts: Vec<Value> = verifications.iter().map(to_value).collect();
         let replay = self.replay_files(&[
@@ -696,10 +831,12 @@ impl VerifiableResearchService {
             ("profile", profile.into()),
             ("use_mock_empty", use_mock_empty.into()),
         ]);
+        #[cfg_attr(not(any(feature = "trust", feature = "graph")), allow(unused_mut))]
+        let mut extras: Vec<(String, String)> = Vec::new();
         #[cfg(feature = "trust")]
-        let references = references_for(&run.profile, &evidence_dicts);
-        #[cfg(not(feature = "trust"))]
-        let references: Option<(String, String)> = None;
+        extras.extend(references_for(&run.profile, &evidence_dicts));
+        #[cfg(feature = "graph")]
+        extras.extend(scrutiny.cascade_file());
         let output = export_run_pack(
             &self.runs_dir,
             &RunPackInput {
@@ -715,7 +852,7 @@ impl VerifiableResearchService {
                 verifier_models: &verifier.models(),
                 replay: replay.as_ref(),
                 signer: self.signer.as_deref(),
-                references: references.as_ref().map(|(n, t)| (n.as_str(), t.as_str())),
+                extras: &extras,
             },
         )?;
         if self.signer.is_some() {

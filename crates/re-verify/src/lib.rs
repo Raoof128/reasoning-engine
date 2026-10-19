@@ -16,6 +16,8 @@ pub mod claims;
 pub mod counter;
 pub mod error;
 pub mod gate;
+#[cfg(feature = "graph")]
+pub mod graph;
 pub mod hybrid;
 pub mod ledger;
 #[cfg(feature = "semantic")]

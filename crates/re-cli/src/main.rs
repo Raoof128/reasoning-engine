@@ -220,6 +220,15 @@ async fn service(config: &Config) -> Result<VerifiableResearchService, Failure> 
         Some(calibration) => service.with_counter_search().with_calibration(calibration),
         None => service.with_counter_search(),
     };
+    #[cfg(feature = "graph")]
+    let service = if offline {
+        service
+    } else {
+        service.with_evidence_graph(re_retrieval::links::LinkFetcher::new(
+            re_retrieval::HttpClient::new()?,
+            &re_retrieval::sources::SourceConfig::from_env(),
+        ))
+    };
     #[cfg(feature = "trust")]
     let service = trust::sign(config, service);
     Ok(service)

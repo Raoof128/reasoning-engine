@@ -1,8 +1,11 @@
 //! Phase 10 in the pipeline: contradiction search (a supported claim that a
 //! counter-search contests is flagged and listed in the report's
 //! counter-view; one that survives gains confidence) and conformal
-//! prediction sets in provenance.
+//! prediction sets in provenance, and the evidence graph with its
+//! retraction cascade.
 #![cfg(feature = "graph")]
+
+mod common;
 
 use std::path::Path;
 use std::sync::Arc;
@@ -278,4 +281,143 @@ async fn verdicts_carry_conformal_prediction_sets() {
 
 fn service_without_calibration(dir: &Path) -> VerifiableResearchService {
     service(dir, Box::new(Scripted))
+}
+
+/// Four papers: 1 cites 3, which is retracted; 2 and 4 share an author.
+struct Linked;
+
+const RETRACTED: &str = "A retracted napping study.";
+
+impl SourceAdapter for Linked {
+    fn name(&self) -> &'static str {
+        "openalex"
+    }
+
+    fn search<'a>(
+        &'a self,
+        run_id: &'a str,
+        query: &'a str,
+        _: usize,
+    ) -> BoxFuture<'a, RetrievalResult> {
+        let record = |n: usize, snippet: &str| {
+            let mut record = build_record(RecordInput {
+                title: format!("Paper {n}"),
+                snippet: snippet.into(),
+                score: 1.0 - n as f64 / 10.0,
+                ..RecordInput::new(run_id, "openalex", query, n)
+            });
+            record.doi = Some(format!("10.1/p{n}"));
+            record.hints.retracted = (n == 3).then_some(true);
+            record
+        };
+        Box::pin(async move {
+            RetrievalResult::ok(vec![
+                record(1, CONTESTED),
+                record(2, SURVIVOR),
+                record(3, RETRACTED),
+                record(4, SURVIVOR),
+            ])
+        })
+    }
+}
+
+#[tokio::test]
+async fn the_graph_caps_claims_resting_on_retracted_work() {
+    use wiremock::matchers::{method, path, query_param};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    let server = MockServer::start().await;
+    let work = |n: u32, refs: &[&str], authors: &[&str]| {
+        serde_json::json!({
+            "id": format!("https://openalex.org/W{n}"),
+            "doi": format!("https://doi.org/10.1/P{n}"),
+            "referenced_works": refs.iter().map(|r| format!("https://openalex.org/{r}")).collect::<Vec<_>>(),
+            "authorships": authors.iter().map(|a| serde_json::json!({"author": {"id": format!("https://openalex.org/{a}")}})).collect::<Vec<_>>(),
+        })
+    };
+    Mock::given(method("GET"))
+        .and(path("/works"))
+        .and(query_param("select", "id,doi,referenced_works,authorships"))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(serde_json::json!({"results": [
+                work(1, &["W3"], &["A1"]),
+                work(2, &[], &["A2", "A7"]),
+                work(3, &[], &["A3"]),
+                work(4, &[], &["A7"]),
+            ]})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    let dir = tempfile::tempdir().unwrap();
+    let fetcher = re_retrieval::links::LinkFetcher::new(
+        re_retrieval::HttpClient::new().unwrap(),
+        &re_retrieval::sources::SourceConfig::default(),
+    )
+    .with_endpoint(format!("{}/works", server.uri()));
+    let service = VerifiableResearchService::new(
+        Store::open(dir.path().join("e.db")).unwrap(),
+        dir.path().join("runs"),
+        Arc::new(AcademicSearchAggregator::new(vec![Arc::new(Linked)])),
+        Box::new(Scripted),
+    )
+    .with_evidence_graph(fetcher);
+    let result = service
+        .run_research_pipeline(
+            "daytime naps",
+            &format!("{CONTESTED} {SURVIVOR}"),
+            "standard",
+            "general",
+            false,
+        )
+        .await
+        .unwrap();
+    let pack = Path::new(result["run_pack"].as_str().unwrap());
+    let verifications: Vec<Value> = serde_json::from_str(
+        &std::fs::read_to_string(pack.join("claim_verifications.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(verifications[0]["support_status"], "partially_supported");
+    assert!(
+        verifications[0]["support_rationale"]
+            .as_str()
+            .unwrap()
+            .ends_with("rests on retracted work (ev_0003)."),
+        "{}",
+        verifications[0]
+    );
+    assert_eq!(verifications[1]["support_status"], "supported");
+
+    let cascade: Value =
+        serde_json::from_str(&std::fs::read_to_string(pack.join("cascade.json")).unwrap()).unwrap();
+    assert_eq!(
+        cascade[0]["paths"],
+        serde_json::json!([["ev_0001", "ev_0003"]])
+    );
+    let attestation: Value =
+        serde_json::from_str(&std::fs::read_to_string(pack.join("attestation.json")).unwrap())
+            .unwrap();
+    assert!(attestation["artifact_hashes"]["cascade.json"].is_string());
+
+    let report = std::fs::read_to_string(pack.join("report.md")).unwrap();
+    assert!(
+        report.contains("2 supporting records, 1 independent\n\n```mermaid"),
+        "{report}"
+    );
+    assert!(report.contains("ev_0002 ---|shared author| ev_0004"));
+
+    let run_id = result["run_id"].as_str().unwrap();
+    let event = service
+        .store()
+        .list_provenance(run_id)
+        .unwrap()
+        .into_iter()
+        .find(|e| e["event_type"] == "evidence_graph")
+        .expect("an evidence_graph event");
+    assert_eq!(event["linked"], 4);
+    assert_eq!(event["cascade"], 1);
+    assert_eq!(event["retracted"], serde_json::json!(["ev_0003"]));
+
+    let by_python = common::verify_tool(&[std::ffi::OsStr::new("verify"), pack.as_os_str()]);
+    assert_eq!(by_python["valid"], true, "{by_python}");
 }

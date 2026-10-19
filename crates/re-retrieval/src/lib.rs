@@ -14,6 +14,8 @@ pub mod client;
 pub mod error;
 #[cfg(feature = "fulltext")]
 pub mod fulltext;
+#[cfg(feature = "graph")]
+pub mod links;
 pub mod quality;
 pub mod result;
 pub mod sources;

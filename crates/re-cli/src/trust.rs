@@ -50,6 +50,7 @@ pub async fn record(
         quality: cfg!(feature = "fulltext"),
         fulltext: cfg!(feature = "fulltext") && !offline(),
         counter_search: cfg!(feature = "graph"),
+        evidence_graph: cfg!(feature = "graph") && !offline(),
         #[cfg(feature = "graph")]
         calibration: calibration
             .as_ref()
@@ -59,6 +60,8 @@ pub async fn record(
     let verifier = load_verifier(Some(&tier), &config.models_dir(), offline()).await?;
     #[cfg(feature = "fulltext")]
     let tape_for_text = Arc::clone(&tape);
+    #[cfg(feature = "graph")]
+    let tape_for_links = Arc::clone(&tape);
     let service = VerifiableResearchService::new(
         Store::open(config.db_path())?,
         config.runs_dir(),
@@ -76,6 +79,16 @@ pub async fn record(
     let service = match calibration {
         Some(calibration) => service.with_counter_search().with_calibration(calibration),
         None => service.with_counter_search(),
+    };
+    #[cfg(feature = "graph")]
+    let service = if plan.evidence_graph {
+        let client = re_retrieval::HttpClient::new()?.with_tape(Arc::clone(&tape_for_links));
+        service.with_evidence_graph(re_retrieval::links::LinkFetcher::new(
+            client,
+            &re_retrieval::sources::SourceConfig::from_env(),
+        ))
+    } else {
+        service
     };
     // Full text is fetched through the same tape, so replay needs no
     // network either.

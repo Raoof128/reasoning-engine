@@ -16,6 +16,8 @@ scholar-gateway = []
 # Open-access full text: Europe PMC JATS XML and PDF extraction (plan
 # Phase 9).
 fulltext = ["dep:pdf-extract"]
+# Citation and authorship links from OpenAlex (plan Phase 10).
+graph = []
 
 [dependencies]
 re-core.workspace = true
