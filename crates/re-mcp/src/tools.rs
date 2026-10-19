@@ -9,7 +9,9 @@ use std::sync::Arc;
 use indexmap::IndexMap;
 use re_core::directional::{BranchInfo, plan_directions};
 use re_core::dora::select_branches;
-use re_core::planning::{evidence_gap_questions, plan_research_angles};
+use re_core::planning::evidence_gap_questions;
+#[cfg(not(feature = "graph"))]
+use re_core::planning::plan_research_angles;
 use re_core::profiles::classify_research_mode;
 use re_core::sanitize::sanitize_content;
 use re_retrieval::base::py_round;
@@ -44,6 +46,8 @@ pub struct Tools {
     service: Arc<VerifiableResearchService>,
     directional: bool,
     memory_fts: bool,
+    #[cfg(feature = "graph")]
+    adversarial: bool,
     #[cfg(feature = "tasks")]
     prefetcher: crate::tasks::Prefetcher,
 }
@@ -60,9 +64,20 @@ impl Tools {
             service,
             directional: env_is("REASONING_ENGINE_DORA", "directional"),
             memory_fts: env_is("REASONING_ENGINE_MEMORY", "fts"),
+            #[cfg(feature = "graph")]
+            adversarial: env_is("REASONING_ENGINE_ADVERSARIAL", "1"),
             #[cfg(feature = "tasks")]
             prefetcher: crate::tasks::Prefetcher::default(),
         }
+    }
+
+    /// Whether hard queries plan an adversarial angle (`graph` feature;
+    /// from `REASONING_ENGINE_ADVERSARIAL=1` by default).
+    #[cfg(feature = "graph")]
+    #[must_use]
+    pub fn with_adversarial(mut self, on: bool) -> Self {
+        self.adversarial = on;
+        self
     }
 
     /// Background prefetch tasks (`tasks` feature).
@@ -186,13 +201,21 @@ impl Tools {
     fn select_next_branches(&self, a: &Args<'_>) -> ToolResult {
         let session_id = a.str("session_id")?;
         let session = self.store().get_session(&session_id)?;
-        let scores: IndexMap<String, f64> = self
-            .store()
-            .get_active_branches(&session_id)?
-            .into_iter()
-            .map(|b| (b.id, b.q_score))
-            .collect();
-        let result = select_branches(&scores, session.budget_remaining_steps);
+        let active = self.store().get_active_branches(&session_id)?;
+        #[cfg(feature = "graph")]
+        let reestimate = if self.directional {
+            self.reestimate_budget(&session_id, session.difficulty, &active)?
+        } else {
+            None
+        };
+        #[cfg(feature = "graph")]
+        let budget = reestimate
+            .as_ref()
+            .map_or(session.budget_remaining_steps, |(_, remaining)| *remaining);
+        #[cfg(not(feature = "graph"))]
+        let budget = session.budget_remaining_steps;
+        let scores: IndexMap<String, f64> = active.into_iter().map(|b| (b.id, b.q_score)).collect();
+        let result = select_branches(&scores, budget);
         self.store().apply_planning_result(
             &session_id,
             &result.branches_to_reflect,
@@ -207,6 +230,11 @@ impl Tools {
             "kappa": py_round(result.kappa, 4),
             "budget_remaining": result.budget_remaining,
         });
+        // Plan Phase 10: the one-off budget change, when it happened now.
+        #[cfg(feature = "graph")]
+        if let Some((change, _)) = reestimate {
+            payload["reestimate"] = to_value(&change);
+        }
         // Plan 6.3: the same fields plus optional per-direction advice.
         if self.directional {
             let branches: Vec<BranchInfo> = self
@@ -226,6 +254,45 @@ impl Tools {
             payload["directions"] = to_value(&directions);
         }
         Ok(payload)
+    }
+
+    /// Re-estimate the session's budget once, after the first evaluation
+    /// round (every active branch scored, at least two of them), from how
+    /// much the branches disagree and how well they score (plan Phase 10).
+    /// Returns the change and the new remaining steps when it was applied
+    /// now.
+    #[cfg(feature = "graph")]
+    fn reestimate_budget(
+        &self,
+        session_id: &str,
+        difficulty: f64,
+        active: &[re_store::sessions::BranchRow],
+    ) -> Result<Option<(re_core::dora::reestimate::Reestimate, i64)>, ToolError> {
+        let round_done = active.len() >= 2 && active.iter().all(|b| b.visits > 0);
+        if !round_done || self.store().budget_reestimated(session_id)? {
+            return Ok(None);
+        }
+        let scores: Vec<f64> = active.iter().map(|b| b.q_score).collect();
+        let (low, high) = scores
+            .iter()
+            .fold((f64::MAX, f64::MIN), |(lo, hi), s| (lo.min(*s), hi.max(*s)));
+        let observed = re_core::dora::reestimate::Observed {
+            kappa: high - low,
+            mean_score: scores.iter().sum::<f64>() / scores.len() as f64,
+            evidence_per_source: None,
+        };
+        let change = re_core::dora::reestimate::reestimate(difficulty, &observed);
+        let applied = self.store().reestimate_budget(
+            session_id,
+            &re_store::budget::BudgetChange {
+                prior_difficulty: change.prior,
+                observed_difficulty: change.observed,
+                from_strategy: change.from.as_str(),
+                to_strategy: change.to.as_str(),
+                step_delta: change.step_delta,
+            },
+        )?;
+        Ok(applied.map(|remaining| (change, remaining)))
     }
 
     fn record_reflection(&self, a: &Args<'_>) -> ToolResult {
@@ -339,7 +406,14 @@ impl Tools {
         let prefetch = a.bool_or("prefetch", false)?;
         let query = validate::text(&query, "query", MAX_QUERY_CHARS, false)?;
         let max_angles = validate::limited_int(max_angles, "max_angles", 1, cap(MAX_ANGLES))?;
-        let angles = plan_research_angles(&query, usize::try_from(max_angles).unwrap_or(1))?;
+        let max_angles = usize::try_from(max_angles).unwrap_or(1);
+        // The adversarial angle (plan Phase 10) only when asked for, so the
+        // default result stays Python's.
+        #[cfg(feature = "graph")]
+        let angles =
+            re_core::planning::plan_research_angles_with(&query, max_angles, self.adversarial)?;
+        #[cfg(not(feature = "graph"))]
+        let angles = plan_research_angles(&query, max_angles)?;
         #[cfg(feature = "tasks")]
         if prefetch {
             // The bare query too: the verification pipeline searches it.

@@ -92,7 +92,7 @@ Needs Rust 1.89 or newer (1.92 for `semantic`).
 git clone https://github.com/Raoof128/reasoning-engine.git
 cd reasoning-engine
 cargo install --locked --path crates/re-cli                          # stdio MCP only
-cargo install --locked --path crates/re-cli --features local-host,trust,tasks,semantic,fulltext   # everything
+cargo install --locked --path crates/re-cli --features local-host,trust,tasks,semantic,fulltext,graph   # everything
 ```
 
 ### Docker
@@ -151,6 +151,7 @@ cp skill/deep-research.md ~/.claude/skills/
 | `trust` | Signed run packs with a transparency log, `research --record` and `replay`, styled reference lists, the numeric claim check | yes |
 | `tasks` | Evidence cache, cost ledger, and angle prefetch over the MCP tasks extension | yes |
 | `fulltext` | Claims verified against open-access full text; publication-type scoring and retraction flags | no |
+| `graph` | Evidence graph and retraction cascades, contradiction search, conformal calibration, adversarial angle, budget re-estimation | no |
 | `semantic` | `hybrid` and `nli` verifier tiers (ONNX models, downloaded on first use) | no |
 | `scholar-gateway` | Token-gated Scholar Gateway as an extra search source | no |
 
@@ -191,6 +192,7 @@ reasoning-engine verify-runpack ~/.reasoning-engine/runs/<run_id>
 | `REASONING_ENGINE_MODELS_DIR` | Where ONNX models are cached (default `<data_dir>/models`) |
 | `REASONING_ENGINE_SIGNING_KEY` | Run-pack signing key (default `<data_dir>/signing.key`; `trust` builds) |
 | `REASONING_ENGINE_CACHE=off` | Disable the evidence cache (`tasks` builds) |
+| `REASONING_ENGINE_ADVERSARIAL=1` | Hard queries plan an `adversarial` angle (`graph` builds) |
 | `REASONING_ENGINE_OFFLINE=1` | Deterministic mock evidence; never downloads models |
 | `REASONING_ENGINE_SOURCES=openalex,crossref` | Narrow which sources are enabled |
 | `REASONING_ENGINE_CONTACT_EMAIL` | Contact address for OpenAlex/Crossref's polite pool |
@@ -331,6 +333,36 @@ OpenAlex and Europe PMC report what kind of work each result is. With `fulltext`
 - Recorded runs store the setting in `replay.json`, so `replay` reproduces them exactly.
 
 Without the feature, labels and scores match the Python server.
+
+## Scrutiny (`graph`)
+
+Four checks that ask "is this claim as solid as it looks?".
+
+**Evidence graph and retraction cascade.** Each record with a DOI is looked up in OpenAlex (one batched request per 50 DOIs, cached for a week). Records are linked when one cites another or they share an author.
+
+- **Independence.** A claim's independence is the number of separate clusters among its supporting records. Two papers from the same group, or one citing the other, count once.
+- **Mermaid diagram.** The report draws one for every claim with more than one supporter.
+- **Retraction cascade.** If every supporter of a claim is retracted, or cites a retracted record in the run, the claim is capped at `partially_supported`. `cascade.json` (attested with the pack) lists the citation paths.
+- **Limit.** Only links between the run's own records are seen.
+
+**Contradiction search.** After verification, each supported claim (up to five) is searched again with a deterministic contradiction query, such as `X does not improve Y` or `X replication failure`. The verifier then judges the claim against the results.
+
+- This only runs with tiers that can say `contradicted`, which today means `nli`.
+- **Survivors** gain +0.05 confidence.
+- **Contested claims** are flagged for review and listed in the report's `## Counter-view`, alongside contradicted and partly supported claims.
+
+**Conformal calibration** (`nli` tier).
+
+- `reasoning-engine bench calibrate` fits a split conformal threshold on the labelled pairs, reports held-out coverage and stores `~/.reasoning-engine/calibration.json`.
+- Each run then records, in a `calibration` provenance event, every verdict's prediction set and whether the verdict's label is in it.
+- On the 147 labelled pairs, held-out coverage was 0.873 at a 0.90 target, and 0.775 at 0.80.
+
+**Planning.**
+
+- **Adversarial angle.** With `REASONING_ENGINE_ADVERSARIAL=1`, hard queries (beam search or forest) end with an `adversarial` angle of contradiction queries.
+- **Budget re-estimation.** Under `REASONING_ENGINE_DORA=directional`, `select_next_branches` re-estimates the budget once, after the first evaluation round. It uses how much the branches disagree and how well they score, and moves at most one strategy tier.
+
+Recorded runs store every switch, and the calibration itself, in `replay.json`. OpenAlex lookups and contradiction searches go through the tape, so `replay` stays offline and byte-identical.
 
 ## Local HTTP server and audit UI
 

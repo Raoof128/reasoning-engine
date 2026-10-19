@@ -39,6 +39,20 @@ pub trait Verifier: Send + Sync {
     fn models(&self) -> Vec<String> {
         Vec::new()
     }
+
+    /// Whether this tier can judge a claim `contradicted` (only then is a
+    /// contradiction search worth running).
+    fn can_contradict(&self) -> bool {
+        false
+    }
+
+    /// Probabilities that `premise` makes `hypothesis` supported,
+    /// contradicted or neutral (`bench::LABELS` order), for tiers that
+    /// produce them (NLI); the input to conformal calibration.
+    fn probabilities(&self, premise: &str, hypothesis: &str) -> Option<[f64; 3]> {
+        let _ = (premise, hypothesis);
+        None
+    }
 }
 
 /// Every tier name `REASONING_ENGINE_VERIFIER` accepts.

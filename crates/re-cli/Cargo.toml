@@ -31,6 +31,8 @@ tasks = ["re-mcp/tasks"]
 # open-access full text, profile-aware publication type scoring, and
 # retracted work never supports a claim.
 fulltext = ["re-verify/fulltext"]
+# Evidence graph, adversarial angle and calibration (plan Phase 10).
+graph = ["re-mcp/graph", "re-verify/graph"]
 
 [dependencies]
 tokio-util = { workspace = true, optional = true }

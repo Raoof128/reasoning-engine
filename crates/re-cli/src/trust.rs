@@ -44,14 +44,24 @@ pub async fn record(
     let adapters = adapters_with(|var| std::env::var(var).ok(), Some(Arc::clone(&tape)))?;
     let sources = adapters.iter().map(|a| a.name().to_string()).collect();
     let tier = config.verifier();
+    #[cfg(feature = "graph")]
+    let calibration = crate::load_calibration(config);
     let plan = RecordPlan {
         quality: cfg!(feature = "fulltext"),
         fulltext: cfg!(feature = "fulltext") && !offline(),
+        counter_search: cfg!(feature = "graph"),
+        evidence_graph: cfg!(feature = "graph") && !offline(),
+        #[cfg(feature = "graph")]
+        calibration: calibration
+            .as_ref()
+            .and_then(|c| serde_json::to_value(c).ok()),
         ..RecordPlan::now(sources, offline(), &tier)
     };
     let verifier = load_verifier(Some(&tier), &config.models_dir(), offline()).await?;
     #[cfg(feature = "fulltext")]
     let tape_for_text = Arc::clone(&tape);
+    #[cfg(feature = "graph")]
+    let tape_for_links = Arc::clone(&tape);
     let service = VerifiableResearchService::new(
         Store::open(config.db_path())?,
         config.runs_dir(),
@@ -62,6 +72,21 @@ pub async fn record(
     .with_recorder(plan.recorder(tape));
     let service = if plan.quality {
         service.with_quality()
+    } else {
+        service
+    };
+    #[cfg(feature = "graph")]
+    let service = match calibration {
+        Some(calibration) => service.with_counter_search().with_calibration(calibration),
+        None => service.with_counter_search(),
+    };
+    #[cfg(feature = "graph")]
+    let service = if plan.evidence_graph {
+        let client = re_retrieval::HttpClient::new()?.with_tape(Arc::clone(&tape_for_links));
+        service.with_evidence_graph(re_retrieval::links::LinkFetcher::new(
+            client,
+            &re_retrieval::sources::SourceConfig::from_env(),
+        ))
     } else {
         service
     };

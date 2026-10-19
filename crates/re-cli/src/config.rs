@@ -176,6 +176,14 @@ impl Config {
             .unwrap_or_else(|| self.data_dir().join("signing.key"))
     }
 
+    /// `<data_dir>/calibration.json`: the NLI tier's conformal calibration
+    /// (`bench calibrate` writes it).
+    #[cfg(feature = "graph")]
+    #[must_use]
+    pub fn calibration_path(&self) -> PathBuf {
+        self.data_dir().join("calibration.json")
+    }
+
     /// `<data_dir>/fulltext`: parsed open-access papers.
     #[cfg(feature = "fulltext")]
     #[must_use]

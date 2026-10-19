@@ -32,8 +32,15 @@ pub const TASK_TTL_MS: u64 = 10 * 60 * 1000;
 pub const PREFETCH_RUN: &str = "prefetch";
 
 /// `"{query} {angle name}"`: the query the skill searches each angle with.
+/// The adversarial angle (plan Phase 10) searches its first contradiction
+/// query instead.
 #[must_use]
 pub fn search_query(query: &str, angle: &ResearchAngle) -> String {
+    if angle.name == re_core::planning::ADVERSARIAL
+        && let Some(negated) = angle.starter_questions.first()
+    {
+        return negated.clone();
+    }
     format!("{} {}", query.trim(), angle.name)
 }
 

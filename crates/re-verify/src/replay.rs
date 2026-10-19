@@ -34,6 +34,10 @@ pub fn new_seed() -> u64 {
 /// How a run is recorded: what `replay.json` needs besides the pipeline's
 /// own inputs.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "independent switches, each written to replay.json as is"
+)]
 pub struct RecordPlan {
     /// The pinned clock (`YYYY-MM-DDTHH:MM:SSZ`).
     pub clock: String,
@@ -51,6 +55,14 @@ pub struct RecordPlan {
     /// Whether claims were verified against full text (`fulltext`
     /// feature).
     pub fulltext: bool,
+    /// Whether supported claims were searched for contradiction (`graph`
+    /// feature).
+    pub counter_search: bool,
+    /// Whether the evidence graph was built (`graph` feature).
+    pub evidence_graph: bool,
+    /// The conformal calibration in force (`graph` feature), stored whole
+    /// so a replay does not depend on the local file.
+    pub calibration: Option<Value>,
 }
 
 impl RecordPlan {
@@ -65,6 +77,9 @@ impl RecordPlan {
             verifier: verifier.to_string(),
             quality: false,
             fulltext: false,
+            counter_search: false,
+            evidence_graph: false,
+            calibration: None,
         }
     }
 
@@ -87,6 +102,15 @@ impl RecordPlan {
         if self.fulltext {
             settings.insert("fulltext".into(), true.into());
         }
+        if self.counter_search {
+            settings.insert("counter_search".into(), true.into());
+        }
+        if self.evidence_graph {
+            settings.insert("evidence_graph".into(), true.into());
+        }
+        if let Some(calibration) = &self.calibration {
+            settings.insert("calibration".into(), calibration.clone());
+        }
         Recorder { tape, settings }
     }
 }
@@ -103,11 +127,83 @@ fn with_settings(
     } else {
         service
     };
+    let service = if on("counter_search") {
+        with_counter_search(service)?
+    } else {
+        service
+    };
+    let service = match inputs.get("calibration") {
+        Some(calibration) => with_calibration(service, calibration)?,
+        None => service,
+    };
+    let service = if on("evidence_graph") {
+        with_evidence_graph(service, Arc::clone(&tape))?
+    } else {
+        service
+    };
     if on("fulltext") {
         with_full_text(service, tape)
     } else {
         Ok(service)
     }
+}
+
+/// Read `OpenAlex` links from the replayed tape, as the recording did.
+#[cfg(feature = "graph")]
+fn with_evidence_graph(
+    service: VerifiableResearchService,
+    tape: Arc<Tape>,
+) -> Result<VerifiableResearchService, VerifyError> {
+    let client = re_retrieval::HttpClient::new()?.with_tape(tape);
+    let config = re_retrieval::sources::SourceConfig::default();
+    Ok(service.with_evidence_graph(re_retrieval::links::LinkFetcher::new(client, &config)))
+}
+
+#[cfg(not(feature = "graph"))]
+fn with_evidence_graph(
+    _: VerifiableResearchService,
+    _: Arc<Tape>,
+) -> Result<VerifiableResearchService, VerifyError> {
+    Err(invalid(
+        "this pack built an evidence graph; replay it with a `graph` build",
+    ))
+}
+
+#[cfg(feature = "graph")]
+fn with_calibration(
+    service: VerifiableResearchService,
+    calibration: &Value,
+) -> Result<VerifiableResearchService, VerifyError> {
+    let calibration = serde_json::from_value(calibration.clone())
+        .map_err(|e| invalid(format!("bad calibration in {REPLAY_INPUTS}: {e}")))?;
+    Ok(service.with_calibration(calibration))
+}
+
+#[cfg(not(feature = "graph"))]
+fn with_calibration(
+    _: VerifiableResearchService,
+    _: &Value,
+) -> Result<VerifiableResearchService, VerifyError> {
+    Err(invalid(
+        "this pack used a conformal calibration; replay it with a `graph` build",
+    ))
+}
+
+#[cfg(feature = "graph")]
+#[allow(clippy::unnecessary_wraps, reason = "matches the build without graph")]
+fn with_counter_search(
+    service: VerifiableResearchService,
+) -> Result<VerifiableResearchService, VerifyError> {
+    Ok(service.with_counter_search())
+}
+
+#[cfg(not(feature = "graph"))]
+fn with_counter_search(
+    _: VerifiableResearchService,
+) -> Result<VerifiableResearchService, VerifyError> {
+    Err(invalid(
+        "this pack searched for contradictions; replay it with a `graph` build",
+    ))
 }
 
 /// Read full text from the replayed tape, as the recording did.

@@ -15,12 +15,15 @@ default = []
 # and downloads ONNX models on first use unless REASONING_ENGINE_OFFLINE=1.
 semantic = ["dep:ort", "dep:tokenizers", "dep:reqwest", "dep:sha2"]
 # Ed25519-signed attestations and the transparency-log check (plan Phase 7).
+# Evidence graph, counter-search and calibration (plan Phase 10).
+graph = ["re-retrieval/graph", "dep:petgraph"]
 # Verify claims against open-access full text (plan Phase 9).
 fulltext = ["re-retrieval/fulltext"]
 trust = ["dep:ed25519-dalek", "dep:getrandom", "dep:base64", "dep:nom", "dep:hayagriva"]
 
 [dependencies]
 ed25519-dalek = { workspace = true, optional = true }
+petgraph = { workspace = true, optional = true }
 getrandom = { workspace = true, optional = true }
 base64 = { workspace = true, optional = true }
 nom = { workspace = true, optional = true }

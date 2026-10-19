@@ -135,6 +135,19 @@ impl<E: Embedder, N: NliModel> Verifier for NliVerifier<E, N> {
         vec![self.embedder.id(), self.nli.id()]
     }
 
+    fn can_contradict(&self) -> bool {
+        true
+    }
+
+    fn probabilities(&self, premise: &str, hypothesis: &str) -> Option<[f64; 3]> {
+        let scores = self.nli.classify(&[(premise, hypothesis)]).ok()?.pop()?;
+        Some([
+            f64::from(scores.entailment),
+            f64::from(scores.contradiction),
+            f64::from(scores.neutral),
+        ])
+    }
+
     fn verify(
         &self,
         claims: &mut [ClaimRecord],

@@ -5,13 +5,19 @@
 #![deny(missing_docs)]
 
 pub mod bench;
+#[cfg(feature = "graph")]
+pub mod calibration;
 #[cfg(feature = "fulltext")]
 pub mod chunks;
 #[cfg(feature = "trust")]
 pub mod citations;
 pub mod claims;
+#[cfg(feature = "graph")]
+pub mod counter;
 pub mod error;
 pub mod gate;
+#[cfg(feature = "graph")]
+pub mod graph;
 pub mod hybrid;
 pub mod ledger;
 #[cfg(feature = "semantic")]

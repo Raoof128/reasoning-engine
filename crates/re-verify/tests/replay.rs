@@ -314,3 +314,91 @@ async fn full_text_is_recorded_and_replayed() {
         .unwrap();
     assert_eq!(report["identical"], true, "{report}");
 }
+
+#[cfg(feature = "graph")]
+#[tokio::test]
+async fn the_evidence_graph_is_recorded_and_replayed() {
+    use re_retrieval::links::{LinkFetcher, normalise_doi};
+
+    let root = tempfile::tempdir().unwrap();
+    // The fixture run's DOIs decide the OpenAlex request to record.
+    let (_, unlinked) = record(&root.path().join("plain")).await;
+    let dois: Vec<String> = unlinked["evidence"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|e| e["doi"].as_str())
+        .map(normalise_doi)
+        .collect();
+    assert!(dois.len() >= 2, "{dois:?}");
+    let mut unique: Vec<String> = Vec::new();
+    for doi in dois {
+        if !unique.contains(&doi) {
+            unique.push(doi);
+        }
+    }
+    let config = SourceConfig::default();
+    let fetcher = || LinkFetcher::new(re_retrieval::HttpClient::new().unwrap(), &config);
+    let url = fetcher().build_url(&unique);
+    let works = serde_json::json!({"results": [
+        {"id": "https://openalex.org/W1", "doi": format!("https://doi.org/{}", unique[0]),
+         "referenced_works": ["https://openalex.org/W2"],
+         "authorships": [{"author": {"id": "https://openalex.org/A1"}}]},
+        {"id": "https://openalex.org/W2", "doi": format!("https://doi.org/{}", unique[1]),
+         "referenced_works": [],
+         "authorships": [{"author": {"id": "https://openalex.org/A1"}}]},
+    ]});
+    let dir = root.path().join("graph/network");
+    write_network(&dir);
+    let recording = Recording {
+        method: "GET".into(),
+        url: redact_url(&url),
+        outcome: Outcome::Response {
+            status: 200,
+            headers: std::collections::BTreeMap::default(),
+            body: Some(works.to_string()),
+            body_base64: None,
+        },
+    };
+    std::fs::write(
+        dir.join(format!("{}.json", request_key("GET", &url))),
+        serde_json::to_string(&recording).unwrap(),
+    )
+    .unwrap();
+    let tape = Arc::new(Tape::replaying(&dir).unwrap());
+    let adapters = adapters_with(|_| None, Some(Arc::clone(&tape))).unwrap();
+    let sources = adapters.iter().map(|a| a.name().to_string()).collect();
+    let plan = RecordPlan {
+        evidence_graph: true,
+        ..RecordPlan::now(sources, false, "lexical")
+    };
+    let client = re_retrieval::HttpClient::new()
+        .unwrap()
+        .with_tape(Arc::clone(&tape));
+    let service = VerifiableResearchService::new(
+        Store::open(root.path().join("graph/record.db")).unwrap(),
+        root.path().join("graph/runs"),
+        Arc::new(AcademicSearchAggregator::new(adapters)),
+        Box::new(LexicalOverlap),
+    )
+    .with_recorder(plan.recorder(tape))
+    .with_evidence_graph(LinkFetcher::new(client, &config));
+    let result = run_recorded(&service, &plan, QUERY, DRAFT, "standard", "auto")
+        .await
+        .unwrap();
+    let pack = PathBuf::from(result["run_pack"].as_str().unwrap());
+    let provenance = std::fs::read_to_string(pack.join("provenance.jsonl")).unwrap();
+    let event: Value = provenance
+        .lines()
+        .map(|line| serde_json::from_str::<Value>(line).unwrap())
+        .find(|e| e["event_type"] == "evidence_graph")
+        .expect("an evidence_graph event");
+    assert_eq!(event["linked"], 2, "{event}");
+    assert_eq!(event["edges"].as_array().unwrap().len(), 2, "{event}");
+    assert!(pack.join("cascade.json").exists());
+
+    let report = replay_pack(&pack, &root.path().join("replay"), root.path(), true)
+        .await
+        .unwrap();
+    assert_eq!(report["identical"], true, "{report}");
+}

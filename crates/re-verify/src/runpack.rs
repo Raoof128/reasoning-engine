@@ -71,9 +71,10 @@ pub struct RunPackInput<'a> {
     pub replay: Option<&'a ReplayFiles>,
     /// Signs `run_pack_hash`, if signing is configured.
     pub signer: Option<&'a dyn AttestationSigner>,
-    /// `(file name, Markdown)` of the styled reference list, if rendered.
-    /// It is hashed with the core artifacts.
-    pub references: Option<(&'a str, &'a str)>,
+    /// Optional `(file name, text)` artifacts hashed with the core ones:
+    /// the styled reference list (`trust`) and the retraction cascade
+    /// (`graph`).
+    pub extras: &'a [(String, String)],
 }
 
 /// Something that signs a run pack's `run_pack_hash` (plan Phase 7). The
@@ -131,7 +132,10 @@ pub fn methodology(method: &str, models: &[String]) -> String {
 }
 
 /// `json.dumps(payload, indent=2, sort_keys=True) + "\n"`.
-fn pretty(payload: &Value) -> String {
+/// Sorted, two-space indented JSON with a final newline, as every JSON
+/// artifact is written.
+#[must_use]
+pub fn pretty(payload: &Value) -> String {
     let mut text = dumps(payload, &DumpOptions::indented_sorted(2));
     text.push('\n');
     text
@@ -251,14 +255,12 @@ pub fn export_run_pack(base_dir: &Path, input: &RunPackInput<'_>) -> io::Result<
     for name in ARTIFACTS {
         artifact_hashes.insert(name.into(), hash_file(&output.join(name))?.into());
     }
-    if let Some((name, text)) = input.references {
-        if !is_plain_name(name) {
-            return Err(io::Error::other(format!(
-                "bad references file name: {name}"
-            )));
+    for (name, text) in input.extras {
+        if !is_plain_name(name) || ARTIFACTS.contains(&name.as_str()) {
+            return Err(io::Error::other(format!("bad extra artifact name: {name}")));
         }
         write(name, text)?;
-        artifact_hashes.insert(name.into(), hash_file(&output.join(name))?.into());
+        artifact_hashes.insert(name.clone(), hash_file(&output.join(name))?.into());
     }
     let artifact_hashes = Value::Object(artifact_hashes);
     let mut attestation = json!({
