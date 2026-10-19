@@ -1,0 +1,10 @@
+---
+source: crates/re-verify/src/citations.rs
+expression: "render_references(&evidence(), \"vancouver\").unwrap()"
+---
+# References
+
+Style: Vancouver
+
+1. Chen Z, Wang Y, Xiao T. From mathematical reasoning to code: generalization of process reward models in test-time scaling. arXiv. 2025. doi:10.48550/arXiv.2506.00027
+2. Wang X. Every rollout counts: optimal resource allocation for efficient test-time scaling. Advances in Neural Information Processing Systems. 2025.

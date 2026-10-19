@@ -337,7 +337,12 @@ impl VerifiableResearchService {
         let evidence_dicts: Vec<Value> = evidence.iter().map(EvidenceRecord::to_dict).collect();
         let mut claims = extract_claims(&run.run_id, draft, &run.profile)?;
         let verifier = self.verifier_for(&run.mode).await;
-        let verifications = verifier.verify(&mut claims, evidence);
+        #[cfg_attr(not(feature = "trust"), allow(unused_mut))]
+        let mut verifications = verifier.verify(&mut claims, evidence);
+        // A quantitative claim cannot be supported by evidence without its
+        // number (plan section 6.6).
+        #[cfg(feature = "trust")]
+        crate::numeric::enforce(&mut claims, &mut verifications, evidence);
         for claim in &claims {
             self.store.save_claim(claim)?;
         }
@@ -366,6 +371,10 @@ impl VerifiableResearchService {
                 recordings: recorder.tape.rendered(),
             }
         });
+        #[cfg(feature = "trust")]
+        let references = references_for(&run.profile, &evidence_dicts);
+        #[cfg(not(feature = "trust"))]
+        let references: Option<(String, String)> = None;
         let output = export_run_pack(
             &self.runs_dir,
             &RunPackInput {
@@ -381,6 +390,7 @@ impl VerifiableResearchService {
                 verifier_models: &verifier.models(),
                 replay: replay.as_ref(),
                 signer: self.signer.as_deref(),
+                references: references.as_ref().map(|(n, t)| (n.as_str(), t.as_str())),
             },
         )?;
         if self.signer.is_some() {
@@ -397,6 +407,20 @@ impl VerifiableResearchService {
             "evidence": evidence_dicts,
             "verified_against_snippets": snippets,
         }))
+    }
+}
+
+/// `references.<style>.md` in the profile's citation style. A style that
+/// cannot render is reported and skipped; `sources.bib` is always there.
+#[cfg(feature = "trust")]
+fn references_for(profile: &str, evidence: &[Value]) -> Option<(String, String)> {
+    let style = re_core::profiles::get_profile(profile).ok()?.citation_style;
+    match crate::citations::render_references(evidence, style) {
+        Ok(text) => Some((crate::citations::file_name(style), text)),
+        Err(error) => {
+            eprintln!("warning: no styled reference list: {error}");
+            None
+        }
     }
 }
 

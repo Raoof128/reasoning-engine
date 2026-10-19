@@ -12,6 +12,18 @@ ignore = [
     # compile-time macro pulled in by tokenizers (semantic feature) with no
     # maintained release that drops it yet.
     { id = "RUSTSEC-2024-0436", reason = "unmaintained, compile-time only, via tokenizers; revisit on tokenizers 1.0" },
+    # quick-xml 0.38 inside citationberg (hayagriva, trust feature): both
+    # advisories are denial of service on hostile XML. citationberg only
+    # parses the two vendored CSL files compiled into the binary
+    # (crates/re-verify/assets/csl, hashes in its README), never network or
+    # user input. Network XML (arXiv) goes through quick-xml 0.42, which is
+    # not affected. No citationberg release uses a fixed quick-xml yet.
+    { id = "RUSTSEC-2026-0194", reason = "DoS on hostile XML; only vendored CSL is parsed; revisit when citationberg updates quick-xml" },
+    { id = "RUSTSEC-2026-0195", reason = "DoS on hostile XML; only vendored CSL is parsed; revisit when citationberg updates quick-xml" },
+    # unsafe-libyaml (via serde_yaml, via hayagriva, trust feature) is
+    # unmaintained; it only ever reads the JSON the engine itself generates
+    # for the reference list.
+    { id = "RUSTSEC-2024-0449", reason = "unmaintained; parses only engine-generated JSON; revisit when hayagriva drops serde_yaml" },
 ]
 yanked = "deny"
 
@@ -27,6 +39,8 @@ allow = [
     "Unicode-3.0",
     "MPL-2.0",
     "Zlib",
+    # roman-numerals-rs (via hayagriva): public-domain-equivalent.
+    "0BSD",
 ]
 confidence-threshold = 0.9
 # ISC, MPL-2.0 and friends are needed by crates later phases add.

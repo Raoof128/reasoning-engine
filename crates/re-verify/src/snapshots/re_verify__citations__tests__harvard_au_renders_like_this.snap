@@ -1,0 +1,10 @@
+---
+source: crates/re-verify/src/citations.rs
+expression: "render_references(&evidence(), \"harvard_au\").unwrap()"
+---
+# References
+
+Style: Harvard (Cite Them Right)
+
+- Chen, Z., Wang, Y. and Xiao, T. (2025) “From mathematical reasoning to code: generalization of process reward models in test-time scaling,” arXiv [Preprint]. Available at: https://doi.org/10.48550/arXiv.2506.00027.
+- Wang, X. (2025) “Every rollout counts: optimal resource allocation for efficient test-time scaling,” Advances in Neural Information Processing Systems [Preprint].

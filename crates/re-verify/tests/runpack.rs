@@ -87,6 +87,7 @@ fn export_rust(base: &Path, i: &Inputs) -> std::path::PathBuf {
             verifier_models: &[],
             replay: None,
             signer: None,
+            references: None,
         },
     )
     .expect("rust export")

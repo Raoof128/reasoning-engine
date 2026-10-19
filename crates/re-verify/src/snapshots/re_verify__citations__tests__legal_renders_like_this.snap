@@ -1,0 +1,10 @@
+---
+source: crates/re-verify/src/citations.rs
+expression: "render_references(&evidence(), \"legal\").unwrap()"
+---
+# References
+
+Style: AGLC4
+
+- Chen, Zhengyu, Yudong Wang and Teng Xiao, ‘From Mathematical Reasoning to Code: Generalization of Process Reward Models in Test-Time Scaling’ [2025] arXiv <https://arxiv.org/abs/2506.00027>
+- Wang, Xinglin, ‘Every Rollout Counts: Optimal Resource Allocation for Efficient Test-Time Scaling’ [2025] Advances in Neural Information Processing Systems

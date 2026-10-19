@@ -15,12 +15,14 @@ default = []
 # and downloads ONNX models on first use unless REASONING_ENGINE_OFFLINE=1.
 semantic = ["dep:ort", "dep:tokenizers", "dep:reqwest", "dep:sha2"]
 # Ed25519-signed attestations and the transparency-log check (plan Phase 7).
-trust = ["dep:ed25519-dalek", "dep:getrandom", "dep:base64"]
+trust = ["dep:ed25519-dalek", "dep:getrandom", "dep:base64", "dep:nom", "dep:hayagriva"]
 
 [dependencies]
 ed25519-dalek = { workspace = true, optional = true }
 getrandom = { workspace = true, optional = true }
 base64 = { workspace = true, optional = true }
+nom = { workspace = true, optional = true }
+hayagriva = { workspace = true, optional = true, features = ["archive"] }
 ort = { workspace = true, optional = true }
 tokenizers = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
@@ -37,6 +39,7 @@ thiserror.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
+insta.workspace = true
 
 [lints]
 workspace = true

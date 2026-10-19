@@ -71,6 +71,9 @@ pub struct RunPackInput<'a> {
     pub replay: Option<&'a ReplayFiles>,
     /// Signs `run_pack_hash`, if signing is configured.
     pub signer: Option<&'a dyn AttestationSigner>,
+    /// `(file name, Markdown)` of the styled reference list, if rendered.
+    /// It is hashed with the core artifacts.
+    pub references: Option<(&'a str, &'a str)>,
 }
 
 /// Something that signs a run pack's `run_pack_hash` (plan Phase 7). The
@@ -246,6 +249,15 @@ pub fn export_run_pack(base_dir: &Path, input: &RunPackInput<'_>) -> io::Result<
 
     let mut artifact_hashes = Map::new();
     for name in ARTIFACTS {
+        artifact_hashes.insert(name.into(), hash_file(&output.join(name))?.into());
+    }
+    if let Some((name, text)) = input.references {
+        if !is_plain_name(name) {
+            return Err(io::Error::other(format!(
+                "bad references file name: {name}"
+            )));
+        }
+        write(name, text)?;
         artifact_hashes.insert(name.into(), hash_file(&output.join(name))?.into());
     }
     let artifact_hashes = Value::Object(artifact_hashes);

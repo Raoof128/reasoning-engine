@@ -175,9 +175,18 @@ pub async fn replay_pack(
         .map(std::path::PathBuf::from)
         .ok_or_else(|| invalid("the replayed pipeline exported no run pack"))?;
 
+    // Every core artifact, plus whatever else the attestation hashed (a
+    // styled reference list).
+    let mut names: Vec<&str> = ARTIFACTS.to_vec();
+    names.extend(
+        expected
+            .keys()
+            .map(String::as_str)
+            .filter(|n| !ARTIFACTS.contains(n)),
+    );
     let mut mismatched = Vec::new();
     let mut missing = Vec::new();
-    for name in ARTIFACTS {
+    for name in names {
         let Some(want) = expected.get(name).and_then(Value::as_str) else {
             missing.push(name);
             continue;
