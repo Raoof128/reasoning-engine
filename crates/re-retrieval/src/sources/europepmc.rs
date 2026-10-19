@@ -3,8 +3,10 @@
 use serde_json::{Map, Value};
 
 use super::{HttpSource, parse_json_body};
+use re_model::records::QualityHints;
+
 use crate::base::{
-    RecordInput, build_record, citations, coerce_year, get, get_obj, items, py_str,
+    RecordInput, build_record, citations, coerce_year, get, get_obj, items, opt_text, py_str,
     relevance_score, text, truthy, urlencode,
 };
 use crate::result::RetrievalResult;
@@ -76,7 +78,7 @@ fn parse(
             let mut metadata = Map::new();
             metadata.insert("cited_by".into(), cited.clone());
             metadata.insert("pmid".into(), get(item, "pmid").clone());
-            build_record(RecordInput {
+            let mut record = build_record(RecordInput {
                 title: text(get(item, "title")),
                 authors,
                 year: coerce_year(get(item, "pubYear")),
@@ -87,7 +89,24 @@ fn parse(
                 snippet: text(get(item, "abstractText")),
                 metadata,
                 ..RecordInput::new(run_id, NAME, query, position)
-            })
+            });
+            let pub_types = get(get_obj(item, "pubTypeList"), "pubType");
+            let publication_types: Vec<String> = match pub_types {
+                Value::Array(types) => types.iter().filter_map(opt_text).collect(),
+                other => opt_text(other).into_iter().collect(),
+            };
+            let retracted = publication_types
+                .iter()
+                .any(|t| t.to_ascii_lowercase().contains("retracted publication"));
+            record.hints = QualityHints {
+                publication_types,
+                venue_type: None,
+                retracted: Some(retracted),
+                open_access: opt_text(get(item, "isOpenAccess")).map(|v| v == "Y"),
+                pmcid: opt_text(get(item, "pmcid")),
+                pdf_url: None,
+            };
+            record
         })
         .collect()
 }

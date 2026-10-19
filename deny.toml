@@ -24,6 +24,12 @@ ignore = [
     # unmaintained; it only ever reads the JSON the engine itself generates
     # for the reference list.
     { id = "RUSTSEC-2024-0449", reason = "unmaintained; parses only engine-generated JSON; revisit when hayagriva drops serde_yaml" },
+    # ttf-parser (via pdf-extract, fulltext feature) is unmaintained with no
+    # known vulnerability. It reads fonts inside downloaded PDFs, so it does
+    # see untrusted input, but it is #![forbid(unsafe_code)], bodies are
+    # capped at 20 MB, and a parser panic is caught and reported as a
+    # malformed response. The feature is not in release builds.
+    { id = "RUSTSEC-2026-0192", reason = "unmaintained, safe Rust, capped and panic-isolated input; revisit when pdf-extract moves to skrifa" },
 ]
 yanked = "deny"
 

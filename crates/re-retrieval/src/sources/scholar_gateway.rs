@@ -84,6 +84,7 @@ fn parse(run_id: &str, query: &str, raw: &Value) -> Result<Vec<EvidenceRecord>, 
             let mut metadata = Map::new();
             metadata.insert("raw".into(), item.clone());
             Ok(EvidenceRecord {
+                hints: re_model::records::QualityHints::default(),
                 evidence_id: format!("ev_{index:04}"),
                 run_id: run_id.to_string(),
                 source_adapter: NAME.into(),

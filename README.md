@@ -92,7 +92,7 @@ Needs Rust 1.89 or newer (1.92 for `semantic`).
 git clone https://github.com/Raoof128/reasoning-engine.git
 cd reasoning-engine
 cargo install --locked --path crates/re-cli                          # stdio MCP only
-cargo install --locked --path crates/re-cli --features local-host,trust,tasks,semantic   # everything
+cargo install --locked --path crates/re-cli --features local-host,trust,tasks,semantic,fulltext   # everything
 ```
 
 ### Docker
@@ -150,6 +150,7 @@ cp skill/deep-research.md ~/.claude/skills/
 | `local-host` | `serve` (Streamable HTTP with bearer auth) and the `/ui` audit UI | yes |
 | `trust` | Signed run packs with a transparency log, `research --record` and `replay`, styled reference lists, the numeric claim check | yes |
 | `tasks` | Evidence cache, cost ledger, and angle prefetch over the MCP tasks extension | yes |
+| `fulltext` | Claims verified against open-access full text; publication-type scoring and retraction flags | no |
 | `semantic` | `hybrid` and `nli` verifier tiers (ONNX models, downloaded on first use) | no |
 | `scholar-gateway` | Token-gated Scholar Gateway as an extra search source | no |
 
@@ -278,6 +279,58 @@ Otherwise the claim is capped at `partially_supported` and flagged for review.
 - elapsed time.
 
 Each pipeline run adds a `cost_ledger` total before export, so the costs land in `provenance.jsonl`.
+
+## Full text and source quality (`fulltext`)
+
+### Verifying against the paper, not the abstract
+
+With `fulltext`, the pipeline reads the open-access full text of the five best-ranked citable results that have one:
+
+1. Europe PMC's JATS XML when the record has a PMCID (no PDF parsing needed);
+2. otherwise the open-access PDF URL that OpenAlex reported (`pdf-extract`).
+
+Each paper is split into labelled sections (`abstract`, `introduction`, `methods`, `results`, `discussion`, `limitations`, `conclusion`, `other`) and then into chunks of about 60 words.
+
+- For every claim, the verifier sees the three chunks per paper that share the most terms with it. Records without full text keep their snippet.
+- **Background is not a finding.** If support comes only from a paper's abstract or introduction, the claim is checked again against the rest of the paper. When nothing else supports it, it is capped at `partially_supported`, and the rationale names the section.
+- Support from the body names its section in the rationale (`Full text: results.`).
+- Each run records what was read in a `full_text` provenance event.
+- The numeric check searches the whole paper.
+
+**Fetching safeguards:**
+
+- bodies are capped at 20 MB;
+- PDF URLs and redirects to loopback, private, link-local or local-only hosts are refused;
+- a PDF parser panic is caught and recorded as `malformed_response`;
+- parsed papers are cached in `~/.reasoning-engine/fulltext/`.
+
+Recorded runs fetch full text through the same tape, so `replay` stays offline and byte-identical. Offline mode (`REASONING_ENGINE_OFFLINE=1`) fetches nothing.
+
+Benchmark: `reasoning-engine bench verify --full-text tests/fixtures/verify/fulltext_pairs.json`. It uses 43 claims about three CC BY papers, each scored three ways: abstract only, the abstract split into chunks, and full text.
+
+| Tier | Accuracy (abstract / abstract in chunks / full text) | `partially_supported` precision / F1, full text |
+|---|---:|---:|
+| `lexical` | 0.372 / 0.209 / 0.488 | 0.357 / 0.500 |
+| `hybrid` | 0.209 / 0.256 / 0.442 | 0.300 / 0.375 |
+| `nli` | 0.256 / 0.279 / **0.814** | **0.846 / 0.880** |
+
+Abstract-only NLI predicts nothing as supported or partly supported (its `partially_supported` precision is 0). Splitting the abstract into chunks barely helps, so the gain comes from reading the paper.
+
+Two caveats:
+
+- The gold labels treat background-only claims as `partially_supported`. That is the same policy the cap enforces, so part of that class's score holds by construction.
+- The claims were written and labelled by the implementer and have not yet been reviewed by a person.
+
+### Source quality
+
+OpenAlex and Europe PMC report what kind of work each result is. With `fulltext`, that drives ranking per research profile:
+
+- Each result's `source_type` becomes `systematic_review`, `clinical_guideline`, `preprint`, `peer_reviewed_article`, `technical_report`, `dataset` or `book`. Results a provider says nothing about keep their old type.
+- Types the profile prefers gain 0.1; types it treats as weak lose 0.2. Results are re-ranked.
+- Retracted work is flagged (`risk_flags: ["retracted"]`). It stays in the evidence ledger but **never supports a claim**.
+- Recorded runs store the setting in `replay.json`, so `replay` reproduces them exactly.
+
+Without the feature, labels and scores match the Python server.
 
 ## Local HTTP server and audit UI
 

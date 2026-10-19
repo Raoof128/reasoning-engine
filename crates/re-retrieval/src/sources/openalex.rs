@@ -4,6 +4,8 @@ use reqwest::header::HeaderMap;
 use serde_json::{Map, Value};
 
 use super::{HttpSource, SourceConfig, parse_json_body};
+use re_model::records::QualityHints;
+
 use crate::base::{
     RecordInput, build_record, citations, coerce_year, get, get_obj, items, opt_text, or,
     relevance_score, text, urlencode,
@@ -81,7 +83,7 @@ fn parse(
             let mut metadata = Map::new();
             metadata.insert("openalex_id".into(), get(item, "id").clone());
             metadata.insert("cited_by".into(), get(item, "cited_by_count").clone());
-            build_record(RecordInput {
+            let mut record = build_record(RecordInput {
                 title: text(or(get(item, "title"), get(item, "display_name"))),
                 authors,
                 year: coerce_year(get(item, "publication_year")),
@@ -93,7 +95,18 @@ fn parse(
                 snippet: reconstruct_abstract(get(item, "abstract_inverted_index")),
                 metadata,
                 ..RecordInput::new(run_id, NAME, query, position)
-            })
+            });
+            let open_access = get_obj(item, "open_access");
+            let best = get_obj(item, "best_oa_location");
+            record.hints = QualityHints {
+                publication_types: opt_text(get(item, "type")).into_iter().collect(),
+                venue_type: opt_text(get(source, "type")),
+                retracted: get(item, "is_retracted").as_bool(),
+                open_access: get(open_access, "is_oa").as_bool(),
+                pmcid: None,
+                pdf_url: opt_text(get(best, "pdf_url")),
+            };
+            record
         })
         .collect()
 }

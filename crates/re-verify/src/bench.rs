@@ -47,26 +47,28 @@ pub fn label_of(status: &str) -> &'static str {
     }
 }
 
-fn index(label: &str) -> usize {
-    LABELS.iter().position(|l| *l == label).unwrap_or(2)
-}
-
 /// Confusion matrix `[gold][predicted]` and the per-pair predictions.
 #[derive(Debug, Clone)]
 pub struct Report {
     /// Verifier method.
     pub method: String,
-    /// Counts by gold row and predicted column, in [`LABELS`] order.
+    /// The labels, in matrix order; the last also catches anything else.
+    pub labels: [&'static str; 3],
+    /// Counts by gold row and predicted column, in `labels` order.
     pub confusion: [[usize; 3]; 3],
     /// `(pair id, gold, predicted, confidence)`.
     pub predictions: Vec<(String, String, String, f64)>,
 }
 
 impl Report {
+    fn index(&self, label: &str) -> usize {
+        self.labels.iter().position(|l| *l == label).unwrap_or(2)
+    }
+
     /// Precision for `label` (0 when nothing was predicted as it).
     #[must_use]
     pub fn precision(&self, label: &str) -> f64 {
-        let j = index(label);
+        let j = self.index(label);
         let predicted: usize = (0..3).map(|i| self.confusion[i][j]).sum();
         ratio(self.confusion[j][j], predicted)
     }
@@ -74,7 +76,7 @@ impl Report {
     /// Recall for `label`.
     #[must_use]
     pub fn recall(&self, label: &str) -> f64 {
-        let i = index(label);
+        let i = self.index(label);
         ratio(self.confusion[i][i], self.confusion[i].iter().sum())
     }
 
@@ -103,7 +105,7 @@ impl Report {
             "### {}\n\n| Label | Precision | Recall | F1 |\n|---|---:|---:|---:|\n",
             self.method
         );
-        for label in LABELS {
+        for label in self.labels {
             let _ = writeln!(
                 out,
                 "| {label} | {:.3} | {:.3} | {:.3} |",
@@ -160,6 +162,7 @@ pub fn evaluate(verifier: &dyn Verifier, pairs: &[Pair]) -> Report {
         ];
         let record = verifier.verify(&mut claims, &evidence).remove(0);
         let predicted = label_of(&record.support_status);
+        let index = |label: &str| LABELS.iter().position(|l| *l == label).unwrap_or(2);
         confusion[index(&pair.label)][index(predicted)] += 1;
         predictions.push((
             pair.id.clone(),
@@ -170,9 +173,161 @@ pub fn evaluate(verifier: &dyn Verifier, pairs: &[Pair]) -> Report {
     }
     Report {
         method: verifier.method().to_string(),
+        labels: LABELS,
         confusion,
         predictions,
     }
+}
+
+/// Labels of the full-text set, where `partially_supported` is its own
+/// class.
+#[cfg(feature = "fulltext")]
+pub const FULL_TEXT_LABELS: [&str; 3] = ["supported", "partially_supported", "unsupported"];
+
+/// One claim about one paper of a [`FullTextSet`].
+#[cfg(feature = "fulltext")]
+#[derive(Debug, Clone, Deserialize)]
+pub struct FullTextPair {
+    /// Stable identifier.
+    pub id: String,
+    /// The claim to verify.
+    pub claim: String,
+    /// Key into [`FullTextSet::documents`].
+    pub document: String,
+    /// Gold label: one of [`FULL_TEXT_LABELS`].
+    pub label: String,
+    /// Where the support is, for reviewers.
+    #[serde(default)]
+    pub note: String,
+}
+
+/// Claims about open-access papers
+/// (`tests/fixtures/verify/fulltext_pairs.json`).
+#[cfg(feature = "fulltext")]
+#[derive(Debug, Clone, Deserialize)]
+pub struct FullTextSet {
+    /// Document key to its file, relative to the set's directory.
+    pub documents: std::collections::BTreeMap<String, String>,
+    /// The pairs.
+    pub pairs: Vec<FullTextPair>,
+}
+
+/// Three reports over `set`, whose documents are read from `dir`:
+///
+/// 1. abstract only: the paper's abstract (and front matter, for PDFs) as
+///    the record's snippet, as the pipeline verified before full text;
+/// 2. abstract in chunks: the same text split like full text, without the
+///    background cap, to separate shorter premises from more text;
+/// 3. full text, through [`crate::chunks::verify`].
+///
+/// # Errors
+/// A document that cannot be read or parsed.
+///
+/// # Panics
+/// Never: claims are built with a fixed, valid type.
+#[cfg(feature = "fulltext")]
+pub fn evaluate_full_text(
+    verifier: &dyn Verifier,
+    set: &FullTextSet,
+    dir: &std::path::Path,
+) -> Result<[Report; 3], String> {
+    use re_retrieval::fulltext::{europepmc_xml, pdf};
+    let mut papers = std::collections::BTreeMap::new();
+    for (key, file) in &set.documents {
+        let path = dir.join(file);
+        let bytes = std::fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+        let is_pdf = path
+            .extension()
+            .is_some_and(|e| e.eq_ignore_ascii_case("pdf"));
+        let sections = if is_pdf {
+            pdf::parse(&bytes)
+        } else {
+            europepmc_xml::parse(&String::from_utf8_lossy(&bytes))
+        }
+        .map_err(|e| format!("{}: {e}", path.display()))?;
+        // Relabelled so the chunked-abstract run is not capped.
+        let summary: Vec<re_retrieval::fulltext::Section> = sections
+            .iter()
+            .filter(|s| matches!(s.label.as_str(), "front" | "abstract"))
+            .map(|s| re_retrieval::fulltext::Section {
+                label: "other".into(),
+                ..s.clone()
+            })
+            .collect();
+        let text: Vec<&str> = summary.iter().map(|s| s.text.as_str()).collect();
+        papers.insert(
+            key.clone(),
+            (
+                text.join("\n"),
+                crate::chunks::chunk(&summary),
+                crate::chunks::chunk(&sections),
+            ),
+        );
+    }
+    let mut reports = Vec::with_capacity(3);
+    for (run, name) in ["abstract only", "abstract in chunks", "full text"]
+        .into_iter()
+        .enumerate()
+    {
+        let mut confusion = [[0usize; 3]; 3];
+        let mut predictions = Vec::with_capacity(set.pairs.len());
+        for pair in &set.pairs {
+            let (summary, summary_chunks, chunks) = papers
+                .get(&pair.document)
+                .ok_or_else(|| format!("{}: unknown document {}", pair.id, pair.document))?;
+            let evidence = vec![build_record(RecordInput {
+                title: pair.document.clone(),
+                snippet: summary.clone(),
+                ..RecordInput::new("bench", "bench", "bench", 1)
+            })];
+            let id = evidence[0].evidence_id.clone();
+            let texts = match run {
+                0 => std::collections::BTreeMap::new(),
+                1 => std::collections::BTreeMap::from([(id, summary_chunks.clone())]),
+                _ => std::collections::BTreeMap::from([(id, chunks.clone())]),
+            };
+            let mut claims = vec![
+                ClaimRecord::new(
+                    "claim_0001",
+                    "bench",
+                    &pair.claim,
+                    "empirical",
+                    "general",
+                    "medium",
+                    "low",
+                    true,
+                    "bench",
+                )
+                .expect("empirical is a valid claim type"),
+            ];
+            let record = crate::chunks::verify(verifier, &mut claims, &evidence, &texts).remove(0);
+            let predicted = match record.support_status.as_str() {
+                "supported" => "supported",
+                "partially_supported" => "partially_supported",
+                _ => "unsupported",
+            };
+            let index = |label: &str| {
+                FULL_TEXT_LABELS
+                    .iter()
+                    .position(|l| *l == label)
+                    .unwrap_or(2)
+            };
+            confusion[index(&pair.label)][index(predicted)] += 1;
+            predictions.push((
+                pair.id.clone(),
+                pair.label.clone(),
+                predicted.to_string(),
+                record.confidence,
+            ));
+        }
+        reports.push(Report {
+            method: format!("{} ({name})", verifier.method()),
+            labels: FULL_TEXT_LABELS,
+            confusion,
+            predictions,
+        });
+    }
+    reports.try_into().map_err(|_| "three reports".to_string())
 }
 
 #[cfg(test)]
@@ -212,6 +367,51 @@ mod tests {
             report
                 .table()
                 .contains("| contradicted | 0.000 | 0.000 | 0.000 |")
+        );
+    }
+}
+
+#[cfg(all(test, feature = "fulltext"))]
+mod full_text_tests {
+    use super::*;
+    use crate::verify::LexicalOverlap;
+
+    #[test]
+    fn the_full_text_set_is_well_formed_and_scores_three_ways() {
+        let dir =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures/verify");
+        let set: FullTextSet = serde_json::from_str(
+            &std::fs::read_to_string(dir.join("fulltext_pairs.json")).expect("set"),
+        )
+        .expect("valid set");
+        assert!(set.pairs.len() >= 40);
+        for document in set.documents.keys() {
+            for label in FULL_TEXT_LABELS {
+                assert!(
+                    set.pairs
+                        .iter()
+                        .any(|p| &p.document == document && p.label == label),
+                    "{document} has a {label} claim"
+                );
+            }
+        }
+        let reports = evaluate_full_text(&LexicalOverlap, &set, &dir).expect("documents parse");
+        assert_eq!(
+            reports.each_ref().map(|r| r.method.as_str()),
+            [
+                "term_overlap_mvp (abstract only)",
+                "term_overlap_mvp (abstract in chunks)",
+                "term_overlap_mvp (full text)"
+            ]
+        );
+        assert!(
+            reports
+                .iter()
+                .all(|r| r.predictions.len() == set.pairs.len())
+        );
+        assert!(
+            reports[2].accuracy() > reports[0].accuracy(),
+            "full text helps even the lexical tier"
         );
     }
 }

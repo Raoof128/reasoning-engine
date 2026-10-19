@@ -162,6 +162,30 @@ pub struct EvidenceRecord {
     pub risk_flags: Vec<String>,
     /// Adapter-specific extras.
     pub metadata: Map<String, Value>,
+    /// Rust-only publication data for source-quality scoring. Never
+    /// serialised, so records and run packs stay identical to Python's.
+    #[serde(skip)]
+    pub hints: QualityHints,
+}
+
+/// What a provider says about a work's publication type, retraction and
+/// open-access status (plan Phase 9). Adapters fill it from the raw
+/// response; [`EvidenceRecord::to_dict`] never includes it.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QualityHints {
+    /// Raw publication types, e.g. Europe PMC `pubType` values or the
+    /// `OpenAlex` work `type`.
+    pub publication_types: Vec<String>,
+    /// Where it was published, e.g. `OpenAlex` `journal` or `repository`.
+    pub venue_type: Option<String>,
+    /// Whether the provider marks it retracted.
+    pub retracted: Option<bool>,
+    /// Whether an open-access copy exists.
+    pub open_access: Option<bool>,
+    /// A `PubMed` Central identifier (`PMCID`), for Europe PMC full text.
+    pub pmcid: Option<String>,
+    /// A direct open-access PDF link.
+    pub pdf_url: Option<String>,
 }
 
 impl EvidenceRecord {
@@ -362,6 +386,7 @@ mod tests {
 
     fn evidence() -> EvidenceRecord {
         EvidenceRecord {
+            hints: QualityHints::default(),
             evidence_id: "ev_0001".into(),
             run_id: "run_001".into(),
             source_adapter: "scholar_gateway".into(),

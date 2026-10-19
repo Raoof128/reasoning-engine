@@ -296,6 +296,7 @@ impl RecordInput {
 pub fn build_record(input: RecordInput) -> EvidenceRecord {
     let title = clip_snippet(&input.title, TITLE_LIMIT);
     EvidenceRecord {
+        hints: re_model::records::QualityHints::default(),
         evidence_id: format!("ev_{}_{:04}", input.source_adapter, input.rank),
         run_id: input.run_id,
         source_adapter: input.source_adapter.to_string(),

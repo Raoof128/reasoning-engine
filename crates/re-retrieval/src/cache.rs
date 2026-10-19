@@ -16,7 +16,7 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use re_core::hashing::sha256_prefixed;
-use re_model::records::EvidenceRecord;
+use re_model::records::{EvidenceRecord, QualityHints};
 use serde_json::{Map, Value};
 
 use crate::aggregate::Adapter;
@@ -95,11 +95,36 @@ impl CachedAdapter {
     }
 }
 
+/// A cached record with its quality hints, which the record's own
+/// serialisation leaves out.
+#[derive(serde::Serialize, serde::Deserialize)]
+struct Entry {
+    record: EvidenceRecord,
+    #[serde(default)]
+    hints: QualityHints,
+}
+
+fn encode(evidence: &[EvidenceRecord]) -> Option<String> {
+    let entries: Vec<Entry> = evidence
+        .iter()
+        .map(|record| Entry {
+            hints: record.hints.clone(),
+            record: record.clone(),
+        })
+        .collect();
+    serde_json::to_string(&entries).ok()
+}
+
 fn hit(run_id: &str, payload: &str) -> Option<RetrievalResult> {
-    let mut evidence: Vec<EvidenceRecord> = serde_json::from_str(payload).ok()?;
-    for record in &mut evidence {
-        record.run_id = run_id.to_string();
-    }
+    let entries: Vec<Entry> = serde_json::from_str(payload).ok()?;
+    let evidence: Vec<EvidenceRecord> = entries
+        .into_iter()
+        .map(|Entry { mut record, hints }| {
+            record.run_id = run_id.to_string();
+            record.hints = hints;
+            record
+        })
+        .collect();
     let mut diagnostics = Map::new();
     diagnostics.insert("cache_hit".into(), Value::Bool(true));
     Some(RetrievalResult {
@@ -132,7 +157,7 @@ impl SourceAdapter for CachedAdapter {
             }
             let mut result = self.inner.search(run_id, query, limit).await;
             if result.error.is_none()
-                && let Ok(payload) = serde_json::to_string(&result.evidence)
+                && let Some(payload) = encode(&result.evidence)
             {
                 self.store.put(
                     &key,
@@ -211,10 +236,12 @@ mod tests {
                         metadata: Map::new(),
                     });
                 }
-                RetrievalResult::ok(vec![crate::base::build_record(crate::base::RecordInput {
+                let mut record = crate::base::build_record(crate::base::RecordInput {
                     title: "t".into(),
                     ..crate::base::RecordInput::new(run_id, "crossref", q, 1)
-                })])
+                });
+                record.hints.publication_types = vec!["review".into()];
+                RetrievalResult::ok(vec![record])
             })
         }
     }
@@ -233,6 +260,11 @@ mod tests {
         let hit = adapter.search("run_b", " Q ", 5).await;
         assert_eq!(hit.diagnostics["cache_hit"], true);
         assert_eq!(hit.evidence[0].run_id, "run_b");
+        assert_eq!(
+            hit.evidence[0].hints.publication_types,
+            ["review"],
+            "hints survive the cache"
+        );
         assert_eq!(flaky.0.load(Ordering::SeqCst), 2);
     }
 
