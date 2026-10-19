@@ -30,7 +30,7 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-nextest
-      # re-store's compatibility tests build databases with the Python code.
+      # Compatibility tests drive the Python code (stdlib only).
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -44,6 +44,31 @@ jobs:
         run: cargo doc --workspace --no-deps
         env:
           RUSTDOCFLAGS: -D warnings
+
+  # The Python and Rust MCP servers run the same tool script; any
+  # difference after normalising IDs and timestamps fails the job.
+  parity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.99.1
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the Python server
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -e .
+      - name: Build the Rust server
+        run: cargo build --release -p re-cli
+      - name: Compare
+        run: .venv/bin/python tests/parity/run_parity.py --out parity-transcripts.json
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: parity-transcripts
+          path: parity-transcripts.json
 
   msrv:
     runs-on: ubuntu-latest
