@@ -74,6 +74,7 @@ tempfile = "=3.27.0"
 re-core = { path = "crates/re-core" }
 re-model = { path = "crates/re-model" }
 re-store = { path = "crates/re-store" }
+re-retrieval = { path = "crates/re-retrieval" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

@@ -23,6 +23,11 @@ allow = [
 confidence-threshold = 0.9
 # ISC, MPL-2.0 and friends are needed by crates later phases add.
 unused-allowed-license = "allow"
+# Mozilla's CA bundle as data, pulled in by reqwest's platform verifier.
+# CDLA-Permissive-2.0 is a permissive data licence; scoped to this crate only.
+exceptions = [
+    { allow = ["CDLA-Permissive-2.0"], crate = "webpki-root-certs" },
+]
 
 [bans]
 multiple-versions = "warn"
