@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from reasoning_engine.cli import main
+from reasoning_engine.cli import DEPRECATION_MESSAGE, main, warn_deprecated
 
 
 def test_cli_scholar_search_outputs_json(tmp_path, db_path, capsys, monkeypatch):
@@ -151,3 +151,10 @@ def test_cli_serve_bearer_token_env_requires_existing_secret(monkeypatch):
                 "REASONING_ENGINE_HTTP_TOKEN",
             ]
         )
+
+
+def test_cli_warns_that_python_is_deprecated(capsys):
+    with pytest.warns(DeprecationWarning, match="removed in 0.3.0"):
+        warn_deprecated()
+    assert "Rust binary" in DEPRECATION_MESSAGE
+    assert capsys.readouterr().out == ""

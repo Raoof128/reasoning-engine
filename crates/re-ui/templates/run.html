@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Run {{ run.short_id }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="/ui/">Overview</a> / run <code>{{ run.short_id }}</code></p>
+<h1>{{ run.query }}</h1>
+<dl class="facts">
+  <div><dt>Status</dt><dd>{{ run.status }}</dd></div>
+  <div><dt>Profile</dt><dd>{{ run.profile }}</dd></div>
+  <div><dt>Mode</dt><dd>{{ run.mode }}</dd></div>
+  <div><dt>Evidence</dt><dd>{{ evidence.len() }}</dd></div>
+  <div><dt>Claims</dt><dd>{{ claims.len() }}</dd></div>
+  <div><dt>Created</dt><dd>{{ run.created_at }}</dd></div>
+</dl>
+
+<section>
+  <h2>Claims</h2>
+  {% if claims.is_empty() %}<p class="empty">No claims extracted yet.</p>{% else %}
+  <div class="scroll"><table>
+    <thead><tr><th>Claim</th><th>Text</th><th>Status</th><th class="num">Conf.</th><th>Method</th><th>Rationale</th></tr></thead>
+    <tbody>
+    {% for c in claims %}
+    <tr>
+      <td><code>{{ c.id }}</code></td>
+      <td class="wide">{{ c.text }}</td>
+      <td><span class="pill {{ c.status }}">{{ c.status_text }}</span>{% if c.review %} <span class="flag">review</span>{% endif %}</td>
+      <td class="num">{{ c.confidence }}</td>
+      <td class="muted">{{ c.method }}</td>
+      <td class="wide muted">{{ c.rationale }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Evidence <small>highest score first</small></h2>
+  {% if evidence.is_empty() %}<p class="empty">No evidence stored.</p>{% else %}
+  <div class="scroll"><table>
+    <thead><tr><th>Title</th><th>Source</th><th class="num">Year</th><th class="num">Score</th><th>Risk flags</th></tr></thead>
+    <tbody>
+    {% for e in evidence %}
+    <tr>
+      <td class="wide">
+        {% match e.url %}{% when Some with (href) %}<a href="{{ href }}" rel="noopener noreferrer nofollow" target="_blank">{{ e.title }}</a>{% when None %}{{ e.title }}{% endmatch %}
+        {% if !e.snippet.is_empty() %}<details><summary>snippet</summary><p>{{ e.snippet }}</p></details>{% endif %}
+      </td>
+      <td>{{ e.source }}</td>
+      <td class="num">{{ e.year }}</td>
+      <td class="num">{{ e.score }}</td>
+      <td>{% for flag in e.risk_flags %}<span class="flag">{{ flag }}</span> {% endfor %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Evidence gaps</h2>
+  {% if gaps.is_empty() %}<p class="empty">No gaps recorded.</p>{% else %}
+  <ul class="events">{% for g in gaps %}<li><span class="muted">{{ g.time }}</span> <strong>{{ g.kind }}</strong> {{ g.detail }}</li>{% endfor %}</ul>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Provenance</h2>
+  {% if provenance.is_empty() %}<p class="empty">No events.</p>{% else %}
+  <ol class="events">{% for p in provenance %}<li><span class="muted">{{ p.time }}</span> <strong>{{ p.kind }}</strong> <span class="detail">{{ p.detail }}</span></li>{% endfor %}</ol>
+  {% endif %}
+</section>
+{% endblock %}

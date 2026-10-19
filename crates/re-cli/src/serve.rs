@@ -1,11 +1,15 @@
 //! `reasoning-engine serve` (`local-host` feature): the opt-in local
 //! Streamable HTTP server. It refuses to start unless `setup` enabled it or
-//! `--http` is given.
+//! `--http` is given. The read-only audit UI is mounted at `/ui` only when
+//! `setup` enabled it or `--ui` is given.
 
 use std::path::Path;
+use std::sync::Arc;
 
 use re_mcp::ReasoningServer;
-use re_mcp::http::{HttpOptions, serve};
+use re_mcp::http::{HttpOptions, LOOPBACK_HOSTS, is_loopback, serve_with};
+use re_store::Store;
+use re_ui::UiOptions;
 use serde_json::json;
 use tokio_util::sync::CancellationToken;
 
@@ -21,6 +25,10 @@ pub struct ServeArgs {
     /// Serve even if `setup` left the HTTP server disabled.
     #[arg(long)]
     pub http: bool,
+    /// The Python CLI's spelling of `--http`, accepted so existing scripts
+    /// and launchers keep working.
+    #[arg(long, value_parser = ["http"], hide = true)]
+    pub transport: Option<String>,
     /// Bind address (loopback unless --unsafe-bind-public).
     #[arg(long)]
     pub host: Option<String>,
@@ -37,6 +45,20 @@ pub struct ServeArgs {
     /// configured token file.
     #[arg(long)]
     pub bearer_token_env: Option<String>,
+    /// Mount the read-only audit UI at /ui even if `setup` left it off.
+    #[arg(long)]
+    pub ui: bool,
+}
+
+/// The audit UI's access rules: the server's token, and loopback `Host`
+/// names only on a loopback bind.
+#[must_use]
+pub fn ui_options(options: &HttpOptions) -> UiOptions {
+    UiOptions {
+        token: options.bearer_token.clone(),
+        allowed_hosts: is_loopback(re_core::pystr::py_strip(&options.host))
+            .then(|| LOOPBACK_HOSTS.map(String::from).to_vec()),
+    }
 }
 
 /// The token from a `KEY=value` token file written by `setup`.
@@ -69,6 +91,10 @@ fn bearer_token(config: &Config, args: &ServeArgs) -> Result<Option<String>, Str
     }
 }
 
+fn axum_router() -> re_mcp::http::Router {
+    re_mcp::http::Router::new()
+}
+
 /// Run the HTTP server until Ctrl-C. Returns the process exit code.
 ///
 /// # Errors
@@ -78,7 +104,7 @@ pub async fn run(
     server: ReasoningServer,
     args: &ServeArgs,
 ) -> Result<u8, Box<dyn std::error::Error + Send + Sync>> {
-    if !config.http.enabled && !args.http {
+    if !config.http.enabled && !args.http && args.transport.is_none() {
         eprintln!(
             "the local HTTP server is off; enable it with `reasoning-engine setup --http` \
              or pass --http"
@@ -109,10 +135,49 @@ pub async fn run(
     } else {
         "no token"
     };
+    let ui = config.ui.enabled || args.ui;
+    let extra = if ui {
+        let store = Arc::new(Store::open(config.db_path())?);
+        re_ui::router(store, ui_options(&options))
+    } else {
+        axum_router()
+    };
     let path = options.path.clone();
-    serve(server, &options, shutdown, |addr| {
+    serve_with(server, &options, extra, shutdown, |addr| {
         eprintln!("serving MCP at http://{addr}{path} ({guarded}); Ctrl-C to stop");
+        if ui {
+            eprintln!("audit UI at http://{addr}{}/", re_ui::PREFIX);
+        }
     })
     .await?;
     Ok(0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn options(host: &str, token: Option<&str>) -> HttpOptions {
+        HttpOptions {
+            host: host.into(),
+            port: 8765,
+            path: "/mcp".into(),
+            bearer_token: token.map(Into::into),
+            unsafe_bind_public: true,
+        }
+    }
+
+    #[test]
+    fn the_ui_shares_the_token_and_pins_loopback_hosts() {
+        let local = ui_options(&options(" 127.0.0.1 ", None));
+        assert_eq!(local.token, None);
+        assert!(
+            local
+                .allowed_hosts
+                .is_some_and(|hosts| hosts.contains(&"localhost".to_string()))
+        );
+        let public = ui_options(&options("0.0.0.0", Some("t")));
+        assert_eq!(public.token.as_deref(), Some("t"));
+        assert_eq!(public.allowed_hosts, None, "the token guards a public bind");
+    }
 }

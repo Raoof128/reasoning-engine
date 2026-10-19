@@ -73,40 +73,26 @@ Runs entirely on the user's Max subscription. No separate API key.
 
 ### Reasoning Engine MCP Server
 
-A Python FastMCP server handling all deterministic logic. Claude Code calls it via MCP tool invocations. The server never makes LLM calls itself.
+A Rust MCP server (one static binary, `reasoning-engine`) handling all deterministic logic. Claude Code calls it via MCP tool invocations over stdio; the server never makes LLM calls itself. It replaced the Python FastMCP server in 0.2.0 with byte-identical tool responses (checked in CI by `tests/parity/run_parity.py`), and opens the same SQLite database.
 
-**Modules:**
+**Crates** (dependencies point down the table; `re-core` does no I/O):
 
-| Module | Responsibility |
-|--------|---------------|
-| `server.py` | MCP tool wiring, JSON parsing, logging |
-| `cli.py` | `reasoning-engine` CLI: `mcp`, `serve`, `research`, `scholar search` |
-| `transport.py` | MCP transport factory, local HTTP bind safety checks |
-| `db.py` | SQLite schema, connection management |
-| `difficulty.py` | Heuristic query difficulty estimation |
-| `dora.py` | Budget allocation + explore/exploit switching |
-| `ucb.py` | UCB1 branch selection for tree search |
-| `sessions.py` | Session and branch lifecycle CRUD |
-| `memory.py` | Episodic memory for cross-session learning |
-| `research.py` | Research angle planning and evidence-gap questions |
-| `sanitizer.py` | Prompt injection and HTML stripping |
-| `validation.py` | Shared MCP tool input validation and bounds |
+| Crate | Responsibility |
+|-------|---------------|
+| `re-core` | Pure algorithms: difficulty, DORA (legacy and directional), UCB1, sanitiser, research angles, profiles, claim splitting, quality gate, BM25 + RRF ranking, Python-compatible JSON and hashing |
+| `re-model` | Records shared by storage and verification (runs, evidence, claims, verifications, gaps) |
+| `re-store` | SQLite with the Python schema: sessions, branches, reflections, episodic memory (word overlap or opt-in FTS5 BM25), research runs and the provenance ledger |
+| `re-retrieval` | One adapter per provider (OpenAlex, Crossref, arXiv, Semantic Scholar, Europe PMC, DOAJ, DBLP, mock, optional Scholar Gateway) and a concurrent aggregator that dedups by DOI/title, ranks and tolerates partial failure |
+| `re-verify` | Claim extraction, verifier tiers (`lexical`; `hybrid` and `nli` with `semantic`), quality gate, run-pack export and attestation, the research service, the verifier benchmark |
+| `re-mcp` | The 20 MCP tools with pydantic-compatible argument validation; stdio transport, and Streamable HTTP with bearer auth behind `local-host` |
+| `re-ui` | Read-only audit UI at `/ui` (`local-host`, opt-in) |
+| `re-cli` | The binary: `setup`, `mcp`, `serve`, `research`, `scholar search`, `bench verify`, `verify-runpack` |
 
-### Verifiable Research Service (`verifiable/`)
+### Verifiable Research Service
 
-A self-contained subsystem for evidence-backed claim verification, used by `scholar_search_tool`, `run_research_pipeline_tool`, and the skill's VERIFY phase.
+A self-contained subsystem for evidence-backed claim verification, used by `scholar_search_tool`, `run_research_pipeline_tool`, and the skill's VERIFY phase. Claims are split from the draft, verified against the retrieved evidence by the configured tier, passed through the quality gate (which blocks on unsupported or contradicted claims), and exported as a hashed, tamper-evident run pack (claims, verifications, `sources.bib`, provenance, attestation) that `reasoning-engine verify-runpack` re-checks. `high_stakes` runs use the NLI tier whenever the build and its models allow it.
 
-| Module | Responsibility |
-|--------|---------------|
-| `aggregator.py` | Fans out to enabled academic sources concurrently, dedups by DOI/title, ranks, tolerates partial failure |
-| `sources/` | One adapter per provider — `openalex.py`, `crossref.py`, `arxiv.py`, `semantic_scholar.py`, `europepmc.py`, `doaj.py`, `dblp.py`, plus the optional `scholar_gateway.py` connector and a `mock.py` fixture for offline/CI runs |
-| `claims.py` | Extracts factual claims from a draft and verifies them against retrieved evidence |
-| `quality.py` | Quality gate: blocks on unsupported/contradicted claims |
-| `runpack.py` | Exports a hashed, tamper-evident run pack (claims, verifications, sources.bib, provenance, attestation) |
-| `store.py` | SQLite persistence for runs, evidence, claims, verifications, and the provenance ledger |
-| `profiles.py` | Domain profiles and high-stakes mode escalation |
-
-All seven free sources (OpenAlex, Crossref, arXiv, Semantic Scholar, Europe PMC, DOAJ, DBLP) are live by default over HTTPS with no API key. `REASONING_ENGINE_OFFLINE=1` swaps in deterministic mock evidence. arXiv responses are parsed with `defusedxml`, since Atom feeds are untrusted network input.
+All seven free sources (OpenAlex, Crossref, arXiv, Semantic Scholar, Europe PMC, DOAJ, DBLP) are live by default over HTTPS with no API key. `REASONING_ENGINE_OFFLINE=1` swaps in deterministic mock evidence. arXiv Atom feeds are untrusted network input, so the parser expands only the five predefined XML entities, rejects any entity declaration, and caps bodies at 4 MiB.
 
 ## Data Flow
 

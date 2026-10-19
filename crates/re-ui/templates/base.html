@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>{% block title %}Audit{% endblock %} · reasoning-engine</title>
+<link rel="stylesheet" href="/ui/ui.css">
+<link rel="icon" href="/ui/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/ui/">reasoning-engine <span>audit</span></a>
+  <span class="note">read-only · local</span>
+</header>
+<main>
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>

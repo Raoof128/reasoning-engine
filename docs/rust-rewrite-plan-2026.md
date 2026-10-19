@@ -630,6 +630,14 @@ Line-by-line review of this plan. Each row was fixed in place.
 | *Phase 5:* branches carry no research angle, so "directions" had no data. | A direction is a root branch and its descendants; advice is opt-in (`REASONING_ENGINE_DORA=directional`), appended as a `directions` key, sorted best first because same-second branches arrive in random order. |
 | *Phase 5:* a persistent FTS5 table or trigger would break Python on SQLite builds without FTS5. | `REASONING_ENGINE_MEMORY=fts` rebuilds a `temp` FTS5 table per recall; the DB file is unchanged (compat test). Terms are quoted so user text cannot become FTS5 syntax. |
 | *Phase 5:* `ort`/`tokenizers` pull `paste` (unmaintained, RUSTSEC-2024-0436) and CDLA-licensed root certificates. | `deny.toml` checks all features; scoped exceptions with reasons. |
+| *Phase 6 execution:* plan put `/ui` "behind the same bearer token", but a browser cannot send a bearer header when opening a page. | The UI also accepts the token as the HTTP Basic password, so browsers prompt for it; the MCP bearer layer now wraps only `/mcp`, and the UI carries its own guard (token, loopback `Host` pinning, strict CSP with no script source, `nosniff`, `DENY`, `no-store`). |
+| *Phase 6:* axum 0.8 `nest("/ui", "/")` no longer matches `/ui/`, and a nested fallback would capture `/mcp` once merged. | Explicit full-path routes with `route_layer`; no fallback. |
+| *Phase 6:* Python's launcher and scripts call `serve --transport http`; the Rust CLI only had `--http`. | `--transport http` is a hidden alias that opts in like `--http`, so the swap really is the `command` line only. |
+| *Phase 6:* `re-cli` never forwarded `re-retrieval/scholar-gateway`, so no binary could enable decision 3's adapter. | `scholar-gateway` feature on `re-cli`. |
+| *Phase 6:* plan's static image needs a musl build, and `aws-lc-sys` (rustls' provider) has to compile under it. | Built in `rust:1.99.1-alpine3.22` (musl is Alpine's libc), verified locally; release Linux binaries use the same digest-pinned image. Distroless `static-debian12:nonroot`, also pinned by digest. |
+| *Phase 6:* GHCR rejects the mixed-case owner in `ghcr.io/${{ github.repository }}`. | Lower-cased at run time. Images are built per architecture on native runners (no QEMU) and merged by digest. |
+| *Phase 6:* Python hides `DeprecationWarning` outside `__main__`, so the plan's warning would never show. | Emitted under a local `simplefilter("always")` to stderr only; stdio MCP output is unchanged. |
+| *Phase 6:* Python's default database lived inside the package directory. | Migration notes in the README: move the file to `~/.reasoning-engine/` or point `REASONING_ENGINE_DB` at it; the schema is shared. |
 
 ## References (Harvard, Australian style)
 

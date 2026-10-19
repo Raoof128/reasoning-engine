@@ -371,11 +371,14 @@ Start STDIO MCP:
 reasoning-engine mcp
 ```
 
-Start local Streamable HTTP MCP:
+Start local Streamable HTTP MCP (needs a build with `local-host`; `setup --http`
+enables it permanently, `--http` for one run):
 
 ```bash
-reasoning-engine serve --transport http --host 127.0.0.1 --port 8765
+reasoning-engine serve --http --host 127.0.0.1 --port 8765
 ```
+
+`serve --transport http` is accepted as the Python CLI's spelling of `--http`.
 
 Default endpoint:
 
@@ -385,9 +388,14 @@ http://127.0.0.1:8765/mcp
 
 Security behavior:
 
-- Host defaults to `127.0.0.1`.
-- Public bind addresses are rejected unless `--unsafe-bind-public` is passed.
-- FastMCP Host/Origin protection is exercised in tests.
+- Host defaults to `127.0.0.1`; on a loopback bind only loopback `Host`
+  headers are accepted (DNS rebinding).
+- Any non-loopback bind is rejected unless `--unsafe-bind-public` is passed
+  **and** a bearer token is configured.
+- Requests carrying a browser `Origin` header are refused.
 - `--bearer-token-env NAME` enables bearer-token authentication and requires
-  `NAME` to be set.
+  `NAME` to be set; tokens are compared in constant time.
 - Bearer token environment values are never printed by the CLI.
+- Request bodies are capped at 1 MiB.
+- `--ui` (or `setup --ui`) mounts the read-only audit UI at `/ui/`, guarded by
+  the same token (as a bearer header or the HTTP Basic password).

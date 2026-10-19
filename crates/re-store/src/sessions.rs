@@ -164,7 +164,7 @@ pub(crate) fn branch_not_in_session(branch_id: &str, session_id: &str) -> StoreE
     ))
 }
 
-fn session_row(row: &Row<'_>) -> rusqlite::Result<SessionRow> {
+pub(crate) fn session_row(row: &Row<'_>) -> rusqlite::Result<SessionRow> {
     Ok(SessionRow {
         id: row.get("id")?,
         query: row.get("query")?,
