@@ -204,6 +204,8 @@ async fn service(config: &Config) -> Result<VerifiableResearchService, Failure> 
             service.with_full_text(fetcher)
         }
     };
+    #[cfg(feature = "graph")]
+    let service = service.with_counter_search();
     #[cfg(feature = "trust")]
     let service = trust::sign(config, service);
     Ok(service)

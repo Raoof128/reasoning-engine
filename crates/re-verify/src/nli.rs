@@ -135,6 +135,10 @@ impl<E: Embedder, N: NliModel> Verifier for NliVerifier<E, N> {
         vec![self.embedder.id(), self.nli.id()]
     }
 
+    fn can_contradict(&self) -> bool {
+        true
+    }
+
     fn verify(
         &self,
         claims: &mut [ClaimRecord],

@@ -47,6 +47,7 @@ pub async fn record(
     let plan = RecordPlan {
         quality: cfg!(feature = "fulltext"),
         fulltext: cfg!(feature = "fulltext") && !offline(),
+        counter_search: cfg!(feature = "graph"),
         ..RecordPlan::now(sources, offline(), &tier)
     };
     let verifier = load_verifier(Some(&tier), &config.models_dir(), offline()).await?;
@@ -65,6 +66,8 @@ pub async fn record(
     } else {
         service
     };
+    #[cfg(feature = "graph")]
+    let service = service.with_counter_search();
     // Full text is fetched through the same tape, so replay needs no
     // network either.
     #[cfg(feature = "fulltext")]

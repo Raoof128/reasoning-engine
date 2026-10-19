@@ -6,6 +6,8 @@
 //! This port uses first-occurrence order, which is one of Python's possible
 //! outputs and is identical to Python whenever Python itself is stable.
 
+pub mod negate;
+
 use std::collections::HashSet;
 use std::sync::LazyLock;
 
@@ -195,6 +197,49 @@ pub fn plan_research_angles(
         .collect())
 }
 
+/// The adversarial angle's name.
+pub const ADVERSARIAL: &str = "adversarial";
+
+/// Difficulty from which DORA plans a beam search or a forest
+/// ([`crate::dora::DIFFICULTY_MEDIUM`]).
+const ADVERSARIAL_DIFFICULTY: f64 = crate::dora::DIFFICULTY_MEDIUM;
+
+/// The angle that looks for evidence against `query`, its starter
+/// questions the [`negate::negated_queries`].
+#[must_use]
+pub fn adversarial_angle(query: &str, priority: u32) -> ResearchAngle {
+    ResearchAngle {
+        name: ADVERSARIAL.into(),
+        objective: "Look for evidence against the claim: null effects, failed replications \
+            and stated limitations."
+            .into(),
+        priority,
+        starter_questions: negate::negated_queries(query),
+    }
+}
+
+/// [`plan_research_angles`], plus the adversarial angle (plan Phase 10):
+/// when `adversarial` is set and the query is hard enough for a beam
+/// search or forest, the last of the `max_angles` angles is
+/// [`adversarial_angle`].
+///
+/// # Errors
+/// As [`plan_research_angles`].
+pub fn plan_research_angles_with(
+    query: &str,
+    max_angles: usize,
+    adversarial: bool,
+) -> Result<Vec<ResearchAngle>, CoreError> {
+    let hard = estimate_difficulty(query.trim()) >= ADVERSARIAL_DIFFICULTY;
+    if !adversarial || !hard || max_angles < 2 {
+        return plan_research_angles(query, max_angles);
+    }
+    let mut angles = plan_research_angles(query, max_angles - 1)?;
+    let priority = u32::try_from(angles.len() + 1).unwrap_or(u32::MAX);
+    angles.push(adversarial_angle(query.trim(), priority));
+    Ok(angles)
+}
+
 /// Build verification questions for each draft claim.
 ///
 /// # Errors
@@ -252,5 +297,46 @@ mod tests {
     #[test]
     fn unique_ordered_is_case_insensitive() {
         assert_eq!(unique_ordered(["A", "b", "a", "B", "c"]), ["A", "b", "c"]);
+    }
+}
+
+#[cfg(test)]
+mod adversarial_tests {
+    use super::*;
+
+    /// The hardest golden query (difficulty 0.758, a forest).
+    const HARD: &str = "Compare and contrast DPO versus PPO versus GRPO for RLHF; what are the \
+        implications for reward hacking and how do they interact with process reward models?";
+
+    #[test]
+    fn hard_queries_end_with_the_adversarial_angle() {
+        assert!(estimate_difficulty(HARD) >= ADVERSARIAL_DIFFICULTY);
+        let legacy = plan_research_angles(HARD, 6).unwrap();
+        let angles = plan_research_angles_with(HARD, 6, true).unwrap();
+        assert_eq!(angles.len(), 6);
+        assert_eq!(angles[..5], legacy[..5], "the first angles are unchanged");
+        assert_eq!(angles[5].name, ADVERSARIAL);
+        assert_eq!(angles[5].priority, 6);
+        assert_eq!(angles[5].starter_questions, negate::negated_queries(HARD));
+    }
+
+    #[test]
+    fn otherwise_the_legacy_angles_are_returned() {
+        let easy = "what is a reward model";
+        assert_eq!(
+            plan_research_angles_with(easy, 6, true).unwrap(),
+            plan_research_angles(easy, 6).unwrap(),
+            "easy queries plan no adversarial angle"
+        );
+        assert_eq!(
+            plan_research_angles_with(HARD, 6, false).unwrap(),
+            plan_research_angles(HARD, 6).unwrap(),
+            "off unless asked"
+        );
+        assert_eq!(
+            plan_research_angles_with(HARD, 1, true).unwrap(),
+            plan_research_angles(HARD, 1).unwrap()
+        );
+        assert!(plan_research_angles_with("  ", 6, true).is_err());
     }
 }

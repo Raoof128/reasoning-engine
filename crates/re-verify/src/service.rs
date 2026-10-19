@@ -88,6 +88,10 @@ pub struct Recorder {
 }
 
 /// The verifiable research service.
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "independent opt-in pipeline stages"
+)]
 pub struct VerifiableResearchService {
     store: Store,
     runs_dir: PathBuf,
@@ -103,6 +107,8 @@ pub struct VerifiableResearchService {
     quality: bool,
     #[cfg(feature = "fulltext")]
     fulltext: Option<re_retrieval::fulltext::FullTextFetcher>,
+    #[cfg(feature = "graph")]
+    counter_search: bool,
 }
 
 /// Records whose full text a pipeline run fetches, best ranked first.
@@ -141,7 +147,19 @@ impl VerifiableResearchService {
             quality: false,
             #[cfg(feature = "fulltext")]
             fulltext: None,
+            #[cfg(feature = "graph")]
+            counter_search: false,
         }
+    }
+
+    /// Search for contradictions of supported claims after verification,
+    /// when the verifier can judge contradiction (plan Phase 10; see
+    /// [`crate::counter`]).
+    #[cfg(feature = "graph")]
+    #[must_use]
+    pub fn with_counter_search(mut self) -> Self {
+        self.counter_search = true;
+        self
     }
 
     /// Verify claims against open-access full text fetched with `fetcher`
@@ -454,6 +472,30 @@ impl VerifiableResearchService {
         })
     }
 
+    /// Search for contradictions of the supported claims when enabled and
+    /// the tier can judge contradiction, recording a `counter_search`
+    /// provenance event.
+    #[cfg(feature = "graph")]
+    async fn counter_search(
+        &self,
+        run_id: &str,
+        verifier: &dyn Verifier,
+        claims: &mut [ClaimRecord],
+        verifications: &mut [VerificationRecord],
+    ) -> Result<Vec<crate::counter::Finding>, VerifyError> {
+        if !self.counter_search || !verifier.can_contradict() {
+            return Ok(Vec::new());
+        }
+        let findings =
+            crate::counter::search(&self.search, run_id, verifier, claims, verifications).await;
+        self.store.append_provenance(
+            run_id,
+            "counter_search",
+            &payload(&[("searches", to_value(&findings))]),
+        )?;
+        Ok(findings)
+    }
+
     /// Verify `claims` against `citable` evidence (and its full text, when
     /// fetched), then apply the numeric check.
     #[cfg_attr(
@@ -495,6 +537,21 @@ impl VerifiableResearchService {
         Ok(verifications)
     }
 
+    /// `replay.json` and the recordings, when recording: the recorder's
+    /// settings plus the pipeline's own `inputs`.
+    fn replay_files(&self, inputs: &[(&str, Value)]) -> Option<ReplayFiles> {
+        self.recorder.as_ref().map(|recorder| {
+            let mut settings = recorder.settings.clone();
+            for (key, value) in inputs {
+                settings.insert((*key).to_string(), value.clone());
+            }
+            ReplayFiles {
+                inputs: Value::Object(settings),
+                recordings: recorder.tape.rendered(),
+            }
+        })
+    }
+
     /// Start a run, search, extract and verify claims, gate, export and
     /// attest the run pack.
     ///
@@ -526,8 +583,13 @@ impl VerifiableResearchService {
         } else {
             evidence.clone()
         };
-        let verifications = self
+        #[cfg_attr(not(feature = "graph"), allow(unused_mut))]
+        let mut verifications = self
             .verify_claims(&run.run_id, verifier, &mut claims, &citable)
+            .await?;
+        #[cfg(feature = "graph")]
+        let findings = self
+            .counter_search(&run.run_id, verifier, &mut claims, &mut verifications)
             .await?;
         for claim in &claims {
             self.store.save_claim(claim)?;
@@ -546,25 +608,24 @@ impl VerifiableResearchService {
         let gaps = self.store.list_gaps(&run.run_id)?;
         let gate = gate_records(&run.run_id, &claims, &verifications, gaps.len());
         let provenance = self.store.list_provenance(&run.run_id)?;
-        let report = build_report(&run, &claims, &verifications, &gate);
+        #[cfg_attr(not(feature = "graph"), allow(unused_mut))]
+        let mut report = build_report(&run, &claims, &verifications, &gate);
+        #[cfg(feature = "graph")]
+        report.push_str(&crate::counter::counter_view(
+            &claims,
+            &verifications,
+            evidence,
+            &findings,
+        ));
         let claim_dicts: Vec<Value> = claims.iter().map(to_value).collect();
         let verification_dicts: Vec<Value> = verifications.iter().map(to_value).collect();
-        let replay = self.recorder.as_ref().map(|recorder| {
-            let mut inputs = recorder.settings.clone();
-            for (key, value) in [
-                ("query", Value::from(query)),
-                ("draft", draft.into()),
-                ("mode", mode.into()),
-                ("profile", profile.into()),
-                ("use_mock_empty", use_mock_empty.into()),
-            ] {
-                inputs.insert(key.into(), value);
-            }
-            ReplayFiles {
-                inputs: Value::Object(inputs),
-                recordings: recorder.tape.rendered(),
-            }
-        });
+        let replay = self.replay_files(&[
+            ("query", Value::from(query)),
+            ("draft", draft.into()),
+            ("mode", mode.into()),
+            ("profile", profile.into()),
+            ("use_mock_empty", use_mock_empty.into()),
+        ]);
         #[cfg(feature = "trust")]
         let references = references_for(&run.profile, &evidence_dicts);
         #[cfg(not(feature = "trust"))]

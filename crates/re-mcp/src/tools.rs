@@ -9,7 +9,9 @@ use std::sync::Arc;
 use indexmap::IndexMap;
 use re_core::directional::{BranchInfo, plan_directions};
 use re_core::dora::select_branches;
-use re_core::planning::{evidence_gap_questions, plan_research_angles};
+use re_core::planning::evidence_gap_questions;
+#[cfg(not(feature = "graph"))]
+use re_core::planning::plan_research_angles;
 use re_core::profiles::classify_research_mode;
 use re_core::sanitize::sanitize_content;
 use re_retrieval::base::py_round;
@@ -44,6 +46,8 @@ pub struct Tools {
     service: Arc<VerifiableResearchService>,
     directional: bool,
     memory_fts: bool,
+    #[cfg(feature = "graph")]
+    adversarial: bool,
     #[cfg(feature = "tasks")]
     prefetcher: crate::tasks::Prefetcher,
 }
@@ -60,9 +64,20 @@ impl Tools {
             service,
             directional: env_is("REASONING_ENGINE_DORA", "directional"),
             memory_fts: env_is("REASONING_ENGINE_MEMORY", "fts"),
+            #[cfg(feature = "graph")]
+            adversarial: env_is("REASONING_ENGINE_ADVERSARIAL", "1"),
             #[cfg(feature = "tasks")]
             prefetcher: crate::tasks::Prefetcher::default(),
         }
+    }
+
+    /// Whether hard queries plan an adversarial angle (`graph` feature;
+    /// from `REASONING_ENGINE_ADVERSARIAL=1` by default).
+    #[cfg(feature = "graph")]
+    #[must_use]
+    pub fn with_adversarial(mut self, on: bool) -> Self {
+        self.adversarial = on;
+        self
     }
 
     /// Background prefetch tasks (`tasks` feature).
@@ -339,7 +354,14 @@ impl Tools {
         let prefetch = a.bool_or("prefetch", false)?;
         let query = validate::text(&query, "query", MAX_QUERY_CHARS, false)?;
         let max_angles = validate::limited_int(max_angles, "max_angles", 1, cap(MAX_ANGLES))?;
-        let angles = plan_research_angles(&query, usize::try_from(max_angles).unwrap_or(1))?;
+        let max_angles = usize::try_from(max_angles).unwrap_or(1);
+        // The adversarial angle (plan Phase 10) only when asked for, so the
+        // default result stays Python's.
+        #[cfg(feature = "graph")]
+        let angles =
+            re_core::planning::plan_research_angles_with(&query, max_angles, self.adversarial)?;
+        #[cfg(not(feature = "graph"))]
+        let angles = plan_research_angles(&query, max_angles)?;
         #[cfg(feature = "tasks")]
         if prefetch {
             // The bare query too: the verification pipeline searches it.

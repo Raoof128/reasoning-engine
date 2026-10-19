@@ -39,6 +39,12 @@ pub trait Verifier: Send + Sync {
     fn models(&self) -> Vec<String> {
         Vec::new()
     }
+
+    /// Whether this tier can judge a claim `contradicted` (only then is a
+    /// contradiction search worth running).
+    fn can_contradict(&self) -> bool {
+        false
+    }
 }
 
 /// Every tier name `REASONING_ENGINE_VERIFIER` accepts.

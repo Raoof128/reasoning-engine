@@ -10,6 +10,8 @@ pub mod chunks;
 #[cfg(feature = "trust")]
 pub mod citations;
 pub mod claims;
+#[cfg(feature = "graph")]
+pub mod counter;
 pub mod error;
 pub mod gate;
 pub mod hybrid;

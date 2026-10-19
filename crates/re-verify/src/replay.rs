@@ -34,6 +34,10 @@ pub fn new_seed() -> u64 {
 /// How a run is recorded: what `replay.json` needs besides the pipeline's
 /// own inputs.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "independent switches, each written to replay.json as is"
+)]
 pub struct RecordPlan {
     /// The pinned clock (`YYYY-MM-DDTHH:MM:SSZ`).
     pub clock: String,
@@ -51,6 +55,9 @@ pub struct RecordPlan {
     /// Whether claims were verified against full text (`fulltext`
     /// feature).
     pub fulltext: bool,
+    /// Whether supported claims were searched for contradiction (`graph`
+    /// feature).
+    pub counter_search: bool,
 }
 
 impl RecordPlan {
@@ -65,6 +72,7 @@ impl RecordPlan {
             verifier: verifier.to_string(),
             quality: false,
             fulltext: false,
+            counter_search: false,
         }
     }
 
@@ -87,6 +95,9 @@ impl RecordPlan {
         if self.fulltext {
             settings.insert("fulltext".into(), true.into());
         }
+        if self.counter_search {
+            settings.insert("counter_search".into(), true.into());
+        }
         Recorder { tape, settings }
     }
 }
@@ -103,11 +114,33 @@ fn with_settings(
     } else {
         service
     };
+    let service = if on("counter_search") {
+        with_counter_search(service)?
+    } else {
+        service
+    };
     if on("fulltext") {
         with_full_text(service, tape)
     } else {
         Ok(service)
     }
+}
+
+#[cfg(feature = "graph")]
+#[allow(clippy::unnecessary_wraps, reason = "matches the build without graph")]
+fn with_counter_search(
+    service: VerifiableResearchService,
+) -> Result<VerifiableResearchService, VerifyError> {
+    Ok(service.with_counter_search())
+}
+
+#[cfg(not(feature = "graph"))]
+fn with_counter_search(
+    _: VerifiableResearchService,
+) -> Result<VerifiableResearchService, VerifyError> {
+    Err(invalid(
+        "this pack searched for contradictions; replay it with a `graph` build",
+    ))
 }
 
 /// Read full text from the replayed tape, as the recording did.

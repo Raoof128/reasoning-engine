@@ -17,6 +17,8 @@ local-host = ["dep:axum", "dep:subtle", "dep:tokio-util", "rmcp/transport-stream
 # Speculative retrieval: plan_research_angles_tool(prefetch) and tasks/get
 # (plan Phase 8).
 tasks = []
+# Evidence graph, adversarial angle and calibration (plan Phase 10).
+graph = ["re-verify/graph"]
 
 [dependencies]
 axum = { workspace = true, optional = true }
