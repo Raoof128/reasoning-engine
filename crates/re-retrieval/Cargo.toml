@@ -1,0 +1,33 @@
+[package]
+name = "re-retrieval"
+description = "Academic source adapters and the concurrent search aggregator for the reasoning engine."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish = false
+
+[features]
+default = []
+# Optional token-gated Scholar Gateway MCP connector (plan decision 3).
+scholar-gateway = []
+
+[dependencies]
+re-core.workspace = true
+re-model.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+regex.workspace = true
+indexmap.workspace = true
+reqwest.workspace = true
+tokio.workspace = true
+quick-xml.workspace = true
+
+[dev-dependencies]
+wiremock.workspace = true
+
+[lints]
+workspace = true

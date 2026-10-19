@@ -1,0 +1,1 @@
+{"results": [{"id": "d1", "bibjson": {"title": "Open Access Study", "author": [{"name": "C. Lee"}], "year": "2022", "identifier": [{"type": "pissn", "id": "1234"}, {"type": "DOI", "id": "10.8/oa"}], "journal": {"title": "OA Journal", "publisher": "OA Pub"}, "abstract": "Findings.", "link": [{"type": "fulltext"}, {"url": "https://oa.org/1"}]}}]}
