@@ -82,7 +82,7 @@ gh attestation verify reasoning-engine-v0.2.0-linux-x86_64.tar.gz --repo Raoof12
 tar -xzf reasoning-engine-v0.2.0-linux-x86_64.tar.gz reasoning-engine
 ```
 
-Release binaries include the local HTTP server (`local-host`), which stays off until you enable it.
+Release binaries include the local HTTP server (`local-host`, off until you enable it) and signed, replayable run packs (`trust`).
 
 ### From source
 
@@ -92,7 +92,7 @@ Needs Rust 1.89 or newer (1.92 for `semantic`).
 git clone https://github.com/Raoof128/reasoning-engine.git
 cd reasoning-engine
 cargo install --locked --path crates/re-cli                          # stdio MCP only
-cargo install --locked --path crates/re-cli --features local-host,semantic   # everything
+cargo install --locked --path crates/re-cli --features local-host,trust,semantic   # everything
 ```
 
 ### Docker
@@ -105,7 +105,7 @@ docker run --rm -p 8765:8765 -v re-data:/data \
   -e REASONING_ENGINE_HTTP_TOKEN="$(openssl rand -hex 32)" reasoning-engine
 ```
 
-Tagged releases also publish `ghcr.io/raoof128/reasoning-engine` for `linux/amd64` and `linux/arm64`. The image is distroless and runs as a non-root user.
+Tagged releases also publish `ghcr.io/raoof128/reasoning-engine` for `linux/amd64` and `linux/arm64`. The image is distroless and runs as a non-root user. It signs run packs with `/data/signing.key`, created on first run, so keep the volume.
 
 ## Setup
 
@@ -148,6 +148,7 @@ cp skill/deep-research.md ~/.claude/skills/
 |---|---|---|
 | *(default)* | stdio MCP server (20 tools), `research`, `scholar search`, `setup`, `bench`, `verify-runpack` | yes |
 | `local-host` | `serve` (Streamable HTTP with bearer auth) and the `/ui` audit UI | yes |
+| `trust` | Signed run packs with a transparency log, `research --record` and `replay`, styled reference lists, the numeric claim check | yes |
 | `semantic` | `hybrid` and `nli` verifier tiers (ONNX models, downloaded on first use) | no |
 | `scholar-gateway` | Token-gated Scholar Gateway as an extra search source | no |
 
@@ -186,6 +187,7 @@ reasoning-engine verify-runpack ~/.reasoning-engine/runs/<run_id>
 | `REASONING_ENGINE_CONFIG` | Config file (default `~/.reasoning-engine/config.toml`) |
 | `REASONING_ENGINE_VERIFIER` | `lexical`, `hybrid` or `nli` (overrides `setup`) |
 | `REASONING_ENGINE_MODELS_DIR` | Where ONNX models are cached (default `<data_dir>/models`) |
+| `REASONING_ENGINE_SIGNING_KEY` | Run-pack signing key (default `<data_dir>/signing.key`; `trust` builds) |
 | `REASONING_ENGINE_OFFLINE=1` | Deterministic mock evidence; never downloads models |
 | `REASONING_ENGINE_SOURCES=openalex,crossref` | Narrow which sources are enabled |
 | `REASONING_ENGINE_CONTACT_EMAIL` | Contact address for OpenAlex/Crossref's polite pool |
@@ -196,6 +198,60 @@ reasoning-engine verify-runpack ~/.reasoning-engine/runs/<run_id>
 | `SCHOLAR_GATEWAY_LIVE=1`, `SCHOLAR_GATEWAY_ACCESS_TOKEN` | Scholar Gateway (`scholar-gateway` builds) |
 
 An empty value counts as unset. Tokens are never stored in SQLite or run packs.
+
+## Trust and reproducibility (`trust`)
+
+**Signed run packs.** Every export is signed with Ed25519 over its `run_pack_hash`, which already covers every artifact. The key is created on first use, with mode `0600`. Each signed export is also appended to a hash-chained transparency log in the database.
+
+```bash
+reasoning-engine keys show                      # your public key
+reasoning-engine verify-runpack <pack> --public-key <base64>
+```
+
+`verify-runpack` checks the artifact hashes, the signature (pinned to a key when you pass one) and inclusion in the log. It exits:
+
+- `0`: ok;
+- `1`: tampered (an artifact, the signature, the key or the log disagrees);
+- `2`: unknown (the hashes match, but the pack is unsigned).
+
+Someone who edits a pack and re-signs it with their own key fails both the pinned key and the log.
+
+**Replayable runs.**
+
+```bash
+reasoning-engine research --record "..." --draft "..."
+reasoning-engine replay <run_id>     # offline; exits 1 if any artifact differs
+```
+
+A recorded run pins its clock and ID seed, and keeps every provider response in the pack (`http/` and `replay.json`). `replay` re-runs the pipeline with no network and compares every artifact hash with the attestation; a response that was not recorded fails closed.
+
+Recordings never contain:
+
+- API keys or your contact address (they are stripped from URLs before keying);
+- secret response headers;
+- any configured secret that a provider echoes back in a body.
+
+Providers may still echo request metadata, though: DBLP's JSON includes the caller's IP address. So share recorded packs the way you would share request logs.
+
+**References in your profile's style.** Packs gain `references.<style>.md`, rendered with CSL and listed in the attestation:
+
+| Profile style | Rendered as |
+|---|---|
+| `harvard_au` | Harvard (Cite Them Right) |
+| `vancouver` | Vancouver |
+| `ieee` | IEEE |
+| `chicago` | Chicago author-date |
+| `legal` | AGLC4 |
+
+`sources.bib` stays for compatibility.
+
+**Numbers must match.** A quantitative claim cannot be `supported` unless one of its numbers appears in the evidence it cites:
+
+- matching uses 2% relative tolerance and compatible units (`%`, percentage points, `ms`/`s`, `x`);
+- ranges, confidence intervals and Persian digits are understood;
+- years and confidence levels never count as the match.
+
+Otherwise the claim is capped at `partially_supported` and flagged for review.
 
 ## Local HTTP server and audit UI
 
