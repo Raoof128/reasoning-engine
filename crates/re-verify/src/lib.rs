@@ -11,6 +11,7 @@ pub mod claims;
 pub mod error;
 pub mod gate;
 pub mod hybrid;
+pub mod ledger;
 #[cfg(feature = "semantic")]
 pub mod models;
 pub mod nli;

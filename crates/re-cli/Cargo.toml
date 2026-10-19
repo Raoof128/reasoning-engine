@@ -24,6 +24,9 @@ scholar-gateway = ["re-retrieval/scholar-gateway"]
 # Trust and reproducibility (plan Phase 7): `research --record` and
 # `replay`.
 trust = ["re-verify/trust"]
+# Speculative retrieval: evidence cache, cost ledger and angle prefetch
+# over the MCP tasks extension (plan Phase 8).
+tasks = ["re-mcp/tasks"]
 
 [dependencies]
 tokio-util = { workspace = true, optional = true }

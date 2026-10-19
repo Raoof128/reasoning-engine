@@ -38,7 +38,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           docker run --rm -v "$PWD":/src -w /src -e RUSTUP_TOOLCHAIN=1.99.1 "$ALPINE_RUST" \
-            sh -c 'apk add --no-cache musl-dev && cargo build --release --locked -p re-cli --features local-host,trust'
+            sh -c 'apk add --no-cache musl-dev && cargo build --release --locked -p re-cli --features local-host,trust,tasks'
           mkdir -p dist && cp target/release/reasoning-engine dist/
 
       - name: Toolchain (macOS)
@@ -50,7 +50,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           for target in x86_64-apple-darwin aarch64-apple-darwin; do
-            cargo build --release --locked -p re-cli --features local-host,trust --target "$target"
+            cargo build --release --locked -p re-cli --features local-host,trust,tasks --target "$target"
           done
           mkdir -p dist
           lipo -create -output dist/reasoning-engine \
@@ -66,7 +66,7 @@ jobs:
         env:
           RUSTFLAGS: -C target-feature=+crt-static
         run: |
-          cargo build --release --locked -p re-cli --features local-host,trust
+          cargo build --release --locked -p re-cli --features local-host,trust,tasks
           mkdir -p dist && cp target/release/reasoning-engine.exe dist/
 
       - name: Smoke test

@@ -160,14 +160,32 @@ fn load_config() -> Result<Config, Failure> {
     }))
 }
 
+/// The aggregator from the environment; in `tasks` builds every source
+/// sits behind the evidence cache unless `REASONING_ENGINE_CACHE=off`.
+#[cfg_attr(not(feature = "tasks"), allow(unused_variables))]
+fn search(config: &Config, offline: bool) -> Result<AcademicSearchAggregator, Failure> {
+    #[allow(unused_mut, reason = "only the tasks feature wraps the adapters")]
+    let mut adapters = re_retrieval::default_adapters()?;
+    #[cfg(feature = "tasks")]
+    if !offline && std::env::var("REASONING_ENGINE_CACHE").as_deref() != Ok("off") {
+        let cache: Arc<dyn re_retrieval::cache::CacheStore> = Arc::new(
+            re_verify::ledger::StoreCache(Store::open(config.db_path())?),
+        );
+        adapters = re_retrieval::cache::cached(adapters, &cache);
+    }
+    Ok(AcademicSearchAggregator::new(adapters))
+}
+
 async fn service(config: &Config) -> Result<VerifiableResearchService, Failure> {
     let store = Store::open(config.db_path())?;
     let offline = std::env::var("REASONING_ENGINE_OFFLINE").is_ok_and(|v| v == "1");
     let models_dir = config.models_dir();
     let verifier = load_verifier(Some(&config.verifier()), &models_dir, offline).await?;
-    let search = Arc::new(AcademicSearchAggregator::from_env()?);
+    let search = Arc::new(search(config, offline)?);
     let service = VerifiableResearchService::new(store, config.runs_dir(), search, verifier)
         .with_models(models_dir, offline);
+    #[cfg(feature = "tasks")]
+    let service = service.with_ledger();
     #[cfg(feature = "trust")]
     let service = trust::sign(config, service);
     Ok(service)

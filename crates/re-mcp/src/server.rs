@@ -108,8 +108,11 @@ impl ReasoningServer {
 
 impl ServerHandler for ReasoningServer {
     fn get_info(&self) -> InitializeResult {
-        let mut info = InitializeResult::new(ServerCapabilities::builder().enable_tools().build())
-            .with_instructions(INSTRUCTIONS);
+        let capabilities = ServerCapabilities::builder().enable_tools();
+        // Prefetch tasks are pollable with `tasks/get` (tasks feature).
+        #[cfg(feature = "tasks")]
+        let capabilities = capabilities.enable_tasks();
+        let mut info = InitializeResult::new(capabilities.build()).with_instructions(INSTRUCTIONS);
         info.server_info = Implementation::new(SERVER_NAME, env!("CARGO_PKG_VERSION"));
         info
     }
@@ -128,6 +131,35 @@ impl ServerHandler for ReasoningServer {
 
     fn get_tool(&self, name: &str) -> Option<Tool> {
         crate::schema::find(name).map(tool_definition)
+    }
+
+    #[cfg(feature = "tasks")]
+    #[allow(
+        clippy::unused_async_trait_impl,
+        reason = "matches the trait signature"
+    )]
+    async fn get_task(
+        &self,
+        request: rmcp::model::GetTaskParams,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::GetTaskResult, ErrorData> {
+        self.tools
+            .prefetcher()
+            .get(&request.task_id)
+            .map(rmcp::model::GetTaskResult::new)
+    }
+
+    #[cfg(feature = "tasks")]
+    #[allow(
+        clippy::unused_async_trait_impl,
+        reason = "matches the trait signature"
+    )]
+    async fn cancel_task(
+        &self,
+        request: rmcp::model::CancelTaskParams,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<(), ErrorData> {
+        self.tools.prefetcher().cancel(&request.task_id)
     }
 
     async fn call_tool(
