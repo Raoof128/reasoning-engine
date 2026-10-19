@@ -63,11 +63,38 @@ enum Command {
         #[command(subcommand)]
         command: ScholarCommand,
     },
+    /// Measure things against labelled data.
+    Bench {
+        #[command(subcommand)]
+        command: BenchCommand,
+    },
     /// Check a run pack's attestation; exits 1 when it does not verify.
     VerifyRunpack {
         /// The run-pack directory.
         dir: PathBuf,
     },
+}
+
+#[derive(Debug, Subcommand)]
+enum BenchCommand {
+    /// Precision and recall of each verifier tier on a labelled claim/evidence set.
+    Verify {
+        /// The labelled set (see `tests/fixtures/verify/`).
+        #[arg(long, default_value = "tests/fixtures/verify/labelled_pairs.json")]
+        set: PathBuf,
+        /// Tiers to score; model tiers need `--features semantic`.
+        #[arg(long = "tier", default_values_t = default_tiers())]
+        tiers: Vec<String>,
+    },
+}
+
+fn default_tiers() -> Vec<String> {
+    let tiers: &[&str] = if cfg!(feature = "semantic") {
+        &["lexical", "hybrid", "nli"]
+    } else {
+        &["lexical"]
+    };
+    tiers.iter().map(|t| (*t).to_string()).collect()
 }
 
 #[derive(Debug, Subcommand)]
@@ -152,6 +179,28 @@ async fn run(cli: Cli) -> Result<u8, Failure> {
                 .scholar_search(&run.run_id, &query, limit, false)
                 .await?;
             print_json(&outcome.to_json());
+            Ok(0)
+        }
+        Command::Bench {
+            command: BenchCommand::Verify { set, tiers },
+        } => {
+            let config = load_config()?;
+            let text = std::fs::read_to_string(&set)
+                .map_err(|e| format!("cannot read {}: {e}", set.display()))?;
+            let labelled: re_verify::bench::LabelledSet = serde_json::from_str(&text)?;
+            let offline = std::env::var("REASONING_ENGINE_OFFLINE").is_ok_and(|v| v == "1");
+            println!(
+                "Verifier benchmark on {} ({} pairs)\n",
+                set.display(),
+                labelled.pairs.len()
+            );
+            for tier in &tiers {
+                let verifier = load_verifier(Some(tier), &config.models_dir(), offline).await?;
+                println!(
+                    "{}",
+                    re_verify::bench::evaluate(verifier.as_ref(), &labelled.pairs).table()
+                );
+            }
             Ok(0)
         }
         Command::VerifyRunpack { dir } => {

@@ -4,6 +4,7 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+pub mod bench;
 pub mod claims;
 pub mod error;
 pub mod gate;

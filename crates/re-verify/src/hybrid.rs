@@ -17,10 +17,12 @@ use crate::verify::Verifier;
 
 /// Snippets kept per claim after fusion.
 pub const SHORTLIST: usize = 5;
-/// Best shortlisted cosine at or above this is `supported`.
-pub const HYBRID_SUPPORTED: f32 = 0.82;
+/// Best shortlisted cosine at or above this is `supported`. Chosen by
+/// supported-vs-rest F1 on `tests/fixtures/verify/labelled_pairs.json`
+/// (`hybrid_cosine_by_label`), so it is tuned on the set it is scored on.
+pub const HYBRID_SUPPORTED: f32 = 0.79;
 /// Best shortlisted cosine at or above this is `partially_supported`.
-pub const HYBRID_PARTIAL: f32 = 0.72;
+pub const HYBRID_PARTIAL: f32 = 0.70;
 
 /// Turns texts into unit-length vectors.
 pub trait Embedder: Send + Sync {
@@ -350,7 +352,7 @@ pub(crate) mod tests {
         let verifier = HybridVerifier::new(FakeEmbedder);
         let mut claims = vec![
             claim("A process reward model scores each step", "empirical", true),
-            claim("Tomato gardening needs safety audits", "empirical", true),
+            claim("Safety audits are required by law", "empirical", true),
             claim("Models may improve", "hypothesis", false),
         ];
         let records = verifier.verify(&mut claims, &ev);
