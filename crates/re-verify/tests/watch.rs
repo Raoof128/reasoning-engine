@@ -90,5 +90,8 @@ async fn a_retraction_after_the_run_is_reported_as_drift() {
     assert!(text.contains(": supported -> "), "{text}");
 
     let missing = service.watch("run_000000000000").await.unwrap_err();
-    assert!(missing.to_string().contains("run_000000000000"), "{missing}");
+    assert!(
+        missing.to_string().contains("run_000000000000"),
+        "{missing}"
+    );
 }
