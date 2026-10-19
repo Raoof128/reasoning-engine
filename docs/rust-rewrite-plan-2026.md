@@ -571,6 +571,12 @@ Verified against the Python code and `golden_vectors.json` on 2026-10-18.
 | Claim IDs | `claim_0001` zero-padded, sentence split on `(?<=[.!?])\s+` (lookbehind). | `regex` has no lookbehind: split on `[.!?]\s+` while keeping the terminator, then `trim_end_matches(['.', '!', '?'])`. |
 | Timestamps and UUIDs | `utc_now()` is second-precision ISO-8601 with a `Z` suffix (`2026-10-18T22:34:00Z`); IDs are `uuid4`. | `re_model::clock::utc_now` formats identically; parity harness ignores these fields by name. |
 | JSON text | Everything hashed or stored (`stable_json_hash`, DB payloads, run-pack files) uses Python's default `ensure_ascii=True`, so non-ASCII becomes `\uXXXX` with surrogate pairs. Floats use `float.__repr__` (`1e-05`, `1e+16`). Only MCP tool responses use `ensure_ascii=False`. | `serde_json` writes `1e-5`, `1e16` and raw UTF-8, so it cannot be used for these bytes. Use `re_core::pyjson::dumps`, checked byte-for-byte against Python in four modes (found in Phase 2). |
+| `str.isalnum` (dedup keys) | Letters (`L*`) and numbers (`N*`) only. | `char::is_alphanumeric` also keeps `Other_Alphabetic` combining marks (U+093F is kept by Rust, dropped by Python), splitting dedup keys. Use `[^\p{L}\p{N}]+` removal (found in Phase 3). |
+| `str.strip` / `str.split` | Python whitespace adds `\x1c`..`\x1f` to Unicode `White_Space`. | `re_retrieval::base::py_strip` / `py_is_space`, used by snippets, years, DOIs and queries. |
+| ElementTree `findtext` | `.text` of the first direct child: text before the first sub-element, entities expanded, `None` when absent. Nested matches are ignored. | The arXiv parser tracks depth and stops collecting at the first child start tag. Unit-tested on nested, repeated and empty children. |
+| XML hardening | `defusedxml` rejects entity declarations; expat rejects undefined entities, bad characters, junk after the root, unbound prefixes. | Expand only the five predefined entities and legal character references; reject any `<!ENTITY`; 4 MiB body cap. Error messages differ, types match. |
+| Dict overwrite order | `errors[name] = err` with a repeated name keeps the first position and the last value. | `IndexMap::insert` has the same semantics; the `all_fail` aggregate vector covers it. |
+| DBLP from datacenter IPs | HTTP 202 with an anti-bot HTML page; Python's `urllib` treats 202 as success and the JSON parse fails. | Any 2xx is success; the page surfaces as `malformed_response` (`dblp__bot_challenge` fixture). Recording falls back to a hand-built `dblp__realistic` body. |
 
 ## 12. Gauntlet log (2026-10-18)
 
@@ -600,6 +606,12 @@ Line-by-line review of this plan. Each row was fixed in place.
 | *Phase 2 execution:* MSRV 1.88 was wrong; `uuid` 1.28 needs 1.89, `ort` 1.92, `wasmtime` 1.97. | Default-build MSRV 1.89, optional floors documented, CI checks 1.89. |
 | *Phase 2 execution:* the plan put record types in `re-verify`, creating a `re-store`/`re-verify` cycle. | New `re-model` crate. |
 | No list of Python-vs-Rust parity traps. | Section 11 added, with verified examples. |
+| *Phase 3 execution:* plan said 8 s HTTP timeout; Python uses 25 s. | Kept 25 s for parity (`REASONING_ENGINE_HTTP_TIMEOUT_SECS` overrides); fan-out deadlines belong in Phase 5 tuning, measured. |
+| *Phase 3:* error messages cannot match (different JSON and XML parsers). | Parity compares `error_type`, `retryable` and `metadata`; messages are excluded by name. 429 metadata gains `retry_after_secs` (additive). |
+| *Phase 3:* malformed item shapes (a string where Python expects a dict) crash Python adapters. | Rust treats them as missing fields; DBLP list-valued `ee`/`venue` take the first element. Documented divergence, never reachable on well-formed provider JSON. |
+| *Phase 3:* Semantic Scholar answered 429 while recording. | Recorder skips rate-limited sources and retries later; no keys or contact email are committed (`reasoning-engine@example.org`). |
+| *Phase 3:* plan asked for per-source `*.expected.json`. | One `tests/fixtures/http/expected.json` (20 cases, 21 URLs, 3 aggregator vectors) from `record_http.py expected`; the parity test was mutation-checked. |
+| *Phase 3:* `webpki-root-certs` (Mozilla CA data via reqwest) is CDLA-Permissive-2.0. | `deny.toml` exception scoped to that crate only. |
 
 ## References (Harvard, Australian style)
 
