@@ -43,7 +43,7 @@ pub const MAX_QUESTION_CHARS: usize = 500;
 /// [`CoreError::EmptyText`] when nothing is left after trimming, or
 /// [`CoreError::TextTooLong`] when the trimmed text is over `max_chars`.
 pub fn validate_text(value: &str, field: &str, max_chars: usize) -> Result<String, CoreError> {
-    let cleaned = value.trim();
+    let cleaned = crate::pystr::py_strip(value);
     if cleaned.is_empty() {
         return Err(CoreError::EmptyText {
             field: field.to_string(),

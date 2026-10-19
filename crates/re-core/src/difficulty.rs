@@ -1,7 +1,7 @@
 //! Heuristic query difficulty estimator (port of difficulty.py).
 //!
 //! Parity notes (plan section 11):
-//! - Tokenisation is `to_lowercase().split_whitespace()` with punctuation left
+//! - Tokenisation is `to_lowercase()` split on Python whitespace with punctuation left
 //!   attached, so `"implications?"` does not match the keyword `implications`.
 //! - Multi-word domain keywords match by substring on the lowercased query.
 //! - The four weighted components are summed left to right in `f64`.
@@ -96,11 +96,14 @@ static COMPLEX_SET: LazyLock<HashSet<&'static str>> =
 /// 0.15 question count.
 #[must_use]
 pub fn estimate_difficulty(query: &str) -> f64 {
-    if query.trim().is_empty() {
+    if crate::pystr::py_strip(query).is_empty() {
         return 0.0;
     }
     let query_lower = query.to_lowercase();
-    let words: Vec<&str> = query_lower.split_whitespace().collect();
+    let words: Vec<&str> = query_lower
+        .split(crate::pystr::py_is_space)
+        .filter(|w| !w.is_empty())
+        .collect();
     let word_count = words.len();
     let word_set: HashSet<&str> = words.iter().copied().collect();
 
@@ -134,6 +137,17 @@ mod tests {
     fn empty_and_whitespace_are_zero() {
         assert!(estimate_difficulty("").abs() < f64::EPSILON);
         assert!(estimate_difficulty("   \t\n").abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn python_whitespace_splits_words() {
+        // Python's `split()` breaks on \x1c; the scores must agree.
+        let joined = estimate_difficulty("compare\u{1c}the tradeoffs");
+        assert_eq!(
+            joined.to_bits(),
+            estimate_difficulty("compare the tradeoffs").to_bits()
+        );
+        assert!(estimate_difficulty("\u{1c}\u{1f}").abs() < f64::EPSILON);
     }
 
     #[test]

@@ -18,6 +18,7 @@ pub mod html_unescape;
 pub mod planning;
 pub mod profiles;
 pub mod pyjson;
+pub mod pystr;
 pub mod sanitize;
 pub mod types;
 pub mod ucb;
