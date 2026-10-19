@@ -1,6 +1,7 @@
-//! Contradiction search in the pipeline (plan Phase 10): a supported claim
-//! that a counter-search contests is flagged and listed in the report's
-//! counter-view; one that survives gains confidence.
+//! Phase 10 in the pipeline: contradiction search (a supported claim that a
+//! counter-search contests is flagged and listed in the report's
+//! counter-view; one that survives gains confidence) and conformal
+//! prediction sets in provenance.
 #![cfg(feature = "graph")]
 
 use std::path::Path;
@@ -11,6 +12,7 @@ use re_retrieval::base::{RecordInput, build_record};
 use re_retrieval::sources::BoxFuture;
 use re_retrieval::{AcademicSearchAggregator, RetrievalResult, SourceAdapter};
 use re_store::Store;
+use re_verify::calibration::Calibration;
 use re_verify::{LexicalOverlap, VerifiableResearchService, Verifier};
 use serde_json::Value;
 
@@ -66,6 +68,14 @@ impl Verifier for Scripted {
 
     fn can_contradict(&self) -> bool {
         true
+    }
+
+    fn probabilities(&self, premise: &str, _: &str) -> Option<[f64; 3]> {
+        Some(if premise == CONTRA {
+            [0.05, 0.9, 0.05]
+        } else {
+            [0.75, 0.05, 0.2]
+        })
     }
 
     fn verify(
@@ -219,4 +229,53 @@ async fn tiers_that_cannot_contradict_skip_the_search() {
             .unwrap()
             .contains("Counter-view")
     );
+}
+
+#[tokio::test]
+async fn verdicts_carry_conformal_prediction_sets() {
+    let dir = tempfile::tempdir().unwrap();
+    let service = service(dir.path(), Box::new(Scripted)).with_calibration(Calibration {
+        alpha: 0.1,
+        quantile: 0.3,
+        n: 100,
+        model: "scripted".into(),
+    });
+    let result = service
+        .run_research_pipeline("daytime naps", SURVIVOR, "standard", "general", false)
+        .await
+        .unwrap();
+    let run_id = result["run_id"].as_str().unwrap();
+    let event = service
+        .store()
+        .list_provenance(run_id)
+        .unwrap()
+        .into_iter()
+        .find(|e| e["event_type"] == "calibration")
+        .expect("a calibration event");
+    assert_eq!(event["coverage_level"], 0.9);
+    let set = &event["verifications"][0];
+    assert_eq!(set["label"], "supported");
+    assert_eq!(set["prediction_set"], serde_json::json!(["supported"]));
+    assert_eq!(set["in_prediction_set"], true);
+
+    let plain = tempfile::tempdir().unwrap();
+    let service = service_without_calibration(plain.path());
+    let result = service
+        .run_research_pipeline("daytime naps", SURVIVOR, "standard", "general", false)
+        .await
+        .unwrap();
+    let run_id = result["run_id"].as_str().unwrap();
+    assert!(
+        service
+            .store()
+            .list_provenance(run_id)
+            .unwrap()
+            .iter()
+            .all(|e| e["event_type"] != "calibration"),
+        "nothing without a calibration"
+    );
+}
+
+fn service_without_calibration(dir: &Path) -> VerifiableResearchService {
+    service(dir, Box::new(Scripted))
 }

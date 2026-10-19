@@ -109,6 +109,8 @@ pub struct VerifiableResearchService {
     fulltext: Option<re_retrieval::fulltext::FullTextFetcher>,
     #[cfg(feature = "graph")]
     counter_search: bool,
+    #[cfg(feature = "graph")]
+    calibration: Option<crate::calibration::Calibration>,
 }
 
 /// Records whose full text a pipeline run fetches, best ranked first.
@@ -149,7 +151,73 @@ impl VerifiableResearchService {
             fulltext: None,
             #[cfg(feature = "graph")]
             counter_search: false,
+            #[cfg(feature = "graph")]
+            calibration: None,
         }
+    }
+
+    /// Attach conformal prediction sets from `calibration` to each verdict
+    /// the tier can score (plan Phase 10; see [`crate::calibration`]).
+    #[cfg(feature = "graph")]
+    #[must_use]
+    pub fn with_calibration(mut self, calibration: crate::calibration::Calibration) -> Self {
+        self.calibration = Some(calibration);
+        self
+    }
+
+    /// Record each verdict's conformal prediction set in a `calibration`
+    /// provenance event: the premise is the first cited (or, failing that,
+    /// contradicting) record's snippet. Nothing is recorded without a
+    /// calibration or a tier that gives probabilities.
+    #[cfg(feature = "graph")]
+    fn calibrate(
+        &self,
+        run_id: &str,
+        verifier: &dyn Verifier,
+        claims: &[ClaimRecord],
+        verifications: &[VerificationRecord],
+        evidence: &[EvidenceRecord],
+    ) -> Result<(), VerifyError> {
+        let Some(calibration) = &self.calibration else {
+            return Ok(());
+        };
+        let mut sets = Vec::new();
+        for verification in verifications {
+            let premise = verification
+                .evidence_ids
+                .iter()
+                .chain(&verification.contradictory_evidence_ids)
+                .find_map(|id| evidence.iter().find(|e| &e.evidence_id == id));
+            let claim = claims.iter().find(|c| c.claim_id == verification.claim_id);
+            let (Some(premise), Some(claim)) = (premise, claim) else {
+                continue;
+            };
+            let Some(probabilities) = verifier.probabilities(&premise.snippet, &claim.text) else {
+                continue;
+            };
+            let set = calibration.prediction_set(&probabilities);
+            let label = crate::bench::label_of(&verification.support_status);
+            sets.push(json!({
+                "verification_id": verification.verification_id,
+                "label": label,
+                "prediction_set": set,
+                "in_prediction_set": set.contains(&label),
+            }));
+        }
+        if sets.is_empty() {
+            return Ok(());
+        }
+        self.store.append_provenance(
+            run_id,
+            "calibration",
+            &payload(&[
+                ("coverage_level", calibration.coverage_level().into()),
+                ("quantile", calibration.quantile.into()),
+                ("model", calibration.model.clone().into()),
+                ("verifications", Value::from(sets)),
+            ]),
+        )?;
+        Ok(())
     }
 
     /// Search for contradictions of supported claims after verification,
@@ -591,6 +659,8 @@ impl VerifiableResearchService {
         let findings = self
             .counter_search(&run.run_id, verifier, &mut claims, &mut verifications)
             .await?;
+        #[cfg(feature = "graph")]
+        self.calibrate(&run.run_id, verifier, &claims, &verifications, &citable)?;
         for claim in &claims {
             self.store.save_claim(claim)?;
         }

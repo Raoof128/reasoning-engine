@@ -114,6 +114,17 @@ enum KeysCommand {
 
 #[derive(Debug, Subcommand)]
 enum BenchCommand {
+    /// Fit the NLI tier's conformal calibration on labelled pairs, report
+    /// held-out coverage, and store it for research runs.
+    #[cfg(feature = "graph")]
+    Calibrate {
+        /// The labelled set (see `tests/fixtures/verify/`).
+        #[arg(long, default_value = "tests/fixtures/verify/labelled_pairs.json")]
+        set: PathBuf,
+        /// Target miscoverage: 0.1 aims for 90% coverage.
+        #[arg(long, default_value_t = re_verify::calibration::DEFAULT_ALPHA)]
+        alpha: f64,
+    },
     /// Precision and recall of each verifier tier on a labelled claim/evidence set.
     Verify {
         /// The labelled set (see `tests/fixtures/verify/`).
@@ -205,10 +216,97 @@ async fn service(config: &Config) -> Result<VerifiableResearchService, Failure> 
         }
     };
     #[cfg(feature = "graph")]
-    let service = service.with_counter_search();
+    let service = match load_calibration(config) {
+        Some(calibration) => service.with_counter_search().with_calibration(calibration),
+        None => service.with_counter_search(),
+    };
     #[cfg(feature = "trust")]
     let service = trust::sign(config, service);
     Ok(service)
+}
+
+/// The stored calibration, if any; a broken file is reported and ignored.
+#[cfg(feature = "graph")]
+fn load_calibration(config: &Config) -> Option<re_verify::calibration::Calibration> {
+    let path = config.calibration_path();
+    if !path.exists() {
+        return None;
+    }
+    re_verify::calibration::Calibration::load(&path)
+        .inspect_err(|e| eprintln!("warning: ignoring calibration: {e}"))
+        .ok()
+}
+
+/// `bench calibrate`: score every labelled pair with the NLI tier, fit on
+/// a deterministic half, report coverage on the other half, then fit on
+/// all pairs (plus `<data_dir>/labelled_pairs.json`, if present) and store
+/// the result.
+#[cfg(feature = "graph")]
+async fn bench_calibrate(set: &std::path::Path, alpha: f64) -> Result<u8, Failure> {
+    use re_verify::bench::{LABELS, LabelledSet, Pair};
+    use re_verify::calibration::{Calibration, split};
+    if !(0.0..1.0).contains(&alpha) || alpha == 0.0 {
+        return Err(format!("--alpha must be between 0 and 1, got {alpha}").into());
+    }
+    let config = load_config()?;
+    let read = |path: &std::path::Path| -> Result<Vec<Pair>, Failure> {
+        let text = std::fs::read_to_string(path)
+            .map_err(|e| format!("cannot read {}: {e}", path.display()))?;
+        Ok(serde_json::from_str::<LabelledSet>(&text)?.pairs)
+    };
+    let mut pairs = read(set)?;
+    let user = config.data_dir().join("labelled_pairs.json");
+    if user.exists() {
+        pairs.extend(read(&user)?);
+    }
+    let offline = std::env::var("REASONING_ENGINE_OFFLINE").is_ok_and(|v| v == "1");
+    let verifier = load_verifier(Some("nli"), &config.models_dir(), offline).await?;
+    let model = verifier.models().join(", ");
+    let mut probabilities = Vec::with_capacity(pairs.len());
+    let mut gold = Vec::with_capacity(pairs.len());
+    let mut ids = Vec::with_capacity(pairs.len());
+    for pair in &pairs {
+        let Some(p) = verifier.probabilities(&pair.evidence, &pair.claim) else {
+            return Err("the nli tier gave no probabilities".into());
+        };
+        probabilities.push(p);
+        gold.push(LABELS.iter().position(|l| *l == pair.label).unwrap_or(2));
+        ids.push(pair.id.as_str());
+    }
+    let (fit_on, held_out) = split(&ids);
+    let pick = |indices: &[usize]| -> (Vec<[f64; 3]>, Vec<usize>) {
+        indices.iter().map(|&i| (probabilities[i], gold[i])).unzip()
+    };
+    let (fit_p, fit_g) = pick(&fit_on);
+    let (test_p, test_g) = pick(&held_out);
+    let half = Calibration::fit(&fit_p, &fit_g, alpha, &model)
+        .ok_or_else(|| "no pairs to calibrate on".to_string())?;
+    let sets: usize = test_p.iter().map(|p| half.prediction_set(p).len()).sum();
+    #[allow(clippy::cast_precision_loss, reason = "counts of labelled pairs")]
+    let mean_set = sets as f64 / test_p.len().max(1) as f64;
+    println!(
+        "Conformal calibration of {model} on {} pairs (alpha {alpha})\n\n\
+         | Split | Pairs | Quantile | Coverage | Mean set size |\n|---|---:|---:|---:|---:|\n\
+         | fit {} / held out {} | {} | {:.3} | {:.3} (target {:.3}) | {mean_set:.2} |",
+        pairs.len(),
+        fit_on.len(),
+        held_out.len(),
+        test_p.len(),
+        half.quantile,
+        half.coverage(&test_p, &test_g),
+        1.0 - alpha,
+    );
+    let full = Calibration::fit(&probabilities, &gold, alpha, &model)
+        .ok_or_else(|| "no pairs to calibrate on".to_string())?;
+    let path = config.calibration_path();
+    full.save(&path)?;
+    println!(
+        "\nStored the calibration on all {} pairs (quantile {:.3}) at {}",
+        full.n,
+        full.quantile,
+        path.display()
+    );
+    Ok(0)
 }
 
 /// `bench verify`: each tier on the labelled claim/sentence set.
@@ -322,6 +420,10 @@ async fn run(cli: Cli) -> Result<u8, Failure> {
             print_json(&outcome.to_json());
             Ok(0)
         }
+        #[cfg(feature = "graph")]
+        Command::Bench {
+            command: BenchCommand::Calibrate { set, alpha },
+        } => bench_calibrate(&set, alpha).await,
         #[cfg(feature = "fulltext")]
         Command::Bench {
             command:

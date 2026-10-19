@@ -58,6 +58,9 @@ pub struct RecordPlan {
     /// Whether supported claims were searched for contradiction (`graph`
     /// feature).
     pub counter_search: bool,
+    /// The conformal calibration in force (`graph` feature), stored whole
+    /// so a replay does not depend on the local file.
+    pub calibration: Option<Value>,
 }
 
 impl RecordPlan {
@@ -73,6 +76,7 @@ impl RecordPlan {
             quality: false,
             fulltext: false,
             counter_search: false,
+            calibration: None,
         }
     }
 
@@ -98,6 +102,9 @@ impl RecordPlan {
         if self.counter_search {
             settings.insert("counter_search".into(), true.into());
         }
+        if let Some(calibration) = &self.calibration {
+            settings.insert("calibration".into(), calibration.clone());
+        }
         Recorder { tape, settings }
     }
 }
@@ -119,11 +126,35 @@ fn with_settings(
     } else {
         service
     };
+    let service = match inputs.get("calibration") {
+        Some(calibration) => with_calibration(service, calibration)?,
+        None => service,
+    };
     if on("fulltext") {
         with_full_text(service, tape)
     } else {
         Ok(service)
     }
+}
+
+#[cfg(feature = "graph")]
+fn with_calibration(
+    service: VerifiableResearchService,
+    calibration: &Value,
+) -> Result<VerifiableResearchService, VerifyError> {
+    let calibration = serde_json::from_value(calibration.clone())
+        .map_err(|e| invalid(format!("bad calibration in {REPLAY_INPUTS}: {e}")))?;
+    Ok(service.with_calibration(calibration))
+}
+
+#[cfg(not(feature = "graph"))]
+fn with_calibration(
+    _: VerifiableResearchService,
+    _: &Value,
+) -> Result<VerifiableResearchService, VerifyError> {
+    Err(invalid(
+        "this pack used a conformal calibration; replay it with a `graph` build",
+    ))
 }
 
 #[cfg(feature = "graph")]

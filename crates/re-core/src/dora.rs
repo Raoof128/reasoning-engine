@@ -8,6 +8,8 @@
 //! (`IndexMap`) and sorting is stable, so ties resolve exactly as Python's
 //! `sorted(..., reverse=True)` does.
 
+pub mod reestimate;
+
 use std::collections::HashSet;
 
 use indexmap::IndexMap;

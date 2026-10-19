@@ -5,6 +5,8 @@
 #![deny(missing_docs)]
 
 pub mod bench;
+#[cfg(feature = "graph")]
+pub mod calibration;
 #[cfg(feature = "fulltext")]
 pub mod chunks;
 #[cfg(feature = "trust")]

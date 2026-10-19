@@ -8,6 +8,7 @@
 #![deny(missing_docs)]
 
 pub mod audit;
+pub mod budget;
 pub mod cache;
 mod conn;
 mod error;

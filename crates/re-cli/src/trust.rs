@@ -44,10 +44,16 @@ pub async fn record(
     let adapters = adapters_with(|var| std::env::var(var).ok(), Some(Arc::clone(&tape)))?;
     let sources = adapters.iter().map(|a| a.name().to_string()).collect();
     let tier = config.verifier();
+    #[cfg(feature = "graph")]
+    let calibration = crate::load_calibration(config);
     let plan = RecordPlan {
         quality: cfg!(feature = "fulltext"),
         fulltext: cfg!(feature = "fulltext") && !offline(),
         counter_search: cfg!(feature = "graph"),
+        #[cfg(feature = "graph")]
+        calibration: calibration
+            .as_ref()
+            .and_then(|c| serde_json::to_value(c).ok()),
         ..RecordPlan::now(sources, offline(), &tier)
     };
     let verifier = load_verifier(Some(&tier), &config.models_dir(), offline()).await?;
@@ -67,7 +73,10 @@ pub async fn record(
         service
     };
     #[cfg(feature = "graph")]
-    let service = service.with_counter_search();
+    let service = match calibration {
+        Some(calibration) => service.with_counter_search().with_calibration(calibration),
+        None => service.with_counter_search(),
+    };
     // Full text is fetched through the same tape, so replay needs no
     // network either.
     #[cfg(feature = "fulltext")]
