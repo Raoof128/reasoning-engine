@@ -60,6 +60,10 @@ impl Tools {
     /// # Errors
     /// Python's message for an unknown tool, a bad argument, or a failure.
     pub async fn call(&self, name: &str, arguments: &Map<String, Value>) -> ToolResult {
+        let Some(spec) = crate::schema::find(name) else {
+            return Err(ToolError::new(format!("Unknown tool: {name}")));
+        };
+        crate::args::check(spec, arguments)?;
         let a = Args::new(name, arguments);
         match name {
             "init_research_session" => self.init_research_session(&a),

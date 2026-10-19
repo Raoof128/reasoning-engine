@@ -115,6 +115,9 @@ pub fn limited_int(
 /// `json.JSONDecodeError.pos` for a serde error: the character offset of
 /// its line and column, or the input length when the input ran out.
 fn char_pos(raw: &str, error: &serde_json::Error) -> usize {
+    if error.to_string().starts_with("EOF while parsing a string") {
+        return unterminated_string_start(raw).unwrap_or(0);
+    }
     if error.is_eof() {
         return raw.chars().count();
     }
@@ -126,12 +129,28 @@ fn char_pos(raw: &str, error: &serde_json::Error) -> usize {
     line_start + error.column().saturating_sub(1)
 }
 
+/// Character offset of the opening quote of a string that never closes.
+fn unterminated_string_start(raw: &str) -> Option<usize> {
+    let (mut open, mut escaped) = (None, false);
+    for (index, c) in raw.chars().enumerate() {
+        match (open, c) {
+            (Some(_), _) if escaped => escaped = false,
+            (Some(_), '\\') => escaped = true,
+            (Some(_), '"') => open = None,
+            (None, '"') => open = Some(index),
+            _ => {}
+        }
+    }
+    open
+}
+
 /// `json.JSONDecodeError.msg` for the common serde errors.
 fn python_json_message(error: &serde_json::Error) -> String {
     let detail = error.to_string();
     let serde_message = detail.split(" at line ").next().unwrap_or(&detail);
     match serde_message {
         "expected value" | "EOF while parsing a value" => "Expecting value",
+        "EOF while parsing a string" => "Unterminated string starting at",
         "EOF while parsing a list"
         | "expected `,` or `]`"
         | "EOF while parsing an object"
@@ -347,6 +366,8 @@ mod tests {
                 "Expecting property name enclosed in double quotes",
                 1,
             ),
+            ("[\"unterminated", "Unterminated string starting at", 1),
+            ("[\"a\\\"b\", \"c", "Unterminated string starting at", 9),
         ];
         for (raw, message, pos) in cases {
             assert_eq!(
