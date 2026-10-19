@@ -1,0 +1,12 @@
+//! The reasoning engine's MCP server: the twenty tools of `server.py`, with
+//! Python's argument coercion, validation messages and response JSON.
+#![forbid(unsafe_code)]
+#![deny(missing_docs)]
+
+pub mod args;
+pub mod error;
+pub mod limits;
+pub mod schema;
+pub mod validate;
+
+pub use error::ToolError;

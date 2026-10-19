@@ -1,0 +1,30 @@
+[package]
+name = "re-mcp"
+description = "MCP server for the reasoning engine: twenty tools over stdio, Python-compatible."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+re-core.workspace = true
+re-model.workspace = true
+re-store.workspace = true
+re-retrieval.workspace = true
+re-verify.workspace = true
+rmcp.workspace = true
+schemars.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+insta.workspace = true
+
+[lints]
+workspace = true
