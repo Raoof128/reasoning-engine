@@ -7,6 +7,7 @@
 mod config;
 #[cfg(feature = "learn")]
 mod learn;
+mod scifact;
 #[cfg(feature = "local-host")]
 mod serve;
 mod setup;
@@ -167,6 +168,10 @@ enum BenchCommand {
         #[cfg(feature = "fulltext")]
         #[arg(long = "full-text", value_name = "SET")]
         full_text: Option<PathBuf>,
+        /// Instead, score a public dataset, downloaded into the data
+        /// directory on first use: `scifact` (claims CC BY 4.0, abstracts ODC-By 1.0).
+        #[arg(long, value_parser = ["scifact"])]
+        dataset: Option<String>,
     },
 }
 
@@ -370,6 +375,33 @@ async fn bench_verify(set: &std::path::Path, tiers: &[String]) -> Result<u8, Fai
     Ok(0)
 }
 
+/// `bench verify --dataset scifact`: every tier on `SciFact`'s dev claims,
+/// one summary row each, then the per-label tables.
+async fn bench_scifact(tiers: &[String]) -> Result<u8, Failure> {
+    let config = load_config()?;
+    let offline = std::env::var("REASONING_ENGINE_OFFLINE").is_ok_and(|v| v == "1");
+    let (claims, corpus) = scifact::load(&config.data_dir(), offline).await?;
+    let pairs = re_verify::bench::scifact_pairs(&claims, &corpus)?;
+    let mut rows = Vec::with_capacity(tiers.len());
+    for tier in tiers {
+        let verifier = load_verifier(Some(tier), &config.models_dir(), offline).await?;
+        let started = std::time::Instant::now();
+        let report = re_verify::bench::evaluate(verifier.as_ref(), &pairs);
+        rows.push((report, started.elapsed()));
+    }
+    println!(
+        "## SciFact scoreboard\n\n{} abstract-level pairs from the dev split's {} claims \
+         (Wadden et al. 2020; claims CC BY 4.0, abstracts ODC-By 1.0).\n\n{}",
+        pairs.len(),
+        claims.lines().filter(|l| !l.trim().is_empty()).count(),
+        re_verify::bench::scoreboard(&rows)
+    );
+    for (report, _) in &rows {
+        println!("{}", report.table());
+    }
+    Ok(0)
+}
+
 /// `bench verify --full-text`: abstract-only against full text, per tier.
 #[cfg(feature = "fulltext")]
 async fn bench_full_text(set: &std::path::Path, tiers: &[String]) -> Result<u8, Failure> {
@@ -418,6 +450,26 @@ async fn tools(config: &Config) -> Result<Tools, Failure> {
 /// `print(json.dumps(payload, indent=2, sort_keys=True))`.
 fn print_json(payload: &Value) {
     println!("{}", dumps(payload, &DumpOptions::indented_sorted(2)));
+}
+
+/// `bench <command>`.
+async fn bench(command: BenchCommand) -> Result<u8, Failure> {
+    match command {
+        #[cfg(feature = "graph")]
+        BenchCommand::Calibrate { set, alpha } => bench_calibrate(&set, alpha).await,
+        BenchCommand::Verify {
+            tiers,
+            dataset: Some(_),
+            ..
+        } => bench_scifact(&tiers).await,
+        #[cfg(feature = "fulltext")]
+        BenchCommand::Verify {
+            tiers,
+            full_text: Some(set),
+            ..
+        } => bench_full_text(&set, &tiers).await,
+        BenchCommand::Verify { set, tiers, .. } => bench_verify(&set, &tiers).await,
+    }
 }
 
 async fn run(cli: Cli) -> Result<u8, Failure> {
@@ -475,22 +527,7 @@ async fn run(cli: Cli) -> Result<u8, Failure> {
             print_json(&outcome.to_json());
             Ok(0)
         }
-        #[cfg(feature = "graph")]
-        Command::Bench {
-            command: BenchCommand::Calibrate { set, alpha },
-        } => bench_calibrate(&set, alpha).await,
-        #[cfg(feature = "fulltext")]
-        Command::Bench {
-            command:
-                BenchCommand::Verify {
-                    tiers,
-                    full_text: Some(set),
-                    ..
-                },
-        } => bench_full_text(&set, &tiers).await,
-        Command::Bench {
-            command: BenchCommand::Verify { set, tiers, .. },
-        } => bench_verify(&set, &tiers).await,
+        Command::Bench { command } => bench(command).await,
         #[cfg(not(feature = "trust"))]
         Command::VerifyRunpack { dir } => {
             let result = verify_run_pack_attestation(&dir);

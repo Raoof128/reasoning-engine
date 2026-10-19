@@ -19,6 +19,9 @@ semantic = ["dep:ort", "dep:tokenizers", "dep:reqwest", "dep:sha2"]
 graph = ["re-retrieval/graph", "dep:petgraph"]
 # Cross-session evidence memory and living reports (plan Phase 11).
 learn = ["re-store/learn"]
+# Persian normalisation and lexical terms, the Persian report, and with
+# `semantic` the multilingual bge-m3 embedder (plan Phase 12).
+fa = ["re-core/fa"]
 # Verify claims against open-access full text (plan Phase 9).
 fulltext = ["re-retrieval/fulltext"]
 trust = ["dep:ed25519-dalek", "dep:getrandom", "dep:base64", "dep:nom", "dep:hayagriva"]

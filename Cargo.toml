@@ -65,7 +65,10 @@ pdfium-render = "=0.9.4"
 pdf-extract = "=0.12.1"
 linfa = "=0.8.1"
 askama = "=0.16.1"
-wasmtime = "=50.0.0-rc.1"
+# SciFact download for `bench verify --dataset scifact` (plan Phase 12).
+flate2 = "=1.1.10"
+tar = { version = "=0.4.46", default-features = false }
+wasmtime = { version = "=50.0.0-rc.1", default-features = false, features = ["runtime", "cranelift", "wat", "std"] }
 
 # Testing and benchmarks
 proptest = "=1.12.0"

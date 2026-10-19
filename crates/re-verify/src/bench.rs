@@ -179,6 +179,113 @@ pub fn evaluate(verifier: &dyn Verifier, pairs: &[Pair]) -> Report {
     }
 }
 
+/// One `SciFact` claim (Wadden et al. 2020), as in `claims_dev.jsonl`.
+#[derive(Debug, Deserialize)]
+struct SciFactClaim {
+    id: u64,
+    claim: String,
+    /// Evidence sets by document id; every set for a document shares one
+    /// label.
+    #[serde(default)]
+    evidence: std::collections::BTreeMap<String, Vec<SciFactEvidence>>,
+    cited_doc_ids: Vec<u64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct SciFactEvidence {
+    label: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct SciFactDocument {
+    doc_id: u64,
+    #[serde(rename = "abstract")]
+    sentences: Vec<String>,
+}
+
+/// `SciFact` claims as abstract-level pairs: one per claim and cited
+/// abstract, with the whole abstract as the evidence. A rationale labelled
+/// `SUPPORT` makes the pair supported, `CONTRADICT` contradicted, and a
+/// cited abstract with no rationale neutral (`SciFact`'s "not enough
+/// info").
+///
+/// # Errors
+/// A line that is not a claim or document, or a cited abstract missing
+/// from the corpus.
+pub fn scifact_pairs(claims: &str, corpus: &str) -> Result<Vec<Pair>, String> {
+    let lines = |text: &str| -> Vec<(usize, String)> {
+        text.lines()
+            .enumerate()
+            .filter(|(_, line)| !line.trim().is_empty())
+            .map(|(i, line)| (i + 1, line.to_string()))
+            .collect()
+    };
+    let mut abstracts = std::collections::HashMap::new();
+    for (number, line) in lines(corpus) {
+        let doc: SciFactDocument =
+            serde_json::from_str(&line).map_err(|e| format!("corpus line {number}: {e}"))?;
+        abstracts.insert(doc.doc_id, doc.sentences.join(" "));
+    }
+    let mut pairs = Vec::new();
+    for (number, line) in lines(claims) {
+        let claim: SciFactClaim =
+            serde_json::from_str(&line).map_err(|e| format!("claims line {number}: {e}"))?;
+        for doc_id in &claim.cited_doc_ids {
+            let evidence = abstracts
+                .get(doc_id)
+                .ok_or_else(|| format!("claim {} cites {doc_id}, not in the corpus", claim.id))?;
+            let label = match claim
+                .evidence
+                .get(&doc_id.to_string())
+                .and_then(|sets| sets.first())
+                .map(|set| set.label.as_str())
+            {
+                Some("SUPPORT") => "supported",
+                Some("CONTRADICT") => "contradicted",
+                _ => "neutral",
+            };
+            pairs.push(Pair {
+                id: format!("scifact-{}-{doc_id}", claim.id),
+                claim: claim.claim.clone(),
+                evidence: evidence.clone(),
+                label: label.into(),
+            });
+        }
+    }
+    Ok(pairs)
+}
+
+/// A Markdown summary with one row per tier: accuracy, F1 per label, macro
+/// F1 and mean latency per pair.
+#[must_use]
+pub fn scoreboard(rows: &[(Report, std::time::Duration)]) -> String {
+    let Some((first, _)) = rows.first() else {
+        return String::new();
+    };
+    let mut out = String::from("| Tier | Accuracy |");
+    for label in first.labels {
+        let _ = write!(out, " F1 {label} |");
+    }
+    out.push_str(" Macro F1 | ms / pair |\n|---|---:|");
+    out.push_str(&"---:|".repeat(first.labels.len() + 2));
+    out.push('\n');
+    for (report, elapsed) in rows {
+        let _ = write!(out, "| {} | {:.3} |", report.method, report.accuracy());
+        for label in report.labels {
+            let _ = write!(out, " {:.3} |", report.f1(label));
+        }
+        #[allow(clippy::cast_precision_loss, reason = "three labels, few pairs")]
+        let pairs = report.predictions.len().max(1) as f64;
+        let macro_f1 = report.labels.iter().map(|l| report.f1(l)).sum::<f64>() / 3.0;
+        let _ = writeln!(
+            out,
+            " {macro_f1:.3} | {:.1} |",
+            elapsed.as_secs_f64() * 1000.0 / pairs
+        );
+    }
+    out
+}
+
 /// Labels of the full-text set, where `partially_supported` is its own
 /// class.
 #[cfg(feature = "fulltext")]

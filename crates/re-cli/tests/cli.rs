@@ -499,3 +499,54 @@ fn watch_reverifies_a_run_and_reports_drift_by_exit_code() {
         .assert()
         .code(2);
 }
+
+#[test]
+fn the_scifact_scoreboard_uses_the_data_directory() {
+    let home = tempfile::tempdir().expect("tmp");
+    let missing = bin(home.path())
+        .args([
+            "bench",
+            "verify",
+            "--dataset",
+            "scifact",
+            "--tier",
+            "lexical",
+        ])
+        .output()
+        .expect("runs");
+    assert!(!missing.status.success());
+    let stderr = String::from_utf8_lossy(&missing.stderr);
+    assert!(stderr.contains("forbids downloading"), "{stderr}");
+
+    // Two made-up lines in SciFact's format; the dataset is never committed.
+    let dir = home.path().join(".reasoning-engine").join("scifact");
+    std::fs::create_dir_all(&dir).expect("dir");
+    std::fs::write(
+        dir.join("corpus.jsonl"),
+        r#"{"doc_id": 1, "title": "t", "abstract": ["Daytime naps improve afternoon power."]}"#,
+    )
+    .expect("corpus");
+    std::fs::write(
+        dir.join("claims_dev.jsonl"),
+        r#"{"id": 7, "claim": "Daytime naps improve afternoon power.", "evidence": {"1": [{"sentences": [0], "label": "SUPPORT"}]}, "cited_doc_ids": [1]}"#,
+    )
+    .expect("claims");
+    let output = bin(home.path())
+        .args([
+            "bench",
+            "verify",
+            "--dataset",
+            "scifact",
+            "--tier",
+            "lexical",
+        ])
+        .output()
+        .expect("runs");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(output.status.success(), "{stdout}");
+    assert!(
+        stdout.contains("1 abstract-level pairs from the dev split's 1 claims"),
+        "{stdout}"
+    );
+    assert!(stdout.contains("| term_overlap_mvp | 1.000 |"), "{stdout}");
+}

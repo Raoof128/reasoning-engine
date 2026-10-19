@@ -50,7 +50,8 @@ pub fn dedup_key(record: &EvidenceRecord) -> String {
 /// Build the enabled adapters from the environment: the mock alone when
 /// `REASONING_ENGINE_OFFLINE=1`, else `REASONING_ENGINE_SOURCES` (comma
 /// separated, unknown names ignored) or every free source. Scholar Gateway
-/// joins only when compiled in and configured.
+/// joins only when compiled in and configured; with `wasm-adapters`, other
+/// requested names load from the adapters directory.
 ///
 /// # Errors
 /// If the shared HTTP client cannot be built.
@@ -115,6 +116,24 @@ pub fn adapters_with(
             && non_empty("SCHOLAR_GATEWAY_ACCESS_TOKEN").is_some();
         if configured && (requested.is_empty() || names.contains(&"scholar_gateway")) {
             adapters.push(Arc::new(ScholarGateway::new()?));
+        }
+    }
+    #[cfg(feature = "wasm-adapters")]
+    {
+        // Names that are not built in may be sandboxed adapters on disk.
+        let others: Vec<&str> = names
+            .iter()
+            .copied()
+            .filter(|name| *name != "scholar_gateway" && free_source(name, &config).is_none())
+            .collect();
+        if let Some(dir) = crate::wasm::adapters_dir(&env)
+            && !others.is_empty()
+        {
+            adapters.extend(
+                crate::wasm::load(&dir, &others, &client)
+                    .into_iter()
+                    .map(|adapter| Arc::new(adapter) as Adapter),
+            );
         }
     }
     Ok(adapters)

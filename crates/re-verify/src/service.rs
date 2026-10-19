@@ -1012,7 +1012,9 @@ fn references_for(profile: &str, evidence: &[Value]) -> Option<(String, String)>
     }
 }
 
-/// The Markdown report: header lines, then one bullet per claim.
+/// The Markdown report: header lines, then one bullet per claim. With
+/// `fa`, a Persian query gets the Persian, right-to-left report
+/// (the `report_fa` module).
 #[must_use]
 pub fn build_report(
     run: &ResearchRun,
@@ -1020,6 +1022,11 @@ pub fn build_report(
     verifications: &[VerificationRecord],
     gate: &Value,
 ) -> String {
+    #[cfg(feature = "fa")]
+    if re_core::fa::is_persian(&run.query) {
+        let digits = std::env::var("REASONING_ENGINE_PERSIAN_DIGITS").is_ok_and(|v| v == "1");
+        return crate::report_fa::build_report(run, claims, verifications, gate, digits);
+    }
     let result = gate
         .get("result")
         .and_then(Value::as_str)
@@ -1035,13 +1042,21 @@ pub fn build_report(
         "## Claims".to_string(),
     ];
     for claim in claims {
-        // Last verification per claim wins, as with Python's dict.
-        let status = verifications
-            .iter()
-            .rev()
-            .find(|v| v.claim_id == claim.claim_id)
-            .map_or(claim.status.as_str(), |v| v.support_status.as_str());
+        let status = final_status(claim, verifications);
         lines.push(format!("- [{status}] {}", claim.text));
     }
     lines.join("\n") + "\n"
+}
+
+/// A claim's reported status: its last verification wins, as with
+/// Python's dict.
+pub(crate) fn final_status<'a>(
+    claim: &'a ClaimRecord,
+    verifications: &'a [VerificationRecord],
+) -> &'a str {
+    verifications
+        .iter()
+        .rev()
+        .find(|v| v.claim_id == claim.claim_id)
+        .map_or(claim.status.as_str(), |v| v.support_status.as_str())
 }

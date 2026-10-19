@@ -1,0 +1,42 @@
+name: Scoreboard
+
+# Weekly SciFact scoreboard for every verifier tier (plan Phase 12). The
+# table is uploaded as an artifact; README.md shows the last one committed.
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  scifact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Keep in step with rust-toolchain.toml.
+      - uses: dtolnay/rust-toolchain@1.99.1
+      - uses: Swatinem/rust-cache@v2
+      # ONNX models and the SciFact download, reused between weeks.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.reasoning-engine
+          key: scoreboard-data-v1
+      - name: Build
+        run: cargo build --release --locked -p re-cli --features semantic
+      - name: Score
+        run: |
+          {
+            ./target/release/reasoning-engine bench verify --dataset scifact
+            echo
+            echo "Commit ${GITHUB_SHA::12}, $(date -u +%Y-%m-%d)."
+          } | tee scoreboard.md
+          cat scoreboard.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scifact-scoreboard
+          path: scoreboard.md

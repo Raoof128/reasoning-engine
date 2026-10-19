@@ -13,6 +13,8 @@ publish = false
 default = []
 # Learned process-reward prior (plan Phase 11).
 learn = []
+# Persian normalisation (plan Phase 12).
+fa = []
 
 [dependencies]
 serde.workspace = true

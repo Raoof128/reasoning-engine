@@ -11,6 +11,8 @@
 
 use re_model::records::{ClaimRecord, EvidenceRecord, VerificationRecord};
 
+#[cfg(feature = "fa")]
+use crate::hybrid::Candidate;
 use crate::hybrid::{Embedder, Outcome, finish, model_failure, no_evidence, shortlist, uncited};
 use crate::verify::Verifier;
 
@@ -126,6 +128,38 @@ fn decide(scored: &[(usize, NliScores)], evidence: &[EvidenceRecord]) -> Outcome
     )
 }
 
+/// Whether the claim or any shortlisted snippet is Persian, which the
+/// English NLI model cannot read.
+#[cfg(feature = "fa")]
+fn non_english(claim: &str, shortlist: &[Candidate], evidence: &[EvidenceRecord]) -> bool {
+    re_core::fa::is_persian(claim)
+        || shortlist
+            .iter()
+            .any(|c| re_core::fa::is_persian(&evidence[c.index].snippet))
+}
+
+/// The hybrid tier's decision, saying why NLI was not used.
+#[cfg(feature = "fa")]
+fn english_only(
+    shortlist: &[Candidate],
+    evidence: &[EvidenceRecord],
+    cutoffs: (f32, f32),
+) -> Outcome {
+    let best = shortlist
+        .iter()
+        .max_by(|a, b| a.cosine.total_cmp(&b.cosine))
+        .copied();
+    let Some(best) = best else {
+        return no_evidence();
+    };
+    let mut outcome = crate::hybrid::decide(best, evidence, cutoffs);
+    outcome.rationale.push_str(
+        " The NLI model reads English only, so this non-English pair was judged by the \
+         hybrid tier.",
+    );
+    outcome
+}
+
 impl<E: Embedder, N: NliModel> Verifier for NliVerifier<E, N> {
     fn method(&self) -> &'static str {
         "nli_cross_encoder"
@@ -155,6 +189,8 @@ impl<E: Embedder, N: NliModel> Verifier for NliVerifier<E, N> {
     ) -> Vec<VerificationRecord> {
         let texts: Vec<&str> = claims.iter().map(|c| c.text.as_str()).collect();
         let shortlists = shortlist(&self.embedder, &texts, evidence);
+        #[cfg(feature = "fa")]
+        let cutoffs = crate::hybrid::routed(&self.embedder, &texts, evidence).cutoffs();
         claims
             .iter_mut()
             .enumerate()
@@ -165,6 +201,10 @@ impl<E: Embedder, N: NliModel> Verifier for NliVerifier<E, N> {
                 let outcome = match &shortlists {
                     Err(error) => model_failure(error),
                     Ok(lists) if lists[i].is_empty() => no_evidence(),
+                    #[cfg(feature = "fa")]
+                    Ok(lists) if non_english(&claim.text, &lists[i], evidence) => {
+                        english_only(&lists[i], evidence, cutoffs)
+                    }
                     Ok(lists) => {
                         let pairs: Vec<(&str, &str)> = lists[i]
                             .iter()

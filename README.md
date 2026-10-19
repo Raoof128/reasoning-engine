@@ -92,7 +92,7 @@ Needs Rust 1.89 or newer (1.92 for `semantic`).
 git clone https://github.com/Raoof128/reasoning-engine.git
 cd reasoning-engine
 cargo install --locked --path crates/re-cli                          # stdio MCP only
-cargo install --locked --path crates/re-cli --features local-host,trust,tasks,semantic,fulltext,graph,learn   # everything
+cargo install --locked --path crates/re-cli --features local-host,trust,tasks,semantic,fulltext,graph,learn,fa,wasm-adapters   # everything
 ```
 
 ### Docker
@@ -153,6 +153,8 @@ cp skill/deep-research.md ~/.claude/skills/
 | `fulltext` | Claims verified against open-access full text; publication-type scoring and retraction flags | no |
 | `graph` | Evidence graph and retraction cascades, contradiction search, conformal calibration, adversarial angle, budget re-estimation | no |
 | `learn` | Learned branch prior (`prior train`), cross-session evidence memory, living reports (`watch`) | no |
+| `fa` | Persian: spelling normalisation, Persian terms in `lexical`, a right-to-left Persian report, and with `semantic` the multilingual bge-m3 embedder | no |
+| `wasm-adapters` | Sandboxed third-party search sources loaded from `~/.reasoning-engine/adapters` (needs Rust 1.97) | no |
 | `semantic` | `hybrid` and `nli` verifier tiers (ONNX models, downloaded on first use) | no |
 | `scholar-gateway` | Token-gated Scholar Gateway as an extra search source | no |
 
@@ -161,10 +163,24 @@ cp skill/deep-research.md ~/.claude/skills/
 | Tier | How it decides | Accuracy | Contradiction recall |
 |---|---|---:|---:|
 | `lexical` (default) | Word overlap | 0.585 | 0.00 |
-| `hybrid` | BM25 + RRF shortlist, then BGE-small cosine | 0.565 | 0.00 |
+| `hybrid` | BM25 + RRF shortlist, then BGE-small cosine | 0.571 | 0.00 |
 | `nli` (recommended with `semantic`) | DeBERTa-v3 cross-encoder: entail / contradict / neutral | **0.912** | **0.98** |
 
 The numbers come from `reasoning-engine bench verify` on 147 labelled claim/evidence pairs in `tests/fixtures/verify/labelled_pairs.json`. The labels were AI-written and have not yet been reviewed by a person. Lexical cannot detect contradiction at all, and embeddings cannot see negation, so `hybrid` mainly serves as NLI's shortlist. `high_stakes` runs always use `nli` when the build and models allow it. Models are pinned by revision and SHA-256 and checked on every load.
+
+### SciFact scoreboard
+
+A public yardstick, not one we labelled ourselves. `reasoning-engine bench verify --dataset scifact` scores every built tier on SciFact's dev split (Wadden et al. 2020): 300 expert-written claims, turned into 340 claim/abstract pairs with the whole abstract as the evidence. The dataset (claims CC BY 4.0, abstracts ODC-By 1.0) is downloaded once into `~/.reasoning-engine/scifact/`, checked against a pinned SHA-256, and never committed. A weekly workflow (`.github/workflows/bench.yml`) uploads a fresh table as an artifact.
+
+| Tier | Accuracy | F1 supported | F1 contradicted | F1 neutral | Macro F1 | ms / pair |
+|---|---:|---:|---:|---:|---:|---:|
+| `lexical` | 0.538 | 0.532 | 0.000 | 0.641 | 0.391 | 0.1 |
+| `hybrid` | 0.582 | 0.657 | 0.000 | 0.642 | 0.433 | 114.3 |
+| `nli` | 0.479 | 0.160 | 0.472 | 0.600 | 0.411 | 276.1 |
+
+Verifiers at commit `fd4c0a940c7a`, measured 2026-10-19 on 4 CPUs.
+
+This set is much harder than the labelled pairs above. A whole abstract is a long premise for a sentence-level NLI model, so `nli` almost never reaches its 0.7 entailment bar: when it says `supported` it is right every time, but it finds only 9% of the supported pairs. It is still the only tier that catches contradictions. Treat these numbers as the baseline the next verifier has to beat.
 
 ## Academic search and the verifiable pipeline
 
@@ -387,6 +403,37 @@ With a prior in place:
 - It writes `runs/<run_id>/watch/<date>.diff.md`, covering changed verdicts, sources newly retracted or flagged, sources gained or lost, and new retraction cascades.
 - It exits `3` when anything changed, so it slots into cron or CI.
 - `--every 7d` keeps watching.
+
+## Persian (`fa`)
+
+Ask in Persian, verify against the English literature.
+
+- **Spelling.** Arabic yeh and kaf, short vowels, tatweel, Persian and Arabic-Indic digits, and stray or missing half-spaces (ZWNJ) are normalised, so `ميشود`, `میشود` and `می‌شود` match. The `lexical` tier then counts Persian terms as well as English ones.
+- **Cross-lingual embeddings.** With `semantic` too, any claim set containing Persian is embedded with [bge-m3](https://huggingface.co/BAAI/bge-m3) (int8 ONNX, 570 MB, downloaded once and pinned by SHA-256), so a Persian claim and an English abstract share one vector space. English-only text stays on BGE-small, unchanged. bge-m3 uses its own cut-offs (0.70 supported, 0.62 partial).
+- **NLI.** The NLI model reads English only. For a pair with Persian on either side, `nli` falls back to the hybrid decision and says so in the rationale.
+- **Report.** A Persian query gets `report.md` in Persian, right to left, with statuses and the gate verdict translated. Set `REASONING_ENGINE_PERSIAN_DIGITS=1` to show the query and claims in Persian digits.
+
+On 30 Persian claims checked against English evidence (`tests/fixtures/verify/fa_pairs.json`), `hybrid` finds half of the supported pairs, at precision 1.000. That is up from 0.2 recall with the English cut-offs. No contradicted or neutral pair is marked supported. `lexical` cannot match across languages at all. The claims are AI translations of pairs from the English set, not yet reviewed by a person, and the cut-offs were chosen on this same set.
+
+Persian databases (SID, Magiran, ISC) are not built in: none of them could be reached from the build environment to record test fixtures. A [WASM adapter](#third-party-sources-wasm-adapters) can add any of them.
+
+## Third-party sources (`wasm-adapters`)
+
+Add a search source without forking the engine: drop a WebAssembly module into `~/.reasoning-engine/adapters/` (or `REASONING_ENGINE_ADAPTERS_DIR`) and name it in `REASONING_ENGINE_SOURCES`, like a built-in.
+
+```bash
+cp my-index.wasm ~/.reasoning-engine/adapters/
+REASONING_ENGINE_SOURCES=openalex,my-index reasoning-engine research "..."
+```
+
+Each adapter runs in a fresh sandbox per search:
+
+- **Fuel:** 10 million instructions, then it is cut off.
+- **Memory:** 64 MiB.
+- **No WASI:** no filesystem, clock, environment or sockets. The host offers only `http_get` and `log`.
+- **Network:** `http_get` fetches over HTTPS, only from the public hosts the adapter declares in `allowed_hosts`, through the engine's own client. That means recorded runs tape it and replays stay offline.
+
+A broken or missing module is skipped with a warning. The ABI and a working example (in WAT, so no toolchain is needed) are in [`examples/adapters/hello-adapter`](examples/adapters/hello-adapter/README.md).
 
 ## Local HTTP server and audit UI
 

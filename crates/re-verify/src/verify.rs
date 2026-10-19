@@ -3,6 +3,7 @@
 //! The [`Verifier`] trait is the seam for the Phase 5 entailment verifier;
 //! [`LexicalOverlap`] is Python's term-overlap MVP, verbatim.
 
+use std::borrow::Cow;
 use std::collections::HashSet;
 use std::sync::LazyLock;
 
@@ -89,12 +90,12 @@ pub async fn load_verifier(
         "lexical" => Ok(Box::new(LexicalOverlap)),
         #[cfg(feature = "semantic")]
         "hybrid" => {
-            let embedder = crate::models::OnnxEmbedder::load(models_dir, offline).await?;
+            let embedder = crate::models::embedder(models_dir, offline).await?;
             Ok(Box::new(crate::hybrid::HybridVerifier::new(embedder)))
         }
         #[cfg(feature = "semantic")]
         "nli" => {
-            let embedder = crate::models::OnnxEmbedder::load(models_dir, offline).await?;
+            let embedder = crate::models::embedder(models_dir, offline).await?;
             let nli = crate::models::OnnxNli::load(models_dir, offline).await?;
             Ok(Box::new(crate::nli::NliVerifier::new(embedder, nli)))
         }
@@ -114,14 +115,21 @@ pub fn verifier_from_name(name: Option<&str>) -> Result<Box<dyn Verifier>, Verif
     }
 }
 
-fn terms(text: &str) -> HashSet<&str> {
-    WORD.find_iter(text)
+fn terms(text: &str) -> HashSet<Cow<'_, str>> {
+    #[allow(unused_mut, reason = "only the fa feature adds Persian terms")]
+    let mut terms: HashSet<Cow<'_, str>> = WORD
+        .find_iter(text)
         .map(|m| m.as_str())
         .filter(|t| t.len() > 3)
-        .collect()
+        .map(Cow::Borrowed)
+        .collect();
+    #[cfg(feature = "fa")]
+    terms.extend(re_core::fa::terms(text).into_iter().map(Cow::Owned));
+    terms
 }
 
-/// Share of the claim's 4+ character ASCII terms that the snippet contains.
+/// Share of the claim's 4+ character ASCII terms that the snippet contains
+/// (with `fa`, also its normalised Persian terms of 3+ letters).
 #[must_use]
 pub fn overlap_score(claim_text: &str, snippet: &str) -> f64 {
     let (claim, snippet) = (claim_text.to_lowercase(), snippet.to_lowercase());

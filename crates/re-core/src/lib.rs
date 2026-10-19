@@ -11,6 +11,8 @@ pub mod claims;
 pub mod difficulty;
 pub mod directional;
 pub mod dora;
+#[cfg(feature = "fa")]
+pub mod fa;
 pub mod gate;
 pub mod hashing;
 #[rustfmt::skip]

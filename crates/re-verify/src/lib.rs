@@ -28,6 +28,8 @@ pub mod nli;
 #[cfg(feature = "trust")]
 pub mod numeric;
 pub mod replay;
+#[cfg(feature = "fa")]
+pub mod report_fa;
 pub mod runpack;
 pub mod service;
 #[cfg(feature = "trust")]
