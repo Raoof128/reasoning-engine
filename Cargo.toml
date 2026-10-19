@@ -43,6 +43,7 @@ rusqlite = { version = "=0.40.2", features = ["bundled"] }
 # CLI and telemetry
 clap = { version = "=4.6.7", features = ["derive"] }
 inquire = "=0.9.4"
+toml = "=1.1.8"
 tracing = "=0.1.44"
 
 # Semantic verifier (feature `semantic`)
@@ -77,6 +78,7 @@ re-store = { path = "crates/re-store" }
 re-retrieval = { path = "crates/re-retrieval" }
 re-verify = { path = "crates/re-verify" }
 re-mcp = { path = "crates/re-mcp" }
+re-cli = { path = "crates/re-cli" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
