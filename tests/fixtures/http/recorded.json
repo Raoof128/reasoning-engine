@@ -1,0 +1,26 @@
+{
+  "arxiv": {
+    "limit": 3,
+    "query": "reward model"
+  },
+  "crossref": {
+    "limit": 3,
+    "query": "reward model"
+  },
+  "doaj": {
+    "limit": 3,
+    "query": "reward model"
+  },
+  "europepmc": {
+    "limit": 3,
+    "query": "reward model"
+  },
+  "openalex": {
+    "limit": 3,
+    "query": "reward model"
+  },
+  "semantic_scholar": {
+    "limit": 3,
+    "query": "reward model"
+  }
+}

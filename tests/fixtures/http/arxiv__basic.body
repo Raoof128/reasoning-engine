@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:arxiv="http://arxiv.org/schemas/atom">
+  <entry>
+    <title>  Attention Is All
+      You Need  </title>
+    <summary>We propose the Transformer &amp; friends.</summary>
+    <published>2017-06-12T00:00:00Z</published>
+    <id>http://arxiv.org/abs/1706.03762v1</id>
+    <arxiv:doi>10.5/TRANSF</arxiv:doi>
+    <author><name>Ashish Vaswani</name></author>
+    <author><name> </name></author>
+  </entry>
+  <entry><title>No extras</title></entry>
+</feed>

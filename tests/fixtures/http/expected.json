@@ -1,0 +1,2529 @@
+{
+  "aggregates": {
+    "all_fail": {
+      "error": {
+        "error_type": "malformed_response",
+        "message": "invalid Atom feed: syntax error: line 1, column 0",
+        "metadata": {
+          "failed_sources": [
+            "arxiv",
+            "dblp",
+            "openalex"
+          ],
+          "source": "arxiv"
+        },
+        "retryable": false
+      },
+      "evidence": [],
+      "keys": [
+        "arxiv__entities",
+        "arxiv__not_xml",
+        "dblp__bot_challenge",
+        "openalex__not_json"
+      ],
+      "limit": 10
+    },
+    "everything": {
+      "error": null,
+      "evidence": [
+        {
+          "authors": [
+            "Rafael Rafailov",
+            "Archit Sharma",
+            "E. Mitchell",
+            "Stefano Ermon",
+            "Christopher D. Manning",
+            "Chelsea Finn"
+          ],
+          "doi": "10.52202/075280-2338",
+          "evidence_id": "ev_0001",
+          "licence_notes": null,
+          "metadata": {
+            "also_found_in": [
+              "openalex"
+            ],
+            "cited_by": 11135,
+            "external_ids": {
+              "ArXiv": "2305.18290",
+              "CorpusId": 258959321,
+              "DBLP": "journals/corr/abs-2305-18290",
+              "DOI": "10.52202/075280-2338"
+            }
+          },
+          "publisher": "",
+          "query": "reward model",
+          "rank": 1,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 1.0,
+          "snippet": "While large-scale unsupervised language models (LMs) learn broad world knowledge and some reasoning skills, achieving precise control of their behavior is difficult due to the completely unsupervised nature of their training. Existing methods for gaining such steerability collect human labels of the relative quality of model generations and fine-tune the unsupervised LM to align with these preferences, often with reinforcement learning from human feedback (RLHF). However, RLHF is a complex and often unstable procedure, first fitting a reward model that reflects the human preferences, and then fine-tuning the large unsupervised LM using reinforcement learning to maximize this estimated reward without drifting too far from the original model. In this paper we introduce a new parameterization of the reward model in RLHF that enables extraction of the corresponding optimal policy in closed form, allowing us to solve the standard RLHF problem with only a simple classification loss. The resulting algorithm, which we call Direct Preference Optimization (DPO), is stable, performant, and computationally lightweight, eliminating the need for sampling from the LM during fine-tuning or performing significant hyperparameter tuning. Our experiments show that DPO can fine-tune LMs to align with human preferences as well as or better than existing methods. Notably, fine-tuning with DPO exceeds PPO-based RLHF in ability to control sentiment of generations, and matches or improves response qua",
+          "snippet_hash": "sha256:4c7e86a610bd09a1ccf89821df3a8ca24e5e29a39d4ad31f64e6ff49c73b99aa",
+          "source_adapter": "semantic_scholar",
+          "source_type": "peer_reviewed_article",
+          "title": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model",
+          "url": "https://www.semanticscholar.org/paper/0d1c76d45afa012ded7ab741194baf142117c495",
+          "venue": "Neural Information Processing Systems",
+          "year": 2023
+        },
+        {
+          "authors": [
+            "Joost-Pieter Katoen",
+            "Maneesh Khattri",
+            "I.S. Zapreevt"
+          ],
+          "doi": "10.1109/qest.2005.2",
+          "evidence_id": "ev_0002",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 246,
+            "openalex_id": "https://openalex.org/W2164096878"
+          },
+          "publisher": "",
+          "query": "reward model",
+          "rank": 2,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.919,
+          "snippet": "This short tool paper introduces MRMC, a model checker for discrete-time and continuous-time Markov reward models. It supports reward extensions of PCTL and CSL, and allows for the automated verification of properties concerning long-run and instantaneous rewards as well as cumulative rewards. In particular it supports to check the reachability of a set of goal states (by only visiting legal states before) under a time and an accumulated reward constraint. Several numerical algorithms and extensions thereof are included in MRMC.",
+          "snippet_hash": "sha256:c19b5d209d196d4da7cc2839a5ba882fbf49961e76c810c955ab92de9ad2a3f5",
+          "source_adapter": "openalex",
+          "source_type": "peer_reviewed_article",
+          "title": "A Markov reward model checker",
+          "url": "https://doi.org/10.1109/qest.2005.2",
+          "venue": "International Conference on the Quantitative Evaluation of Systems (QEST)",
+          "year": 2005
+        },
+        {
+          "authors": [
+            "Yu Meng"
+          ],
+          "doi": "10.6/simpo",
+          "evidence_id": "ev_0003",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 100,
+            "external_ids": {
+              "DOI": "10.6/simpo"
+            }
+          },
+          "publisher": "",
+          "query": "edge query",
+          "rank": 3,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.8672,
+          "snippet": "Reference-free preference optimization.",
+          "snippet_hash": "sha256:e8f2757ce205c2ffe66990ef44953259a47e4e6d14e3afbaf25f24b041e70f86",
+          "source_adapter": "semantic_scholar",
+          "source_type": "peer_reviewed_article",
+          "title": "SimPO",
+          "url": "https://s2.org/1",
+          "venue": "NeurIPS",
+          "year": 2024
+        },
+        {
+          "authors": [
+            "A. Smith"
+          ],
+          "doi": "10.1/abc",
+          "evidence_id": "ev_0004",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 42,
+            "openalex_id": "https://openalex.org/W1"
+          },
+          "publisher": "Elsevier",
+          "query": "edge query",
+          "rank": 4,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.8178,
+          "snippet": "This studies MCP x MCP",
+          "snippet_hash": "sha256:82391aec78550f908e1d1020ef5d32422b3cc78dc58cf206741f6157a12cbf6a",
+          "source_adapter": "openalex",
+          "source_type": "peer_reviewed_article",
+          "title": "Deep Learning for MCP Security",
+          "url": "https://ex.com/abc",
+          "venue": "Journal of AI",
+          "year": 2025
+        },
+        {
+          "authors": [
+            "Leo Gao",
+            "John D. Schulman",
+            "Jacob Hilton"
+          ],
+          "doi": null,
+          "evidence_id": "ev_0005",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 1397,
+            "external_ids": {
+              "ArXiv": "2210.10760",
+              "CorpusId": 252992904,
+              "DBLP": "conf/icml/GaoSH23"
+            }
+          },
+          "publisher": "",
+          "query": "reward model",
+          "rank": 5,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.8,
+          "snippet": "In reinforcement learning from human feedback, it is common to optimize against a reward model trained to predict human preferences. Because the reward model is an imperfect proxy, optimizing its value too much can hinder ground truth performance, in accordance with Goodhart's law. This effect has been frequently observed, but not carefully measured due to the expense of collecting human preference data. In this work, we use a synthetic setup in which a fixed\"gold-standard\"reward model plays the role of humans, providing labels used to train a proxy reward model. We study how the gold reward model score changes as we optimize against the proxy reward model using either reinforcement learning or best-of-$n$ sampling. We find that this relationship follows a different functional form depending on the method of optimization, and that in both cases its coefficients scale smoothly with the number of reward model parameters. We also study the effect on this relationship of the size of the reward model dataset, the number of reward model and policy parameters, and the coefficient of the KL penalty added to the reward in the reinforcement learning setup. We explore the implications of these empirical results for theoretical considerations in AI alignment.",
+          "snippet_hash": "sha256:ca06ca6395ac5c10796a390cd26776a59ccc3e1fc9f2d39c351adab42c088c1b",
+          "source_adapter": "semantic_scholar",
+          "source_type": "peer_reviewed_article",
+          "title": "Scaling Laws for Reward Model Overoptimization",
+          "url": "https://www.semanticscholar.org/paper/fb3dc5e20e0a71134ca916f0d6d8d41f01225b4b",
+          "venue": "International Conference on Machine Learning",
+          "year": 2022
+        },
+        {
+          "authors": [
+            "Doe J",
+            "Roe K"
+          ],
+          "doi": "10.7/crispr",
+          "evidence_id": "ev_0006",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 12,
+            "pmid": "999"
+          },
+          "publisher": "",
+          "query": "edge query",
+          "rank": 6,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.7485,
+          "snippet": "A review.",
+          "snippet_hash": "sha256:0e178b8b16c5e63d45215d5f6a1f1ab7b80daf17c2dd99ab47aa5568d42afb02",
+          "source_adapter": "europepmc",
+          "source_type": "peer_reviewed_article",
+          "title": "CRISPR review",
+          "url": "https://europepmc.org/abstract/MED/999",
+          "venue": "Cell",
+          "year": 2023
+        },
+        {
+          "authors": [
+            "B Jones",
+            "Solo"
+          ],
+          "doi": "10.2/xyz",
+          "evidence_id": "ev_0007",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 5
+          },
+          "publisher": "ACM",
+          "query": "edge query",
+          "rank": 7,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.7038,
+          "snippet": "Great work",
+          "snippet_hash": "sha256:2ce3ade7f9541aecd178d729f4f8bfeaf5ea2cf096a89b6fed43c68301ea6179",
+          "source_adapter": "crossref",
+          "source_type": "peer_reviewed_article",
+          "title": "Verifiable Research",
+          "url": "https://doi.org/10.2/xyz",
+          "venue": "Proc X",
+          "year": 2024
+        },
+        {
+          "authors": [
+            "Gianfranco Ciardo",
+            "Jogesh K. Muppala",
+            "Kishor S. Trivedi"
+          ],
+          "doi": "10.1016/0166-5316(91)90003-l",
+          "evidence_id": "ev_0008",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 97,
+            "openalex_id": "https://openalex.org/W2034883517"
+          },
+          "publisher": "Elsevier BV",
+          "query": "reward model",
+          "rank": 8,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.6655,
+          "snippet": "",
+          "snippet_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source_adapter": "openalex",
+          "source_type": "peer_reviewed_article",
+          "title": "On the solution of GSPN reward models",
+          "url": "https://doi.org/10.1016/0166-5316(91)90003-l",
+          "venue": "Performance Evaluation",
+          "year": 1991
+        },
+        {
+          "authors": [
+            "Ashish Vaswani"
+          ],
+          "doi": "10.5/transf",
+          "evidence_id": "ev_0009",
+          "licence_notes": "arXiv preprint (not peer-reviewed).",
+          "metadata": {
+            "arxiv_id": "http://arxiv.org/abs/1706.03762v1"
+          },
+          "publisher": "arXiv",
+          "query": "edge query",
+          "rank": 9,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.6,
+          "snippet": "We propose the Transformer & friends.",
+          "snippet_hash": "sha256:83ce4bf042e8eb50deab50c53942f65ae5e36c35d24f95706419d3579d6204de",
+          "source_adapter": "arxiv",
+          "source_type": "preprint",
+          "title": "Attention Is All You Need",
+          "url": "http://arxiv.org/abs/1706.03762v1",
+          "venue": "arXiv",
+          "year": 2017
+        },
+        {
+          "authors": [
+            "Zhibin Duan",
+            "Guowei Rong",
+            "Zhuo Li",
+            "Bo Chen",
+            "Mingyuan Zhou",
+            "Dandan Guo"
+          ],
+          "doi": null,
+          "evidence_id": "ev_0010",
+          "licence_notes": "arXiv preprint (not peer-reviewed).",
+          "metadata": {
+            "arxiv_id": "http://arxiv.org/abs/2602.10623v2"
+          },
+          "publisher": "arXiv",
+          "query": "reward model",
+          "rank": 10,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.6,
+          "snippet": "Reward models learned from human preferences are central to aligning large language models (LLMs) via reinforcement learning from human feedback, yet they are often vulnerable to reward hacking due to noisy annotations and systematic biases such as response length or style. We propose Bayesian Non-Negative Reward Model (BNRM), a principled reward modeling framework that integrates non-negative factor analysis into Bradley-Terry (BT) preference model. BNRM represents rewards through a sparse, non-negative latent factor generative process that operates at two complementary levels: instance-specific latent variables induce disentangled reward representations, while sparsity over global latent factors acts as an implicit debiasing mechanism that suppresses spurious correlations. Together, this disentanglement-then-debiasing structure enables robust uncertainty-aware reward learning. To scale BNRM to modern LLMs, we develop an amortized variational inference network conditioned on deep model representations, allowing efficient end-to-end training. Extensive empirical results demonstrate that BNRM substantially mitigates reward over-optimization, improves robustness under distribution shifts, and yields more interpretable reward decompositions than strong baselines.",
+          "snippet_hash": "sha256:6d327ab53cb0f6f4b4542a8f669b750946d0c371e4075d438648128050d29512",
+          "source_adapter": "arxiv",
+          "source_type": "preprint",
+          "title": "Mitigating Reward Hacking in RLHF via Bayesian Non-negative Reward Modeling",
+          "url": "http://arxiv.org/abs/2602.10623v2",
+          "venue": "arXiv",
+          "year": 2026
+        },
+        {
+          "authors": [
+            "Elle"
+          ],
+          "doi": "10.18653/v1/2025.emnlp-main.754",
+          "evidence_id": "ev_0011",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 0
+          },
+          "publisher": "Association for Computational Linguistics",
+          "query": "reward model",
+          "rank": 11,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.6,
+          "snippet": "",
+          "snippet_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source_adapter": "crossref",
+          "source_type": "peer_reviewed_article",
+          "title": "Reward Model Perspectives: Whose Opinions Do Reward Models Reward?",
+          "url": "https://doi.org/10.18653/v1/2025.emnlp-main.754",
+          "venue": "Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing",
+          "year": 2025
+        },
+        {
+          "authors": [
+            "D. Kim",
+            "E. Park"
+          ],
+          "doi": "10.9/bft",
+          "evidence_id": "ev_0012",
+          "licence_notes": null,
+          "metadata": {
+            "dblp_key": "conf/osdi/1",
+            "type": "Conference and Workshop Papers"
+          },
+          "publisher": "",
+          "query": "edge query",
+          "rank": 12,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.6,
+          "snippet": "BFT Consensus",
+          "snippet_hash": "sha256:79f1129fd9282abb2b40b4f7c24ed00662d778360d9e99fa9c8abe472b405f6f",
+          "source_adapter": "dblp",
+          "source_type": "conference_paper",
+          "title": "BFT Consensus",
+          "url": "https://dblp.org/1",
+          "venue": "OSDI",
+          "year": 2021
+        },
+        {
+          "authors": [
+            "Hunter Lightman",
+            "Vineet Kosaraju"
+          ],
+          "doi": null,
+          "evidence_id": "ev_0013",
+          "licence_notes": null,
+          "metadata": {
+            "dblp_key": "conf/iclr/LightmanKBEBLLS24",
+            "type": "Conference and Workshop Papers"
+          },
+          "publisher": "",
+          "query": "edge query",
+          "rank": 13,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.6,
+          "snippet": "Let's Verify Step by Step.",
+          "snippet_hash": "sha256:46da2db6b42d22e7950372308d0d210e457a7d38824a3d734c9adae9afcdddea",
+          "source_adapter": "dblp",
+          "source_type": "conference_paper",
+          "title": "Let's Verify Step by Step.",
+          "url": "https://openreview.net/forum?id=v8L0pN6EOi",
+          "venue": "ICLR",
+          "year": 2024
+        },
+        {
+          "authors": [
+            "Yong Wang",
+            "Hongwen He",
+            "Yuankai Wu",
+            "Pei Wang",
+            "Haoyu Wang",
+            "Renzong Lian",
+            "Jingda Wu",
+            "Qin Li",
+            "Xiangfei Meng",
+            "Yingjuan Tang",
+            "Fengchun Sun",
+            "Amir Khajepour"
+          ],
+          "doi": "10.1016/j.eng.2024.10.021",
+          "evidence_id": "ev_0014",
+          "licence_notes": "Open access (DOAJ).",
+          "metadata": {
+            "doaj_id": "00025ccee56e4098a89bd02a3bd3c371"
+          },
+          "publisher": "Elsevier",
+          "query": "reward model",
+          "rank": 14,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.6,
+          "snippet": "An effective energy management strategy (EMS) is essential to optimize the energy efficiency of electric vehicles (EVs). With the advent of advanced machine learning techniques, the focus on developing sophisticated EMS for EVs is increasing. Here, we introduce LearningEMS: a unified framework and open-source benchmark designed to facilitate rapid development and assessment of EMS. LearningEMS is distinguished by its ability to support a variety of EV configurations, including hybrid EVs, fuel cell EVs, and plug-in EVs, offering a general platform for the development of EMS. The framework enables detailed comparisons of several EMS algorithms, encompassing imitation learning, deep reinforcement learning (RL), offline RL, model predictive control, and dynamic programming. We rigorously evaluated these algorithms across multiple perspectives: energy efficiency, consistency, adaptability, and practicability. Furthermore, we discuss state, reward, and action settings for RL in EV energy management, introduce a policy extraction and reconstruction method for learning-based EMS deployment, and conduct hardware-in-the-loop experiments. In summary, we offer a unified and comprehensive framework that comes with three distinct EV platforms, over 10 000 km of EMS policy data set, ten state-of-the-art algorithms, and over 160 benchmark tasks, along with three learning libraries. Its flexible design allows easy expansion for additional tasks and applications. The open-source algorithms, m",
+          "snippet_hash": "sha256:7f2b185f72f889c8d24787cdda397cffec89421c3ed475d055af160486ce1553",
+          "source_adapter": "doaj",
+          "source_type": "peer_reviewed_article",
+          "title": "LearningEMS: A Unified Framework and Open-Source Benchmark for Learning-Based Energy Management of Electric Vehicles",
+          "url": "http://www.sciencedirect.com/science/article/pii/S2095809924007136",
+          "venue": "Engineering",
+          "year": 2025
+        },
+        {
+          "authors": [
+            "C. Lee"
+          ],
+          "doi": "10.8/oa",
+          "evidence_id": "ev_0015",
+          "licence_notes": "Open access (DOAJ).",
+          "metadata": {
+            "doaj_id": "d1"
+          },
+          "publisher": "OA Pub",
+          "query": "edge query",
+          "rank": 15,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.6,
+          "snippet": "Findings.",
+          "snippet_hash": "sha256:1a8c0e5b984fed40820e45e2b3fb90023a69d95469d6d6b6efefa4f48d3c7ef5",
+          "source_adapter": "doaj",
+          "source_type": "peer_reviewed_article",
+          "title": "Open Access Study",
+          "url": "https://oa.org/1",
+          "venue": "OA Journal",
+          "year": 2022
+        },
+        {
+          "authors": [
+            "Xie J",
+            "Guo Z",
+            "Zhao H",
+            "Ni H"
+          ],
+          "doi": "10.64898/2026.06.25.26356522",
+          "evidence_id": "ev_0016",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 0,
+            "pmid": null
+          },
+          "publisher": "",
+          "query": "reward model",
+          "rank": 16,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.6,
+          "snippet": "Large language models (LLMs) [1], [2] have demonstrated remarkable capabilities across general domains, yet their application in specialized medical contexts demands rigorous domain adaptation [3], [4]. We present Infoxmed2.0-27B, a medical foundation model built upon Qwen3.5-27B [5] through a comprehensive multi-stage post-training pipeline: (1) proprietary medical data synthesis from a MySQL database with MedicalCategoryTree organization, medical PhD team validation, Chinese RoBERTa [6] semantic deduplication, and API-assisted language refinement; (2) instruction supervised fine-tuning of Qwen3.5-27B via LoRA [7] ( r = 8, \u03b1 = 32) using MS-Swift [8], producing iterations Infoxmed2.0.0\u2192 2.0.2\u2192 2.0.4; (3) Direct Preference Optimization (DPO) [9] on 6,283 curated medical preference pairs [10] using DPO-RPO loss ( \u03b2 = 0.3, \u03b1 RPO = 0.1) across eight progressive training iterations (v0\u2013v7); and (4) parallel Group Relative Policy Optimization (GRPO) [11]-based medical reward model training on Qwen3.5 combining internal rule-based reward functions with external DeepSeek signals. Comprehensive evaluations under a uniform LLM-as-Judge [12] framework with GPT-5.4 demonstrate 77.0% accuracy (mean quality score +7.18) on MedMCQA [10] and +2.59 on HLE, with pipeline progression from +6.69 (base) to +7.06 (SFT) to +7.18 (final).",
+          "snippet_hash": "sha256:efecad732cd677dc7c35a912666695766f2eed0011934a31daa3547b5c2a0321",
+          "source_adapter": "europepmc",
+          "source_type": "peer_reviewed_article",
+          "title": "Infoxmed2.0-27B: Instruction Tuning, Preference Alignment, and GRPO-Based Reward Model Training for Medical LLMs",
+          "url": "https://europepmc.org/abstract/PPR/PPR1262774",
+          "venue": "",
+          "year": 2026
+        },
+        {
+          "authors": [
+            "Saumya Malik",
+            "Valentina Pyatkin",
+            "Sander Land",
+            "Jacob Daniel Morrison",
+            "Noah A. Smith",
+            "Hanna Hajishirzi",
+            "Nathan Lambert"
+          ],
+          "doi": "10.48550/arxiv.2506.01937",
+          "evidence_id": "ev_0017",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 156,
+            "external_ids": {
+              "ArXiv": "2506.01937",
+              "CorpusId": 279119102,
+              "DBLP": "journals/corr/abs-2506-01937",
+              "DOI": "10.48550/arXiv.2506.01937"
+            }
+          },
+          "publisher": "",
+          "query": "reward model",
+          "rank": 17,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.4928,
+          "snippet": "Reward models are used throughout the post-training of language models to capture nuanced signals from preference data and provide a training target for optimization across instruction following, reasoning, safety, and more domains. The community has begun establishing best practices for evaluating reward models, from the development of benchmarks that test capabilities in specific skill areas to others that test agreement with human preferences. At the same time, progress in evaluation has not been mirrored by the effectiveness of reward models in downstream tasks -- simpler direct alignment algorithms are reported to work better in many cases. This paper introduces RewardBench 2, a new multi-skill reward modeling benchmark designed to bring new, challenging data for accuracy-based reward model evaluation -- models score about 20 points on average lower on RewardBench 2 compared to the first RewardBench -- while being highly correlated with downstream performance. Compared to most other benchmarks, RewardBench 2 sources new human prompts instead of existing prompts from downstream evaluations, facilitating more rigorous evaluation practices. In this paper, we describe our benchmark construction process and report how existing models perform on it, while quantifying how performance on the benchmark correlates with downstream use of the models in both inference-time scaling algorithms, like best-of-N sampling, and RLHF training algorithms like proximal policy optimization.",
+          "snippet_hash": "sha256:7bfd413b37980e4d631f4cc38dfd9b957ac87261b421bdc2a8dc2bc603819222",
+          "source_adapter": "semantic_scholar",
+          "source_type": "peer_reviewed_article",
+          "title": "RewardBench 2: Advancing Reward Model Evaluation",
+          "url": "https://www.semanticscholar.org/paper/6069fa0fc5cccb8ebd0061c5e1816f5069cc255b",
+          "venue": "arXiv.org",
+          "year": 2025
+        },
+        {
+          "authors": [],
+          "doi": null,
+          "evidence_id": "ev_0018",
+          "licence_notes": "arXiv preprint (not peer-reviewed).",
+          "metadata": {
+            "arxiv_id": ""
+          },
+          "publisher": "arXiv",
+          "query": "edge query",
+          "rank": 18,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.48,
+          "snippet": "",
+          "snippet_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source_adapter": "arxiv",
+          "source_type": "preprint",
+          "title": "No extras",
+          "url": null,
+          "venue": "arXiv",
+          "year": null
+        },
+        {
+          "authors": [],
+          "doi": null,
+          "evidence_id": "ev_0019",
+          "licence_notes": null,
+          "metadata": {
+            "also_found_in": [
+              "semantic_scholar"
+            ],
+            "cited_by": null
+          },
+          "publisher": "",
+          "query": "edge query",
+          "rank": 19,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.48,
+          "snippet": "",
+          "snippet_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source_adapter": "crossref",
+          "source_type": "peer_reviewed_article",
+          "title": "Untitled",
+          "url": null,
+          "venue": "",
+          "year": 2019
+        },
+        {
+          "authors": [
+            "Solo Author"
+          ],
+          "doi": "10.48550/arxiv.2510.08049",
+          "evidence_id": "ev_0020",
+          "licence_notes": null,
+          "metadata": {
+            "dblp_key": "journals/corr/abs-2510-08049",
+            "type": "Informal and Other Publications"
+          },
+          "publisher": "",
+          "query": "edge query",
+          "rank": 20,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.48,
+          "snippet": "Process Reward Models: A Survey.",
+          "snippet_hash": "sha256:c54eca86b58987532ffdbc494064892f575507e57addf58b485b9087f074f73f",
+          "source_adapter": "dblp",
+          "source_type": "preprint",
+          "title": "Process Reward Models: A Survey.",
+          "url": "https://dblp.org/rec/journals/corr/abs-2510-08049",
+          "venue": "CoRR",
+          "year": 2025
+        },
+        {
+          "authors": [
+            "F. Solo"
+          ],
+          "doi": null,
+          "evidence_id": "ev_0021",
+          "licence_notes": null,
+          "metadata": {
+            "dblp_key": null,
+            "type": "Journal Articles"
+          },
+          "publisher": "",
+          "query": "edge query",
+          "rank": 21,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.48,
+          "snippet": "Solo Paper",
+          "snippet_hash": "sha256:605111bf73dfc8d473b2b39b4128d4c8076cf5089da760d871f74136d8548900",
+          "source_adapter": "dblp",
+          "source_type": "peer_reviewed_article",
+          "title": "Solo Paper",
+          "url": "https://dblp.org/2",
+          "venue": "",
+          "year": 2020
+        },
+        {
+          "authors": [],
+          "doi": null,
+          "evidence_id": "ev_0022",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": null,
+            "pmid": null
+          },
+          "publisher": "",
+          "query": "edge query",
+          "rank": 22,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.48,
+          "snippet": "",
+          "snippet_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source_adapter": "europepmc",
+          "source_type": "peer_reviewed_article",
+          "title": "No source",
+          "url": null,
+          "venue": "",
+          "year": null
+        },
+        {
+          "authors": [],
+          "doi": null,
+          "evidence_id": "ev_0023",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": null,
+            "openalex_id": "W2"
+          },
+          "publisher": "",
+          "query": "edge query",
+          "rank": 23,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.48,
+          "snippet": "",
+          "snippet_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source_adapter": "openalex",
+          "source_type": "peer_reviewed_article",
+          "title": "Fallback title",
+          "url": "W2",
+          "venue": "",
+          "year": null
+        },
+        {
+          "authors": [
+            "Haoxiang Wang",
+            "Wei Xiong",
+            "Tengyang Xie",
+            "Han Zhao",
+            "Tong Zhang"
+          ],
+          "doi": null,
+          "evidence_id": "ev_0024",
+          "licence_notes": "arXiv preprint (not peer-reviewed).",
+          "metadata": {
+            "arxiv_id": "http://arxiv.org/abs/2406.12845v1"
+          },
+          "publisher": "arXiv",
+          "query": "reward model",
+          "rank": 24,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.4,
+          "snippet": "Reinforcement learning from human feedback (RLHF) has emerged as the primary method for aligning large language models (LLMs) with human preferences. The RLHF process typically starts by training a reward model (RM) using human preference data. Conventional RMs are trained on pairwise responses to the same user request, with relative ratings indicating which response humans prefer. The trained RM serves as a proxy for human preferences. However, due to the black-box nature of RMs, their outputs lack interpretability, as humans cannot intuitively understand why an RM thinks a response is good or not. As RMs act as human preference proxies, we believe they should be human-interpretable to ensure that their internal decision processes are consistent with human preferences and to prevent reward hacking in LLM alignment. To build RMs with interpretable preferences, we propose a two-stage approach: i) train an Absolute-Rating Multi-Objective Reward Model (ArmoRM) with multi-dimensional absolute-rating data, each dimension corresponding to a human-interpretable objective (e.g., honesty, verbosity, safety); ii) employ a Mixture-of-Experts (MoE) strategy with a gating network that automatically selects the most suitable reward objectives based on the context. We efficiently trained an ArmoRM with Llama-3 8B and a gating network consisting of a shallow MLP on top of the ArmoRM. Our trained model, ArmoRM-Llama3-8B, obtains state-of-the-art performance on RewardBench, a benchmark evaluat",
+          "snippet_hash": "sha256:b2524e10742182c5164697b68faad23e21f081f95c65ed10f63186bc2c12d80a",
+          "source_adapter": "arxiv",
+          "source_type": "preprint",
+          "title": "Interpretable Preferences via Multi-Objective Reward Modeling and Mixture-of-Experts",
+          "url": "http://arxiv.org/abs/2406.12845v1",
+          "venue": "arXiv",
+          "year": 2024
+        },
+        {
+          "authors": [],
+          "doi": "10.67229/eer26050001",
+          "evidence_id": "ev_0025",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 0
+          },
+          "publisher": "International Society for Translational Science",
+          "query": "reward model",
+          "rank": 25,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.4,
+          "snippet": "",
+          "snippet_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source_adapter": "crossref",
+          "source_type": "peer_reviewed_article",
+          "title": "Reward outstanding engineering faculty through the \"goal, resources, training, review, and reward\" model",
+          "url": "https://doi.org/10.67229/eer26050001",
+          "venue": "Engineering Education Review",
+          "year": 2026
+        },
+        {
+          "authors": [
+            "Elena Mart\u00edn-Gonz\u00e1lez",
+            "Manuela Olmedo-C\u00f3rdoba",
+            "\u00c1ngeles Prados-Pardo",
+            "Daniel J. Cruz-Garz\u00f3n",
+            "Pilar Flores",
+            "Santiago Mora",
+            "Margarita Moreno-Montoya"
+          ],
+          "doi": "10.3389/fnbeh.2023.1175137",
+          "evidence_id": "ev_0026",
+          "licence_notes": "Open access (DOAJ).",
+          "metadata": {
+            "doaj_id": "002e4d84dbef43e5bdfb0436c8855a40"
+          },
+          "publisher": "Frontiers Media S.A.",
+          "query": "reward model",
+          "rank": 26,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.4,
+          "snippet": "IntroductionCompulsive behavior has been proposed as a transdiagnostic trait observed in different neuropsychiatric disorders, such as obsessive-compulsive disorder, autism, and schizophrenia. Research Domain Criteria (RDoC) strategy could help to disentangle the neuropsychological basis of compulsivity for developing new therapeutic and preventive approaches. In preclinical research, the selection of high-drinker (HD) vs. low-drinker (LD) animals by schedule-induced polydipsia (SIP) is considered a putative model of compulsivity, which includes a well-differentiated behavioral pattern.MethodsThe purpose of this research was to assess the cognitive control and the negative valence system domains in a phenotype of compulsive HD rats. After the selection of animals as HD or LD, we assessed behavioral inflexibility by probabilistic spatial reversal learning (PSRL), motor and cognitive impulsivity by variable delay-to-signal (VDS), and risky decision-making by rodent gambling task (rGT).ResultsHD rats performed fewer reversals and showed less probability of pressing the same lever that was previously reinforced on PSRL, more premature responses after the exposure to longer delays on VDS, and more disadvantageous risky choices on rGT. Moreover, HD animals performed more perseverative responses under the punishment period on rGT.DiscussionThese results highlight that HD compulsive phenotype exhibits behavioral inflexibility, insensitivity to positive feedback, waiting impulsivity, ",
+          "snippet_hash": "sha256:e69e633134158d0cc5904ad6fbd33061b9f031bc7831ce76db2f6fe91cac309f",
+          "source_adapter": "doaj",
+          "source_type": "peer_reviewed_article",
+          "title": "Behavioral domains in compulsive rats: implications for understanding compulsive spectrum disorders",
+          "url": "https://www.frontiersin.org/articles/10.3389/fnbeh.2023.1175137/full",
+          "venue": "Frontiers in Behavioral Neuroscience",
+          "year": 2023
+        },
+        {
+          "authors": [
+            "Alloy LB",
+            "Nusslock R"
+          ],
+          "doi": "10.1177/09637214251369722",
+          "evidence_id": "ev_0027",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 0,
+            "pmid": "40964067"
+          },
+          "publisher": "",
+          "query": "reward model",
+          "rank": 27,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.4,
+          "snippet": "Adolescence is an \"age of risk\" for the emergence of depression. Despite its prevalence and public health significance, there are major unanswered questions regarding the mechanisms contributing to depression's etiology and surge in adolescence. Separate lines of research have investigated the roles of inflammation and low reward responsiveness in depression and recent evidence suggests bidirectional associations between inflammation and reward responsiveness. In this article, we review this evidence, present an integrated immuno-reward model of adolescent depression, specifically, motivational and somatic symptoms of depression, and discuss the role of stress and early adversity in amplifying immune-reward interactions. We end with implications of the immuno-reward model for future research, early identification of at-risk adolescents, intervention, and public health policy.",
+          "snippet_hash": "sha256:65931f92229d5635f317f9883cddb96627ef3651d51ac232dcc02b710a1632fe",
+          "source_adapter": "europepmc",
+          "source_type": "peer_reviewed_article",
+          "title": "An Integrated Immuno-Reward Model of Adolescent Depression: Theory, Evidence, and Implications.",
+          "url": "https://europepmc.org/abstract/MED/40964067",
+          "venue": "Current directions in psychological science",
+          "year": 2025
+        },
+        {
+          "authors": [
+            "Carson Denison",
+            "Monte MacDiarmid",
+            "Fazl Barez",
+            "David Duvenaud",
+            "Shauna Kravec",
+            "Samuel Marks",
+            "Nicholas Schiefer",
+            "Ryan Soklaski",
+            "Alex Tamkin",
+            "Jared Kaplan",
+            "Buck Shlegeris",
+            "Samuel R. Bowman",
+            "Ethan Perez",
+            "Evan Hubinger"
+          ],
+          "doi": null,
+          "evidence_id": "ev_0028",
+          "licence_notes": "arXiv preprint (not peer-reviewed).",
+          "metadata": {
+            "arxiv_id": "http://arxiv.org/abs/2406.10162v3"
+          },
+          "publisher": "arXiv",
+          "query": "reward model",
+          "rank": 28,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.2,
+          "snippet": "In reinforcement learning, specification gaming occurs when AI systems learn undesired behaviors that are highly rewarded due to misspecified training goals. Specification gaming can range from simple behaviors like sycophancy to sophisticated and pernicious behaviors like reward-tampering, where a model directly modifies its own reward mechanism. However, these more pernicious behaviors may be too complex to be discovered via exploration. In this paper, we study whether Large Language Model (LLM) assistants which find easily discovered forms of specification gaming will generalize to perform rarer and more blatant forms, up to and including reward-tampering. We construct a curriculum of increasingly sophisticated gameable environments and find that training on early-curriculum environments leads to more specification gaming on remaining environments. Strikingly, a small but non-negligible proportion of the time, LLM assistants trained on the full curriculum generalize zero-shot to directly rewriting their own reward function. Retraining an LLM not to game early-curriculum environments mitigates, but does not eliminate, reward-tampering in later environments. Moreover, adding harmlessness training to our gameable environments does not prevent reward-tampering. These results demonstrate that LLMs can generalize from common forms of specification gaming to more pernicious reward tampering and that such behavior may be nontrivial to remove.",
+          "snippet_hash": "sha256:4013b9bda8e7438b0f39bb6666df5d5e29a2cb5eb6a88dbe9469a8493f3291a2",
+          "source_adapter": "arxiv",
+          "source_type": "preprint",
+          "title": "Sycophancy to Subterfuge: Investigating Reward-Tampering in Large Language Models",
+          "url": "http://arxiv.org/abs/2406.10162v3",
+          "venue": "arXiv",
+          "year": 2024
+        },
+        {
+          "authors": [
+            "Jan Teichmann",
+            "Eduardo Alonso",
+            "Mark Broom"
+          ],
+          "doi": "10.5220/0005591501740179",
+          "evidence_id": "ev_0029",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 0
+          },
+          "publisher": "SCITEPRESS - Science and and Technology Publications",
+          "query": "reward model",
+          "rank": 29,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.2,
+          "snippet": "",
+          "snippet_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source_adapter": "crossref",
+          "source_type": "peer_reviewed_article",
+          "title": "A Reward-driven Model of Darwinian Fitness",
+          "url": "https://doi.org/10.5220/0005591501740179",
+          "venue": "Proceedings of the 7th International Joint Conference on Computational Intelligence",
+          "year": 2015
+        },
+        {
+          "authors": [
+            "Julia K \u00c5hlin",
+            "Paraskevi Peristera",
+            "Hugo Westerlund",
+            "Linda L Magnusson Hanson"
+          ],
+          "doi": "10.5271/sjweh.3889",
+          "evidence_id": "ev_0030",
+          "licence_notes": "Open access (DOAJ).",
+          "metadata": {
+            "doaj_id": "0036ee35be154f5aa2c7268119ef8b6e"
+          },
+          "publisher": "Nordic Association of Occupational Safety and Health (NOROSH)",
+          "query": "reward model",
+          "rank": 30,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.2,
+          "snippet": "OBJECTIVES: Retirement is a major life transition. However, previous evidence on its mental health effects has been inconclusive. Whether retirement is desirable or not may depend on pre-retirement work characteristics. We investigated trajectories of depressive symptoms across retirement and how a number of psychosocial working characteristics influenced these trajectories. METHODS: We included 1735 respondents from the Swedish Longitudinal Occupational Survey of Health (SLOSH), retiring during 2008\u20132016 (mean retirement age 66 years). They had completed biennial questionnaires reporting job demands, decision authority, workplace social support, efforts, rewards, procedural justice and depressive symptoms. We applied group-based trajectory modelling to model trajectories of depressive symptoms across retirement. Multinomial logistic regression analyses estimated the associations between \u00adpsychosocial working characteristics and depressive symptom trajectories. RESULTS: We identified five depression trajectories. In four of them, depressive symptoms decreased slightly around retirement. In one, the symptom level was initially high, then decreased markedly across retirement. Perceptions of job demands, job strain, workplace social support, rewards, effort\u2013reward imbalance and procedural justice were associated with the trajectories, while perceptions of decision authority and work efforts were only partly related to the trajectories. CONCLUSIONS: We observed a rather positive ",
+          "snippet_hash": "sha256:9accc56ed1da62f46c5668950c77faec287cd620c2031aea19aaceca76c4ffe6",
+          "source_adapter": "doaj",
+          "source_type": "peer_reviewed_article",
+          "title": "Psychosocial working characteristics before retirement and depressive symptoms across the retirement transition: a longitudinal latent class analysis",
+          "url": "\n      https://www.sjweh.fi/show_abstract.php?abstract_id=3889\n    ",
+          "venue": "Scandinavian Journal of Work, Environment & Health",
+          "year": 2020
+        },
+        {
+          "authors": [
+            "Rho HG"
+          ],
+          "doi": "10.21203/rs.3.rs-7594024/v1",
+          "evidence_id": "ev_0031",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 0,
+            "pmid": null
+          },
+          "publisher": "",
+          "query": "reward model",
+          "rank": 31,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.2,
+          "snippet": "<title>Abstract</title> <p>Modern preference alignment techniques, such as Best-of-N (BoN) sampling, rely on reward models trained with pairwise comparison data. While effective at learning relative preferences, this paradigm fails to capture a signal of response acceptability, leaving systems vulnerable to selecting the least bad of many unacceptable options. This is particularly problematic for hard prompts, where the risk of such false acceptances increases with the number of samples. In this paper, we address this critical reliability gap by introducing a new data collection and modeling framework. By augmenting preference data with an outside option, inspired by discrete choice models, we train a reward model that can distinguish not just what is better, but what is good enough. We leverage this capability to create an adaptive inference strategy, best of mini-N in-loop, which partitions the generation budget into sequential loops with a calibrated, early-exit condition. Our experiments show that when tuned as an alignment guardrail, it reduces reliability failures by 70%, and when tuned as an inference accelerator, it improves average inference speed by over 22% in IMBD-sentiment setting. We thus provide a principled and flexible framework for practitioners to explicitly manage the trade-off between reliability and computational efficiency.</p>",
+          "snippet_hash": "sha256:532d3777300a3e59ed56dc283d857dee38da0c33df4bed8ba4abb4adda87f501",
+          "source_adapter": "europepmc",
+          "source_type": "peer_reviewed_article",
+          "title": "A Contextual Quality Reward Model For Reliable and Efficient Best of N Sampling",
+          "url": "https://europepmc.org/abstract/PPR/PPR1084698",
+          "venue": "",
+          "year": 2025
+        }
+      ],
+      "keys": [
+        "arxiv__basic",
+        "arxiv__entities",
+        "arxiv__not_xml",
+        "arxiv__recorded",
+        "crossref__empty",
+        "crossref__jats",
+        "crossref__recorded",
+        "dblp__author_list",
+        "dblp__bot_challenge",
+        "dblp__list_payload",
+        "dblp__realistic",
+        "doaj__identifiers",
+        "doaj__recorded",
+        "europepmc__author_string",
+        "europepmc__recorded",
+        "openalex__basic",
+        "openalex__not_json",
+        "openalex__recorded",
+        "semantic_scholar__basic",
+        "semantic_scholar__recorded"
+      ],
+      "limit": 50
+    },
+    "recorded_top10": {
+      "error": null,
+      "evidence": [
+        {
+          "authors": [
+            "Rafael Rafailov",
+            "Archit Sharma",
+            "E. Mitchell",
+            "Stefano Ermon",
+            "Christopher D. Manning",
+            "Chelsea Finn"
+          ],
+          "doi": "10.52202/075280-2338",
+          "evidence_id": "ev_0001",
+          "licence_notes": null,
+          "metadata": {
+            "also_found_in": [
+              "openalex"
+            ],
+            "cited_by": 11135,
+            "external_ids": {
+              "ArXiv": "2305.18290",
+              "CorpusId": 258959321,
+              "DBLP": "journals/corr/abs-2305-18290",
+              "DOI": "10.52202/075280-2338"
+            }
+          },
+          "publisher": "",
+          "query": "reward model",
+          "rank": 1,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 1.0,
+          "snippet": "While large-scale unsupervised language models (LMs) learn broad world knowledge and some reasoning skills, achieving precise control of their behavior is difficult due to the completely unsupervised nature of their training. Existing methods for gaining such steerability collect human labels of the relative quality of model generations and fine-tune the unsupervised LM to align with these preferences, often with reinforcement learning from human feedback (RLHF). However, RLHF is a complex and often unstable procedure, first fitting a reward model that reflects the human preferences, and then fine-tuning the large unsupervised LM using reinforcement learning to maximize this estimated reward without drifting too far from the original model. In this paper we introduce a new parameterization of the reward model in RLHF that enables extraction of the corresponding optimal policy in closed form, allowing us to solve the standard RLHF problem with only a simple classification loss. The resulting algorithm, which we call Direct Preference Optimization (DPO), is stable, performant, and computationally lightweight, eliminating the need for sampling from the LM during fine-tuning or performing significant hyperparameter tuning. Our experiments show that DPO can fine-tune LMs to align with human preferences as well as or better than existing methods. Notably, fine-tuning with DPO exceeds PPO-based RLHF in ability to control sentiment of generations, and matches or improves response qua",
+          "snippet_hash": "sha256:4c7e86a610bd09a1ccf89821df3a8ca24e5e29a39d4ad31f64e6ff49c73b99aa",
+          "source_adapter": "semantic_scholar",
+          "source_type": "peer_reviewed_article",
+          "title": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model",
+          "url": "https://www.semanticscholar.org/paper/0d1c76d45afa012ded7ab741194baf142117c495",
+          "venue": "Neural Information Processing Systems",
+          "year": 2023
+        },
+        {
+          "authors": [
+            "Joost-Pieter Katoen",
+            "Maneesh Khattri",
+            "I.S. Zapreevt"
+          ],
+          "doi": "10.1109/qest.2005.2",
+          "evidence_id": "ev_0002",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 246,
+            "openalex_id": "https://openalex.org/W2164096878"
+          },
+          "publisher": "",
+          "query": "reward model",
+          "rank": 2,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.919,
+          "snippet": "This short tool paper introduces MRMC, a model checker for discrete-time and continuous-time Markov reward models. It supports reward extensions of PCTL and CSL, and allows for the automated verification of properties concerning long-run and instantaneous rewards as well as cumulative rewards. In particular it supports to check the reachability of a set of goal states (by only visiting legal states before) under a time and an accumulated reward constraint. Several numerical algorithms and extensions thereof are included in MRMC.",
+          "snippet_hash": "sha256:c19b5d209d196d4da7cc2839a5ba882fbf49961e76c810c955ab92de9ad2a3f5",
+          "source_adapter": "openalex",
+          "source_type": "peer_reviewed_article",
+          "title": "A Markov reward model checker",
+          "url": "https://doi.org/10.1109/qest.2005.2",
+          "venue": "International Conference on the Quantitative Evaluation of Systems (QEST)",
+          "year": 2005
+        },
+        {
+          "authors": [
+            "Leo Gao",
+            "John D. Schulman",
+            "Jacob Hilton"
+          ],
+          "doi": null,
+          "evidence_id": "ev_0003",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 1397,
+            "external_ids": {
+              "ArXiv": "2210.10760",
+              "CorpusId": 252992904,
+              "DBLP": "conf/icml/GaoSH23"
+            }
+          },
+          "publisher": "",
+          "query": "reward model",
+          "rank": 3,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.8,
+          "snippet": "In reinforcement learning from human feedback, it is common to optimize against a reward model trained to predict human preferences. Because the reward model is an imperfect proxy, optimizing its value too much can hinder ground truth performance, in accordance with Goodhart's law. This effect has been frequently observed, but not carefully measured due to the expense of collecting human preference data. In this work, we use a synthetic setup in which a fixed\"gold-standard\"reward model plays the role of humans, providing labels used to train a proxy reward model. We study how the gold reward model score changes as we optimize against the proxy reward model using either reinforcement learning or best-of-$n$ sampling. We find that this relationship follows a different functional form depending on the method of optimization, and that in both cases its coefficients scale smoothly with the number of reward model parameters. We also study the effect on this relationship of the size of the reward model dataset, the number of reward model and policy parameters, and the coefficient of the KL penalty added to the reward in the reinforcement learning setup. We explore the implications of these empirical results for theoretical considerations in AI alignment.",
+          "snippet_hash": "sha256:ca06ca6395ac5c10796a390cd26776a59ccc3e1fc9f2d39c351adab42c088c1b",
+          "source_adapter": "semantic_scholar",
+          "source_type": "peer_reviewed_article",
+          "title": "Scaling Laws for Reward Model Overoptimization",
+          "url": "https://www.semanticscholar.org/paper/fb3dc5e20e0a71134ca916f0d6d8d41f01225b4b",
+          "venue": "International Conference on Machine Learning",
+          "year": 2022
+        },
+        {
+          "authors": [
+            "Gianfranco Ciardo",
+            "Jogesh K. Muppala",
+            "Kishor S. Trivedi"
+          ],
+          "doi": "10.1016/0166-5316(91)90003-l",
+          "evidence_id": "ev_0004",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 97,
+            "openalex_id": "https://openalex.org/W2034883517"
+          },
+          "publisher": "Elsevier BV",
+          "query": "reward model",
+          "rank": 4,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.6655,
+          "snippet": "",
+          "snippet_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source_adapter": "openalex",
+          "source_type": "peer_reviewed_article",
+          "title": "On the solution of GSPN reward models",
+          "url": "https://doi.org/10.1016/0166-5316(91)90003-l",
+          "venue": "Performance Evaluation",
+          "year": 1991
+        },
+        {
+          "authors": [
+            "Zhibin Duan",
+            "Guowei Rong",
+            "Zhuo Li",
+            "Bo Chen",
+            "Mingyuan Zhou",
+            "Dandan Guo"
+          ],
+          "doi": null,
+          "evidence_id": "ev_0005",
+          "licence_notes": "arXiv preprint (not peer-reviewed).",
+          "metadata": {
+            "arxiv_id": "http://arxiv.org/abs/2602.10623v2"
+          },
+          "publisher": "arXiv",
+          "query": "reward model",
+          "rank": 5,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.6,
+          "snippet": "Reward models learned from human preferences are central to aligning large language models (LLMs) via reinforcement learning from human feedback, yet they are often vulnerable to reward hacking due to noisy annotations and systematic biases such as response length or style. We propose Bayesian Non-Negative Reward Model (BNRM), a principled reward modeling framework that integrates non-negative factor analysis into Bradley-Terry (BT) preference model. BNRM represents rewards through a sparse, non-negative latent factor generative process that operates at two complementary levels: instance-specific latent variables induce disentangled reward representations, while sparsity over global latent factors acts as an implicit debiasing mechanism that suppresses spurious correlations. Together, this disentanglement-then-debiasing structure enables robust uncertainty-aware reward learning. To scale BNRM to modern LLMs, we develop an amortized variational inference network conditioned on deep model representations, allowing efficient end-to-end training. Extensive empirical results demonstrate that BNRM substantially mitigates reward over-optimization, improves robustness under distribution shifts, and yields more interpretable reward decompositions than strong baselines.",
+          "snippet_hash": "sha256:6d327ab53cb0f6f4b4542a8f669b750946d0c371e4075d438648128050d29512",
+          "source_adapter": "arxiv",
+          "source_type": "preprint",
+          "title": "Mitigating Reward Hacking in RLHF via Bayesian Non-negative Reward Modeling",
+          "url": "http://arxiv.org/abs/2602.10623v2",
+          "venue": "arXiv",
+          "year": 2026
+        },
+        {
+          "authors": [
+            "Elle"
+          ],
+          "doi": "10.18653/v1/2025.emnlp-main.754",
+          "evidence_id": "ev_0006",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 0
+          },
+          "publisher": "Association for Computational Linguistics",
+          "query": "reward model",
+          "rank": 6,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.6,
+          "snippet": "",
+          "snippet_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source_adapter": "crossref",
+          "source_type": "peer_reviewed_article",
+          "title": "Reward Model Perspectives: Whose Opinions Do Reward Models Reward?",
+          "url": "https://doi.org/10.18653/v1/2025.emnlp-main.754",
+          "venue": "Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing",
+          "year": 2025
+        },
+        {
+          "authors": [
+            "Yong Wang",
+            "Hongwen He",
+            "Yuankai Wu",
+            "Pei Wang",
+            "Haoyu Wang",
+            "Renzong Lian",
+            "Jingda Wu",
+            "Qin Li",
+            "Xiangfei Meng",
+            "Yingjuan Tang",
+            "Fengchun Sun",
+            "Amir Khajepour"
+          ],
+          "doi": "10.1016/j.eng.2024.10.021",
+          "evidence_id": "ev_0007",
+          "licence_notes": "Open access (DOAJ).",
+          "metadata": {
+            "doaj_id": "00025ccee56e4098a89bd02a3bd3c371"
+          },
+          "publisher": "Elsevier",
+          "query": "reward model",
+          "rank": 7,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.6,
+          "snippet": "An effective energy management strategy (EMS) is essential to optimize the energy efficiency of electric vehicles (EVs). With the advent of advanced machine learning techniques, the focus on developing sophisticated EMS for EVs is increasing. Here, we introduce LearningEMS: a unified framework and open-source benchmark designed to facilitate rapid development and assessment of EMS. LearningEMS is distinguished by its ability to support a variety of EV configurations, including hybrid EVs, fuel cell EVs, and plug-in EVs, offering a general platform for the development of EMS. The framework enables detailed comparisons of several EMS algorithms, encompassing imitation learning, deep reinforcement learning (RL), offline RL, model predictive control, and dynamic programming. We rigorously evaluated these algorithms across multiple perspectives: energy efficiency, consistency, adaptability, and practicability. Furthermore, we discuss state, reward, and action settings for RL in EV energy management, introduce a policy extraction and reconstruction method for learning-based EMS deployment, and conduct hardware-in-the-loop experiments. In summary, we offer a unified and comprehensive framework that comes with three distinct EV platforms, over 10 000 km of EMS policy data set, ten state-of-the-art algorithms, and over 160 benchmark tasks, along with three learning libraries. Its flexible design allows easy expansion for additional tasks and applications. The open-source algorithms, m",
+          "snippet_hash": "sha256:7f2b185f72f889c8d24787cdda397cffec89421c3ed475d055af160486ce1553",
+          "source_adapter": "doaj",
+          "source_type": "peer_reviewed_article",
+          "title": "LearningEMS: A Unified Framework and Open-Source Benchmark for Learning-Based Energy Management of Electric Vehicles",
+          "url": "http://www.sciencedirect.com/science/article/pii/S2095809924007136",
+          "venue": "Engineering",
+          "year": 2025
+        },
+        {
+          "authors": [
+            "Xie J",
+            "Guo Z",
+            "Zhao H",
+            "Ni H"
+          ],
+          "doi": "10.64898/2026.06.25.26356522",
+          "evidence_id": "ev_0008",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 0,
+            "pmid": null
+          },
+          "publisher": "",
+          "query": "reward model",
+          "rank": 8,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.6,
+          "snippet": "Large language models (LLMs) [1], [2] have demonstrated remarkable capabilities across general domains, yet their application in specialized medical contexts demands rigorous domain adaptation [3], [4]. We present Infoxmed2.0-27B, a medical foundation model built upon Qwen3.5-27B [5] through a comprehensive multi-stage post-training pipeline: (1) proprietary medical data synthesis from a MySQL database with MedicalCategoryTree organization, medical PhD team validation, Chinese RoBERTa [6] semantic deduplication, and API-assisted language refinement; (2) instruction supervised fine-tuning of Qwen3.5-27B via LoRA [7] ( r = 8, \u03b1 = 32) using MS-Swift [8], producing iterations Infoxmed2.0.0\u2192 2.0.2\u2192 2.0.4; (3) Direct Preference Optimization (DPO) [9] on 6,283 curated medical preference pairs [10] using DPO-RPO loss ( \u03b2 = 0.3, \u03b1 RPO = 0.1) across eight progressive training iterations (v0\u2013v7); and (4) parallel Group Relative Policy Optimization (GRPO) [11]-based medical reward model training on Qwen3.5 combining internal rule-based reward functions with external DeepSeek signals. Comprehensive evaluations under a uniform LLM-as-Judge [12] framework with GPT-5.4 demonstrate 77.0% accuracy (mean quality score +7.18) on MedMCQA [10] and +2.59 on HLE, with pipeline progression from +6.69 (base) to +7.06 (SFT) to +7.18 (final).",
+          "snippet_hash": "sha256:efecad732cd677dc7c35a912666695766f2eed0011934a31daa3547b5c2a0321",
+          "source_adapter": "europepmc",
+          "source_type": "peer_reviewed_article",
+          "title": "Infoxmed2.0-27B: Instruction Tuning, Preference Alignment, and GRPO-Based Reward Model Training for Medical LLMs",
+          "url": "https://europepmc.org/abstract/PPR/PPR1262774",
+          "venue": "",
+          "year": 2026
+        },
+        {
+          "authors": [
+            "Saumya Malik",
+            "Valentina Pyatkin",
+            "Sander Land",
+            "Jacob Daniel Morrison",
+            "Noah A. Smith",
+            "Hanna Hajishirzi",
+            "Nathan Lambert"
+          ],
+          "doi": "10.48550/arxiv.2506.01937",
+          "evidence_id": "ev_0009",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 156,
+            "external_ids": {
+              "ArXiv": "2506.01937",
+              "CorpusId": 279119102,
+              "DBLP": "journals/corr/abs-2506-01937",
+              "DOI": "10.48550/arXiv.2506.01937"
+            }
+          },
+          "publisher": "",
+          "query": "reward model",
+          "rank": 9,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.4928,
+          "snippet": "Reward models are used throughout the post-training of language models to capture nuanced signals from preference data and provide a training target for optimization across instruction following, reasoning, safety, and more domains. The community has begun establishing best practices for evaluating reward models, from the development of benchmarks that test capabilities in specific skill areas to others that test agreement with human preferences. At the same time, progress in evaluation has not been mirrored by the effectiveness of reward models in downstream tasks -- simpler direct alignment algorithms are reported to work better in many cases. This paper introduces RewardBench 2, a new multi-skill reward modeling benchmark designed to bring new, challenging data for accuracy-based reward model evaluation -- models score about 20 points on average lower on RewardBench 2 compared to the first RewardBench -- while being highly correlated with downstream performance. Compared to most other benchmarks, RewardBench 2 sources new human prompts instead of existing prompts from downstream evaluations, facilitating more rigorous evaluation practices. In this paper, we describe our benchmark construction process and report how existing models perform on it, while quantifying how performance on the benchmark correlates with downstream use of the models in both inference-time scaling algorithms, like best-of-N sampling, and RLHF training algorithms like proximal policy optimization.",
+          "snippet_hash": "sha256:7bfd413b37980e4d631f4cc38dfd9b957ac87261b421bdc2a8dc2bc603819222",
+          "source_adapter": "semantic_scholar",
+          "source_type": "peer_reviewed_article",
+          "title": "RewardBench 2: Advancing Reward Model Evaluation",
+          "url": "https://www.semanticscholar.org/paper/6069fa0fc5cccb8ebd0061c5e1816f5069cc255b",
+          "venue": "arXiv.org",
+          "year": 2025
+        },
+        {
+          "authors": [
+            "Haoxiang Wang",
+            "Wei Xiong",
+            "Tengyang Xie",
+            "Han Zhao",
+            "Tong Zhang"
+          ],
+          "doi": null,
+          "evidence_id": "ev_0010",
+          "licence_notes": "arXiv preprint (not peer-reviewed).",
+          "metadata": {
+            "arxiv_id": "http://arxiv.org/abs/2406.12845v1"
+          },
+          "publisher": "arXiv",
+          "query": "reward model",
+          "rank": 10,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.4,
+          "snippet": "Reinforcement learning from human feedback (RLHF) has emerged as the primary method for aligning large language models (LLMs) with human preferences. The RLHF process typically starts by training a reward model (RM) using human preference data. Conventional RMs are trained on pairwise responses to the same user request, with relative ratings indicating which response humans prefer. The trained RM serves as a proxy for human preferences. However, due to the black-box nature of RMs, their outputs lack interpretability, as humans cannot intuitively understand why an RM thinks a response is good or not. As RMs act as human preference proxies, we believe they should be human-interpretable to ensure that their internal decision processes are consistent with human preferences and to prevent reward hacking in LLM alignment. To build RMs with interpretable preferences, we propose a two-stage approach: i) train an Absolute-Rating Multi-Objective Reward Model (ArmoRM) with multi-dimensional absolute-rating data, each dimension corresponding to a human-interpretable objective (e.g., honesty, verbosity, safety); ii) employ a Mixture-of-Experts (MoE) strategy with a gating network that automatically selects the most suitable reward objectives based on the context. We efficiently trained an ArmoRM with Llama-3 8B and a gating network consisting of a shallow MLP on top of the ArmoRM. Our trained model, ArmoRM-Llama3-8B, obtains state-of-the-art performance on RewardBench, a benchmark evaluat",
+          "snippet_hash": "sha256:b2524e10742182c5164697b68faad23e21f081f95c65ed10f63186bc2c12d80a",
+          "source_adapter": "arxiv",
+          "source_type": "preprint",
+          "title": "Interpretable Preferences via Multi-Objective Reward Modeling and Mixture-of-Experts",
+          "url": "http://arxiv.org/abs/2406.12845v1",
+          "venue": "arXiv",
+          "year": 2024
+        }
+      ],
+      "keys": [
+        "arxiv__recorded",
+        "crossref__recorded",
+        "doaj__recorded",
+        "europepmc__recorded",
+        "openalex__recorded",
+        "semantic_scholar__recorded"
+      ],
+      "limit": 10
+    }
+  },
+  "cases": {
+    "arxiv__basic": {
+      "body": "arxiv__basic.body",
+      "error": null,
+      "evidence": [
+        {
+          "authors": [
+            "Ashish Vaswani"
+          ],
+          "doi": "10.5/transf",
+          "evidence_id": "ev_arxiv_0001",
+          "licence_notes": "arXiv preprint (not peer-reviewed).",
+          "metadata": {
+            "arxiv_id": "http://arxiv.org/abs/1706.03762v1"
+          },
+          "publisher": "arXiv",
+          "query": "edge query",
+          "rank": 1,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.6,
+          "snippet": "We propose the Transformer & friends.",
+          "snippet_hash": "sha256:83ce4bf042e8eb50deab50c53942f65ae5e36c35d24f95706419d3579d6204de",
+          "source_adapter": "arxiv",
+          "source_type": "preprint",
+          "title": "Attention Is All You Need",
+          "url": "http://arxiv.org/abs/1706.03762v1",
+          "venue": "arXiv",
+          "year": 2017
+        },
+        {
+          "authors": [],
+          "doi": null,
+          "evidence_id": "ev_arxiv_0002",
+          "licence_notes": "arXiv preprint (not peer-reviewed).",
+          "metadata": {
+            "arxiv_id": ""
+          },
+          "publisher": "arXiv",
+          "query": "edge query",
+          "rank": 2,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.48,
+          "snippet": "",
+          "snippet_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source_adapter": "arxiv",
+          "source_type": "preprint",
+          "title": "No extras",
+          "url": null,
+          "venue": "arXiv",
+          "year": null
+        }
+      ],
+      "limit": 5,
+      "query": "edge query",
+      "source": "arxiv",
+      "url": "https://export.arxiv.org/api/query?search_query=all%3Aedge+query&start=0&max_results=5&sortBy=relevance"
+    },
+    "arxiv__entities": {
+      "body": "arxiv__entities.body",
+      "error": {
+        "error_type": "malformed_response",
+        "message": "invalid Atom feed: EntitiesForbidden(name='lol', system_id=None, public_id=None)",
+        "metadata": {
+          "source": "arxiv"
+        },
+        "retryable": false
+      },
+      "evidence": [],
+      "limit": 5,
+      "query": "edge query",
+      "source": "arxiv",
+      "url": "https://export.arxiv.org/api/query?search_query=all%3Aedge+query&start=0&max_results=5&sortBy=relevance"
+    },
+    "arxiv__not_xml": {
+      "body": "arxiv__not_xml.body",
+      "error": {
+        "error_type": "malformed_response",
+        "message": "invalid Atom feed: syntax error: line 1, column 0",
+        "metadata": {
+          "source": "arxiv"
+        },
+        "retryable": false
+      },
+      "evidence": [],
+      "limit": 5,
+      "query": "edge query",
+      "source": "arxiv",
+      "url": "https://export.arxiv.org/api/query?search_query=all%3Aedge+query&start=0&max_results=5&sortBy=relevance"
+    },
+    "arxiv__recorded": {
+      "body": "arxiv.body",
+      "error": null,
+      "evidence": [
+        {
+          "authors": [
+            "Zhibin Duan",
+            "Guowei Rong",
+            "Zhuo Li",
+            "Bo Chen",
+            "Mingyuan Zhou",
+            "Dandan Guo"
+          ],
+          "doi": null,
+          "evidence_id": "ev_arxiv_0001",
+          "licence_notes": "arXiv preprint (not peer-reviewed).",
+          "metadata": {
+            "arxiv_id": "http://arxiv.org/abs/2602.10623v2"
+          },
+          "publisher": "arXiv",
+          "query": "reward model",
+          "rank": 1,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.6,
+          "snippet": "Reward models learned from human preferences are central to aligning large language models (LLMs) via reinforcement learning from human feedback, yet they are often vulnerable to reward hacking due to noisy annotations and systematic biases such as response length or style. We propose Bayesian Non-Negative Reward Model (BNRM), a principled reward modeling framework that integrates non-negative factor analysis into Bradley-Terry (BT) preference model. BNRM represents rewards through a sparse, non-negative latent factor generative process that operates at two complementary levels: instance-specific latent variables induce disentangled reward representations, while sparsity over global latent factors acts as an implicit debiasing mechanism that suppresses spurious correlations. Together, this disentanglement-then-debiasing structure enables robust uncertainty-aware reward learning. To scale BNRM to modern LLMs, we develop an amortized variational inference network conditioned on deep model representations, allowing efficient end-to-end training. Extensive empirical results demonstrate that BNRM substantially mitigates reward over-optimization, improves robustness under distribution shifts, and yields more interpretable reward decompositions than strong baselines.",
+          "snippet_hash": "sha256:6d327ab53cb0f6f4b4542a8f669b750946d0c371e4075d438648128050d29512",
+          "source_adapter": "arxiv",
+          "source_type": "preprint",
+          "title": "Mitigating Reward Hacking in RLHF via Bayesian Non-negative Reward Modeling",
+          "url": "http://arxiv.org/abs/2602.10623v2",
+          "venue": "arXiv",
+          "year": 2026
+        },
+        {
+          "authors": [
+            "Haoxiang Wang",
+            "Wei Xiong",
+            "Tengyang Xie",
+            "Han Zhao",
+            "Tong Zhang"
+          ],
+          "doi": null,
+          "evidence_id": "ev_arxiv_0002",
+          "licence_notes": "arXiv preprint (not peer-reviewed).",
+          "metadata": {
+            "arxiv_id": "http://arxiv.org/abs/2406.12845v1"
+          },
+          "publisher": "arXiv",
+          "query": "reward model",
+          "rank": 2,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.4,
+          "snippet": "Reinforcement learning from human feedback (RLHF) has emerged as the primary method for aligning large language models (LLMs) with human preferences. The RLHF process typically starts by training a reward model (RM) using human preference data. Conventional RMs are trained on pairwise responses to the same user request, with relative ratings indicating which response humans prefer. The trained RM serves as a proxy for human preferences. However, due to the black-box nature of RMs, their outputs lack interpretability, as humans cannot intuitively understand why an RM thinks a response is good or not. As RMs act as human preference proxies, we believe they should be human-interpretable to ensure that their internal decision processes are consistent with human preferences and to prevent reward hacking in LLM alignment. To build RMs with interpretable preferences, we propose a two-stage approach: i) train an Absolute-Rating Multi-Objective Reward Model (ArmoRM) with multi-dimensional absolute-rating data, each dimension corresponding to a human-interpretable objective (e.g., honesty, verbosity, safety); ii) employ a Mixture-of-Experts (MoE) strategy with a gating network that automatically selects the most suitable reward objectives based on the context. We efficiently trained an ArmoRM with Llama-3 8B and a gating network consisting of a shallow MLP on top of the ArmoRM. Our trained model, ArmoRM-Llama3-8B, obtains state-of-the-art performance on RewardBench, a benchmark evaluat",
+          "snippet_hash": "sha256:b2524e10742182c5164697b68faad23e21f081f95c65ed10f63186bc2c12d80a",
+          "source_adapter": "arxiv",
+          "source_type": "preprint",
+          "title": "Interpretable Preferences via Multi-Objective Reward Modeling and Mixture-of-Experts",
+          "url": "http://arxiv.org/abs/2406.12845v1",
+          "venue": "arXiv",
+          "year": 2024
+        },
+        {
+          "authors": [
+            "Carson Denison",
+            "Monte MacDiarmid",
+            "Fazl Barez",
+            "David Duvenaud",
+            "Shauna Kravec",
+            "Samuel Marks",
+            "Nicholas Schiefer",
+            "Ryan Soklaski",
+            "Alex Tamkin",
+            "Jared Kaplan",
+            "Buck Shlegeris",
+            "Samuel R. Bowman",
+            "Ethan Perez",
+            "Evan Hubinger"
+          ],
+          "doi": null,
+          "evidence_id": "ev_arxiv_0003",
+          "licence_notes": "arXiv preprint (not peer-reviewed).",
+          "metadata": {
+            "arxiv_id": "http://arxiv.org/abs/2406.10162v3"
+          },
+          "publisher": "arXiv",
+          "query": "reward model",
+          "rank": 3,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.2,
+          "snippet": "In reinforcement learning, specification gaming occurs when AI systems learn undesired behaviors that are highly rewarded due to misspecified training goals. Specification gaming can range from simple behaviors like sycophancy to sophisticated and pernicious behaviors like reward-tampering, where a model directly modifies its own reward mechanism. However, these more pernicious behaviors may be too complex to be discovered via exploration. In this paper, we study whether Large Language Model (LLM) assistants which find easily discovered forms of specification gaming will generalize to perform rarer and more blatant forms, up to and including reward-tampering. We construct a curriculum of increasingly sophisticated gameable environments and find that training on early-curriculum environments leads to more specification gaming on remaining environments. Strikingly, a small but non-negligible proportion of the time, LLM assistants trained on the full curriculum generalize zero-shot to directly rewriting their own reward function. Retraining an LLM not to game early-curriculum environments mitigates, but does not eliminate, reward-tampering in later environments. Moreover, adding harmlessness training to our gameable environments does not prevent reward-tampering. These results demonstrate that LLMs can generalize from common forms of specification gaming to more pernicious reward tampering and that such behavior may be nontrivial to remove.",
+          "snippet_hash": "sha256:4013b9bda8e7438b0f39bb6666df5d5e29a2cb5eb6a88dbe9469a8493f3291a2",
+          "source_adapter": "arxiv",
+          "source_type": "preprint",
+          "title": "Sycophancy to Subterfuge: Investigating Reward-Tampering in Large Language Models",
+          "url": "http://arxiv.org/abs/2406.10162v3",
+          "venue": "arXiv",
+          "year": 2024
+        }
+      ],
+      "limit": 3,
+      "query": "reward model",
+      "source": "arxiv",
+      "url": "https://export.arxiv.org/api/query?search_query=all%3Areward+model&start=0&max_results=3&sortBy=relevance"
+    },
+    "crossref__empty": {
+      "body": "crossref__empty.body",
+      "error": null,
+      "evidence": [],
+      "limit": 5,
+      "query": "edge query",
+      "source": "crossref",
+      "url": "https://api.crossref.org/works?query=edge+query&rows=5&mailto=reasoning-engine%40example.org&select=title%2Cauthor%2CDOI%2Cpublisher%2Ccontainer-title%2Cabstract%2Cis-referenced-by-count%2CURL%2Cissued%2Cpublished"
+    },
+    "crossref__jats": {
+      "body": "crossref__jats.body",
+      "error": null,
+      "evidence": [
+        {
+          "authors": [
+            "B Jones",
+            "Solo"
+          ],
+          "doi": "10.2/xyz",
+          "evidence_id": "ev_crossref_0001",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 5
+          },
+          "publisher": "ACM",
+          "query": "edge query",
+          "rank": 1,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.7038,
+          "snippet": "Great work",
+          "snippet_hash": "sha256:2ce3ade7f9541aecd178d729f4f8bfeaf5ea2cf096a89b6fed43c68301ea6179",
+          "source_adapter": "crossref",
+          "source_type": "peer_reviewed_article",
+          "title": "Verifiable Research",
+          "url": "https://doi.org/10.2/xyz",
+          "venue": "Proc X",
+          "year": 2024
+        },
+        {
+          "authors": [],
+          "doi": null,
+          "evidence_id": "ev_crossref_0002",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": null
+          },
+          "publisher": "",
+          "query": "edge query",
+          "rank": 2,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.48,
+          "snippet": "",
+          "snippet_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source_adapter": "crossref",
+          "source_type": "peer_reviewed_article",
+          "title": "Untitled",
+          "url": null,
+          "venue": "",
+          "year": 2019
+        }
+      ],
+      "limit": 5,
+      "query": "edge query",
+      "source": "crossref",
+      "url": "https://api.crossref.org/works?query=edge+query&rows=5&mailto=reasoning-engine%40example.org&select=title%2Cauthor%2CDOI%2Cpublisher%2Ccontainer-title%2Cabstract%2Cis-referenced-by-count%2CURL%2Cissued%2Cpublished"
+    },
+    "crossref__recorded": {
+      "body": "crossref.body",
+      "error": null,
+      "evidence": [
+        {
+          "authors": [
+            "Elle"
+          ],
+          "doi": "10.18653/v1/2025.emnlp-main.754",
+          "evidence_id": "ev_crossref_0001",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 0
+          },
+          "publisher": "Association for Computational Linguistics",
+          "query": "reward model",
+          "rank": 1,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.6,
+          "snippet": "",
+          "snippet_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source_adapter": "crossref",
+          "source_type": "peer_reviewed_article",
+          "title": "Reward Model Perspectives: Whose Opinions Do Reward Models Reward?",
+          "url": "https://doi.org/10.18653/v1/2025.emnlp-main.754",
+          "venue": "Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing",
+          "year": 2025
+        },
+        {
+          "authors": [],
+          "doi": "10.67229/eer26050001",
+          "evidence_id": "ev_crossref_0002",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 0
+          },
+          "publisher": "International Society for Translational Science",
+          "query": "reward model",
+          "rank": 2,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.4,
+          "snippet": "",
+          "snippet_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source_adapter": "crossref",
+          "source_type": "peer_reviewed_article",
+          "title": "Reward outstanding engineering faculty through the \"goal, resources, training, review, and reward\" model",
+          "url": "https://doi.org/10.67229/eer26050001",
+          "venue": "Engineering Education Review",
+          "year": 2026
+        },
+        {
+          "authors": [
+            "Jan Teichmann",
+            "Eduardo Alonso",
+            "Mark Broom"
+          ],
+          "doi": "10.5220/0005591501740179",
+          "evidence_id": "ev_crossref_0003",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 0
+          },
+          "publisher": "SCITEPRESS - Science and and Technology Publications",
+          "query": "reward model",
+          "rank": 3,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.2,
+          "snippet": "",
+          "snippet_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source_adapter": "crossref",
+          "source_type": "peer_reviewed_article",
+          "title": "A Reward-driven Model of Darwinian Fitness",
+          "url": "https://doi.org/10.5220/0005591501740179",
+          "venue": "Proceedings of the 7th International Joint Conference on Computational Intelligence",
+          "year": 2015
+        }
+      ],
+      "limit": 3,
+      "query": "reward model",
+      "source": "crossref",
+      "url": "https://api.crossref.org/works?query=reward+model&rows=3&mailto=reasoning-engine%40example.org&select=title%2Cauthor%2CDOI%2Cpublisher%2Ccontainer-title%2Cabstract%2Cis-referenced-by-count%2CURL%2Cissued%2Cpublished"
+    },
+    "dblp__author_list": {
+      "body": "dblp__author_list.body",
+      "error": null,
+      "evidence": [
+        {
+          "authors": [
+            "D. Kim",
+            "E. Park"
+          ],
+          "doi": "10.9/bft",
+          "evidence_id": "ev_dblp_0001",
+          "licence_notes": null,
+          "metadata": {
+            "dblp_key": "conf/osdi/1",
+            "type": "Conference and Workshop Papers"
+          },
+          "publisher": "",
+          "query": "edge query",
+          "rank": 1,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.6,
+          "snippet": "BFT Consensus",
+          "snippet_hash": "sha256:79f1129fd9282abb2b40b4f7c24ed00662d778360d9e99fa9c8abe472b405f6f",
+          "source_adapter": "dblp",
+          "source_type": "conference_paper",
+          "title": "BFT Consensus",
+          "url": "https://dblp.org/1",
+          "venue": "OSDI",
+          "year": 2021
+        },
+        {
+          "authors": [
+            "F. Solo"
+          ],
+          "doi": null,
+          "evidence_id": "ev_dblp_0002",
+          "licence_notes": null,
+          "metadata": {
+            "dblp_key": null,
+            "type": "Journal Articles"
+          },
+          "publisher": "",
+          "query": "edge query",
+          "rank": 2,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.48,
+          "snippet": "Solo Paper",
+          "snippet_hash": "sha256:605111bf73dfc8d473b2b39b4128d4c8076cf5089da760d871f74136d8548900",
+          "source_adapter": "dblp",
+          "source_type": "peer_reviewed_article",
+          "title": "Solo Paper",
+          "url": "https://dblp.org/2",
+          "venue": "",
+          "year": 2020
+        }
+      ],
+      "limit": 5,
+      "query": "edge query",
+      "source": "dblp",
+      "url": "https://dblp.org/search/publ/api?q=edge+query&format=json&h=5"
+    },
+    "dblp__bot_challenge": {
+      "body": "dblp__bot_challenge.body",
+      "error": {
+        "error_type": "malformed_response",
+        "message": "invalid JSON body: Expecting value: line 1 column 1 (char 0)",
+        "metadata": {
+          "source": "dblp"
+        },
+        "retryable": false
+      },
+      "evidence": [],
+      "limit": 5,
+      "query": "edge query",
+      "source": "dblp",
+      "url": "https://dblp.org/search/publ/api?q=edge+query&format=json&h=5"
+    },
+    "dblp__list_payload": {
+      "body": "dblp__list_payload.body",
+      "error": null,
+      "evidence": [],
+      "limit": 5,
+      "query": "edge query",
+      "source": "dblp",
+      "url": "https://dblp.org/search/publ/api?q=edge+query&format=json&h=5"
+    },
+    "dblp__realistic": {
+      "body": "dblp__realistic.body",
+      "error": null,
+      "evidence": [
+        {
+          "authors": [
+            "Hunter Lightman",
+            "Vineet Kosaraju"
+          ],
+          "doi": null,
+          "evidence_id": "ev_dblp_0001",
+          "licence_notes": null,
+          "metadata": {
+            "dblp_key": "conf/iclr/LightmanKBEBLLS24",
+            "type": "Conference and Workshop Papers"
+          },
+          "publisher": "",
+          "query": "edge query",
+          "rank": 1,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.6,
+          "snippet": "Let's Verify Step by Step.",
+          "snippet_hash": "sha256:46da2db6b42d22e7950372308d0d210e457a7d38824a3d734c9adae9afcdddea",
+          "source_adapter": "dblp",
+          "source_type": "conference_paper",
+          "title": "Let's Verify Step by Step.",
+          "url": "https://openreview.net/forum?id=v8L0pN6EOi",
+          "venue": "ICLR",
+          "year": 2024
+        },
+        {
+          "authors": [
+            "Solo Author"
+          ],
+          "doi": "10.48550/arxiv.2510.08049",
+          "evidence_id": "ev_dblp_0002",
+          "licence_notes": null,
+          "metadata": {
+            "dblp_key": "journals/corr/abs-2510-08049",
+            "type": "Informal and Other Publications"
+          },
+          "publisher": "",
+          "query": "edge query",
+          "rank": 2,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.48,
+          "snippet": "Process Reward Models: A Survey.",
+          "snippet_hash": "sha256:c54eca86b58987532ffdbc494064892f575507e57addf58b485b9087f074f73f",
+          "source_adapter": "dblp",
+          "source_type": "preprint",
+          "title": "Process Reward Models: A Survey.",
+          "url": "https://dblp.org/rec/journals/corr/abs-2510-08049",
+          "venue": "CoRR",
+          "year": 2025
+        }
+      ],
+      "limit": 5,
+      "query": "edge query",
+      "source": "dblp",
+      "url": "https://dblp.org/search/publ/api?q=edge+query&format=json&h=5"
+    },
+    "doaj__identifiers": {
+      "body": "doaj__identifiers.body",
+      "error": null,
+      "evidence": [
+        {
+          "authors": [
+            "C. Lee"
+          ],
+          "doi": "10.8/oa",
+          "evidence_id": "ev_doaj_0001",
+          "licence_notes": "Open access (DOAJ).",
+          "metadata": {
+            "doaj_id": "d1"
+          },
+          "publisher": "OA Pub",
+          "query": "edge query",
+          "rank": 1,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.6,
+          "snippet": "Findings.",
+          "snippet_hash": "sha256:1a8c0e5b984fed40820e45e2b3fb90023a69d95469d6d6b6efefa4f48d3c7ef5",
+          "source_adapter": "doaj",
+          "source_type": "peer_reviewed_article",
+          "title": "Open Access Study",
+          "url": "https://oa.org/1",
+          "venue": "OA Journal",
+          "year": 2022
+        }
+      ],
+      "limit": 5,
+      "query": "edge query",
+      "source": "doaj",
+      "url": "https://doaj.org/api/search/articles/edge%20query?pageSize=5"
+    },
+    "doaj__recorded": {
+      "body": "doaj.body",
+      "error": null,
+      "evidence": [
+        {
+          "authors": [
+            "Yong Wang",
+            "Hongwen He",
+            "Yuankai Wu",
+            "Pei Wang",
+            "Haoyu Wang",
+            "Renzong Lian",
+            "Jingda Wu",
+            "Qin Li",
+            "Xiangfei Meng",
+            "Yingjuan Tang",
+            "Fengchun Sun",
+            "Amir Khajepour"
+          ],
+          "doi": "10.1016/j.eng.2024.10.021",
+          "evidence_id": "ev_doaj_0001",
+          "licence_notes": "Open access (DOAJ).",
+          "metadata": {
+            "doaj_id": "00025ccee56e4098a89bd02a3bd3c371"
+          },
+          "publisher": "Elsevier",
+          "query": "reward model",
+          "rank": 1,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.6,
+          "snippet": "An effective energy management strategy (EMS) is essential to optimize the energy efficiency of electric vehicles (EVs). With the advent of advanced machine learning techniques, the focus on developing sophisticated EMS for EVs is increasing. Here, we introduce LearningEMS: a unified framework and open-source benchmark designed to facilitate rapid development and assessment of EMS. LearningEMS is distinguished by its ability to support a variety of EV configurations, including hybrid EVs, fuel cell EVs, and plug-in EVs, offering a general platform for the development of EMS. The framework enables detailed comparisons of several EMS algorithms, encompassing imitation learning, deep reinforcement learning (RL), offline RL, model predictive control, and dynamic programming. We rigorously evaluated these algorithms across multiple perspectives: energy efficiency, consistency, adaptability, and practicability. Furthermore, we discuss state, reward, and action settings for RL in EV energy management, introduce a policy extraction and reconstruction method for learning-based EMS deployment, and conduct hardware-in-the-loop experiments. In summary, we offer a unified and comprehensive framework that comes with three distinct EV platforms, over 10 000 km of EMS policy data set, ten state-of-the-art algorithms, and over 160 benchmark tasks, along with three learning libraries. Its flexible design allows easy expansion for additional tasks and applications. The open-source algorithms, m",
+          "snippet_hash": "sha256:7f2b185f72f889c8d24787cdda397cffec89421c3ed475d055af160486ce1553",
+          "source_adapter": "doaj",
+          "source_type": "peer_reviewed_article",
+          "title": "LearningEMS: A Unified Framework and Open-Source Benchmark for Learning-Based Energy Management of Electric Vehicles",
+          "url": "http://www.sciencedirect.com/science/article/pii/S2095809924007136",
+          "venue": "Engineering",
+          "year": 2025
+        },
+        {
+          "authors": [
+            "Elena Mart\u00edn-Gonz\u00e1lez",
+            "Manuela Olmedo-C\u00f3rdoba",
+            "\u00c1ngeles Prados-Pardo",
+            "Daniel J. Cruz-Garz\u00f3n",
+            "Pilar Flores",
+            "Santiago Mora",
+            "Margarita Moreno-Montoya"
+          ],
+          "doi": "10.3389/fnbeh.2023.1175137",
+          "evidence_id": "ev_doaj_0002",
+          "licence_notes": "Open access (DOAJ).",
+          "metadata": {
+            "doaj_id": "002e4d84dbef43e5bdfb0436c8855a40"
+          },
+          "publisher": "Frontiers Media S.A.",
+          "query": "reward model",
+          "rank": 2,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.4,
+          "snippet": "IntroductionCompulsive behavior has been proposed as a transdiagnostic trait observed in different neuropsychiatric disorders, such as obsessive-compulsive disorder, autism, and schizophrenia. Research Domain Criteria (RDoC) strategy could help to disentangle the neuropsychological basis of compulsivity for developing new therapeutic and preventive approaches. In preclinical research, the selection of high-drinker (HD) vs. low-drinker (LD) animals by schedule-induced polydipsia (SIP) is considered a putative model of compulsivity, which includes a well-differentiated behavioral pattern.MethodsThe purpose of this research was to assess the cognitive control and the negative valence system domains in a phenotype of compulsive HD rats. After the selection of animals as HD or LD, we assessed behavioral inflexibility by probabilistic spatial reversal learning (PSRL), motor and cognitive impulsivity by variable delay-to-signal (VDS), and risky decision-making by rodent gambling task (rGT).ResultsHD rats performed fewer reversals and showed less probability of pressing the same lever that was previously reinforced on PSRL, more premature responses after the exposure to longer delays on VDS, and more disadvantageous risky choices on rGT. Moreover, HD animals performed more perseverative responses under the punishment period on rGT.DiscussionThese results highlight that HD compulsive phenotype exhibits behavioral inflexibility, insensitivity to positive feedback, waiting impulsivity, ",
+          "snippet_hash": "sha256:e69e633134158d0cc5904ad6fbd33061b9f031bc7831ce76db2f6fe91cac309f",
+          "source_adapter": "doaj",
+          "source_type": "peer_reviewed_article",
+          "title": "Behavioral domains in compulsive rats: implications for understanding compulsive spectrum disorders",
+          "url": "https://www.frontiersin.org/articles/10.3389/fnbeh.2023.1175137/full",
+          "venue": "Frontiers in Behavioral Neuroscience",
+          "year": 2023
+        },
+        {
+          "authors": [
+            "Julia K \u00c5hlin",
+            "Paraskevi Peristera",
+            "Hugo Westerlund",
+            "Linda L Magnusson Hanson"
+          ],
+          "doi": "10.5271/sjweh.3889",
+          "evidence_id": "ev_doaj_0003",
+          "licence_notes": "Open access (DOAJ).",
+          "metadata": {
+            "doaj_id": "0036ee35be154f5aa2c7268119ef8b6e"
+          },
+          "publisher": "Nordic Association of Occupational Safety and Health (NOROSH)",
+          "query": "reward model",
+          "rank": 3,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.2,
+          "snippet": "OBJECTIVES: Retirement is a major life transition. However, previous evidence on its mental health effects has been inconclusive. Whether retirement is desirable or not may depend on pre-retirement work characteristics. We investigated trajectories of depressive symptoms across retirement and how a number of psychosocial working characteristics influenced these trajectories. METHODS: We included 1735 respondents from the Swedish Longitudinal Occupational Survey of Health (SLOSH), retiring during 2008\u20132016 (mean retirement age 66 years). They had completed biennial questionnaires reporting job demands, decision authority, workplace social support, efforts, rewards, procedural justice and depressive symptoms. We applied group-based trajectory modelling to model trajectories of depressive symptoms across retirement. Multinomial logistic regression analyses estimated the associations between \u00adpsychosocial working characteristics and depressive symptom trajectories. RESULTS: We identified five depression trajectories. In four of them, depressive symptoms decreased slightly around retirement. In one, the symptom level was initially high, then decreased markedly across retirement. Perceptions of job demands, job strain, workplace social support, rewards, effort\u2013reward imbalance and procedural justice were associated with the trajectories, while perceptions of decision authority and work efforts were only partly related to the trajectories. CONCLUSIONS: We observed a rather positive ",
+          "snippet_hash": "sha256:9accc56ed1da62f46c5668950c77faec287cd620c2031aea19aaceca76c4ffe6",
+          "source_adapter": "doaj",
+          "source_type": "peer_reviewed_article",
+          "title": "Psychosocial working characteristics before retirement and depressive symptoms across the retirement transition: a longitudinal latent class analysis",
+          "url": "\n      https://www.sjweh.fi/show_abstract.php?abstract_id=3889\n    ",
+          "venue": "Scandinavian Journal of Work, Environment & Health",
+          "year": 2020
+        }
+      ],
+      "limit": 3,
+      "query": "reward model",
+      "source": "doaj",
+      "url": "https://doaj.org/api/search/articles/reward%20model?pageSize=3"
+    },
+    "europepmc__author_string": {
+      "body": "europepmc__author_string.body",
+      "error": null,
+      "evidence": [
+        {
+          "authors": [
+            "Doe J",
+            "Roe K"
+          ],
+          "doi": "10.7/crispr",
+          "evidence_id": "ev_europepmc_0001",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 12,
+            "pmid": "999"
+          },
+          "publisher": "",
+          "query": "edge query",
+          "rank": 1,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.7485,
+          "snippet": "A review.",
+          "snippet_hash": "sha256:0e178b8b16c5e63d45215d5f6a1f1ab7b80daf17c2dd99ab47aa5568d42afb02",
+          "source_adapter": "europepmc",
+          "source_type": "peer_reviewed_article",
+          "title": "CRISPR review",
+          "url": "https://europepmc.org/abstract/MED/999",
+          "venue": "Cell",
+          "year": 2023
+        },
+        {
+          "authors": [],
+          "doi": null,
+          "evidence_id": "ev_europepmc_0002",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": null,
+            "pmid": null
+          },
+          "publisher": "",
+          "query": "edge query",
+          "rank": 2,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.48,
+          "snippet": "",
+          "snippet_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source_adapter": "europepmc",
+          "source_type": "peer_reviewed_article",
+          "title": "No source",
+          "url": null,
+          "venue": "",
+          "year": null
+        }
+      ],
+      "limit": 5,
+      "query": "edge query",
+      "source": "europepmc",
+      "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=edge+query&format=json&pageSize=5&resultType=core"
+    },
+    "europepmc__recorded": {
+      "body": "europepmc.body",
+      "error": null,
+      "evidence": [
+        {
+          "authors": [
+            "Xie J",
+            "Guo Z",
+            "Zhao H",
+            "Ni H"
+          ],
+          "doi": "10.64898/2026.06.25.26356522",
+          "evidence_id": "ev_europepmc_0001",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 0,
+            "pmid": null
+          },
+          "publisher": "",
+          "query": "reward model",
+          "rank": 1,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.6,
+          "snippet": "Large language models (LLMs) [1], [2] have demonstrated remarkable capabilities across general domains, yet their application in specialized medical contexts demands rigorous domain adaptation [3], [4]. We present Infoxmed2.0-27B, a medical foundation model built upon Qwen3.5-27B [5] through a comprehensive multi-stage post-training pipeline: (1) proprietary medical data synthesis from a MySQL database with MedicalCategoryTree organization, medical PhD team validation, Chinese RoBERTa [6] semantic deduplication, and API-assisted language refinement; (2) instruction supervised fine-tuning of Qwen3.5-27B via LoRA [7] ( r = 8, \u03b1 = 32) using MS-Swift [8], producing iterations Infoxmed2.0.0\u2192 2.0.2\u2192 2.0.4; (3) Direct Preference Optimization (DPO) [9] on 6,283 curated medical preference pairs [10] using DPO-RPO loss ( \u03b2 = 0.3, \u03b1 RPO = 0.1) across eight progressive training iterations (v0\u2013v7); and (4) parallel Group Relative Policy Optimization (GRPO) [11]-based medical reward model training on Qwen3.5 combining internal rule-based reward functions with external DeepSeek signals. Comprehensive evaluations under a uniform LLM-as-Judge [12] framework with GPT-5.4 demonstrate 77.0% accuracy (mean quality score +7.18) on MedMCQA [10] and +2.59 on HLE, with pipeline progression from +6.69 (base) to +7.06 (SFT) to +7.18 (final).",
+          "snippet_hash": "sha256:efecad732cd677dc7c35a912666695766f2eed0011934a31daa3547b5c2a0321",
+          "source_adapter": "europepmc",
+          "source_type": "peer_reviewed_article",
+          "title": "Infoxmed2.0-27B: Instruction Tuning, Preference Alignment, and GRPO-Based Reward Model Training for Medical LLMs",
+          "url": "https://europepmc.org/abstract/PPR/PPR1262774",
+          "venue": "",
+          "year": 2026
+        },
+        {
+          "authors": [
+            "Alloy LB",
+            "Nusslock R"
+          ],
+          "doi": "10.1177/09637214251369722",
+          "evidence_id": "ev_europepmc_0002",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 0,
+            "pmid": "40964067"
+          },
+          "publisher": "",
+          "query": "reward model",
+          "rank": 2,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.4,
+          "snippet": "Adolescence is an \"age of risk\" for the emergence of depression. Despite its prevalence and public health significance, there are major unanswered questions regarding the mechanisms contributing to depression's etiology and surge in adolescence. Separate lines of research have investigated the roles of inflammation and low reward responsiveness in depression and recent evidence suggests bidirectional associations between inflammation and reward responsiveness. In this article, we review this evidence, present an integrated immuno-reward model of adolescent depression, specifically, motivational and somatic symptoms of depression, and discuss the role of stress and early adversity in amplifying immune-reward interactions. We end with implications of the immuno-reward model for future research, early identification of at-risk adolescents, intervention, and public health policy.",
+          "snippet_hash": "sha256:65931f92229d5635f317f9883cddb96627ef3651d51ac232dcc02b710a1632fe",
+          "source_adapter": "europepmc",
+          "source_type": "peer_reviewed_article",
+          "title": "An Integrated Immuno-Reward Model of Adolescent Depression: Theory, Evidence, and Implications.",
+          "url": "https://europepmc.org/abstract/MED/40964067",
+          "venue": "Current directions in psychological science",
+          "year": 2025
+        },
+        {
+          "authors": [
+            "Rho HG"
+          ],
+          "doi": "10.21203/rs.3.rs-7594024/v1",
+          "evidence_id": "ev_europepmc_0003",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 0,
+            "pmid": null
+          },
+          "publisher": "",
+          "query": "reward model",
+          "rank": 3,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.2,
+          "snippet": "<title>Abstract</title> <p>Modern preference alignment techniques, such as Best-of-N (BoN) sampling, rely on reward models trained with pairwise comparison data. While effective at learning relative preferences, this paradigm fails to capture a signal of response acceptability, leaving systems vulnerable to selecting the least bad of many unacceptable options. This is particularly problematic for hard prompts, where the risk of such false acceptances increases with the number of samples. In this paper, we address this critical reliability gap by introducing a new data collection and modeling framework. By augmenting preference data with an outside option, inspired by discrete choice models, we train a reward model that can distinguish not just what is better, but what is good enough. We leverage this capability to create an adaptive inference strategy, best of mini-N in-loop, which partitions the generation budget into sequential loops with a calibrated, early-exit condition. Our experiments show that when tuned as an alignment guardrail, it reduces reliability failures by 70%, and when tuned as an inference accelerator, it improves average inference speed by over 22% in IMBD-sentiment setting. We thus provide a principled and flexible framework for practitioners to explicitly manage the trade-off between reliability and computational efficiency.</p>",
+          "snippet_hash": "sha256:532d3777300a3e59ed56dc283d857dee38da0c33df4bed8ba4abb4adda87f501",
+          "source_adapter": "europepmc",
+          "source_type": "peer_reviewed_article",
+          "title": "A Contextual Quality Reward Model For Reliable and Efficient Best of N Sampling",
+          "url": "https://europepmc.org/abstract/PPR/PPR1084698",
+          "venue": "",
+          "year": 2025
+        }
+      ],
+      "limit": 3,
+      "query": "reward model",
+      "source": "europepmc",
+      "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=reward+model&format=json&pageSize=3&resultType=core"
+    },
+    "openalex__basic": {
+      "body": "openalex__basic.body",
+      "error": null,
+      "evidence": [
+        {
+          "authors": [
+            "A. Smith"
+          ],
+          "doi": "10.1/abc",
+          "evidence_id": "ev_openalex_0001",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 42,
+            "openalex_id": "https://openalex.org/W1"
+          },
+          "publisher": "Elsevier",
+          "query": "edge query",
+          "rank": 1,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.8178,
+          "snippet": "This studies MCP x MCP",
+          "snippet_hash": "sha256:82391aec78550f908e1d1020ef5d32422b3cc78dc58cf206741f6157a12cbf6a",
+          "source_adapter": "openalex",
+          "source_type": "peer_reviewed_article",
+          "title": "Deep Learning for MCP Security",
+          "url": "https://ex.com/abc",
+          "venue": "Journal of AI",
+          "year": 2025
+        },
+        {
+          "authors": [],
+          "doi": null,
+          "evidence_id": "ev_openalex_0002",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": null,
+            "openalex_id": "W2"
+          },
+          "publisher": "",
+          "query": "edge query",
+          "rank": 2,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.48,
+          "snippet": "",
+          "snippet_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source_adapter": "openalex",
+          "source_type": "peer_reviewed_article",
+          "title": "Fallback title",
+          "url": "W2",
+          "venue": "",
+          "year": null
+        }
+      ],
+      "limit": 5,
+      "query": "edge query",
+      "source": "openalex",
+      "url": "https://api.openalex.org/works?search=edge+query&per_page=5&mailto=reasoning-engine%40example.org"
+    },
+    "openalex__not_json": {
+      "body": "openalex__not_json.body",
+      "error": {
+        "error_type": "malformed_response",
+        "message": "invalid JSON body: Expecting value: line 1 column 1 (char 0)",
+        "metadata": {
+          "source": "openalex"
+        },
+        "retryable": false
+      },
+      "evidence": [],
+      "limit": 5,
+      "query": "edge query",
+      "source": "openalex",
+      "url": "https://api.openalex.org/works?search=edge+query&per_page=5&mailto=reasoning-engine%40example.org"
+    },
+    "openalex__recorded": {
+      "body": "openalex.body",
+      "error": null,
+      "evidence": [
+        {
+          "authors": [
+            "Joost-Pieter Katoen",
+            "Maneesh Khattri",
+            "I.S. Zapreevt"
+          ],
+          "doi": "10.1109/qest.2005.2",
+          "evidence_id": "ev_openalex_0001",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 246,
+            "openalex_id": "https://openalex.org/W2164096878"
+          },
+          "publisher": "",
+          "query": "reward model",
+          "rank": 1,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.919,
+          "snippet": "This short tool paper introduces MRMC, a model checker for discrete-time and continuous-time Markov reward models. It supports reward extensions of PCTL and CSL, and allows for the automated verification of properties concerning long-run and instantaneous rewards as well as cumulative rewards. In particular it supports to check the reachability of a set of goal states (by only visiting legal states before) under a time and an accumulated reward constraint. Several numerical algorithms and extensions thereof are included in MRMC.",
+          "snippet_hash": "sha256:c19b5d209d196d4da7cc2839a5ba882fbf49961e76c810c955ab92de9ad2a3f5",
+          "source_adapter": "openalex",
+          "source_type": "peer_reviewed_article",
+          "title": "A Markov reward model checker",
+          "url": "https://doi.org/10.1109/qest.2005.2",
+          "venue": "International Conference on the Quantitative Evaluation of Systems (QEST)",
+          "year": 2005
+        },
+        {
+          "authors": [
+            "Gianfranco Ciardo",
+            "Jogesh K. Muppala",
+            "Kishor S. Trivedi"
+          ],
+          "doi": "10.1016/0166-5316(91)90003-l",
+          "evidence_id": "ev_openalex_0002",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 97,
+            "openalex_id": "https://openalex.org/W2034883517"
+          },
+          "publisher": "Elsevier BV",
+          "query": "reward model",
+          "rank": 2,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.6655,
+          "snippet": "",
+          "snippet_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source_adapter": "openalex",
+          "source_type": "peer_reviewed_article",
+          "title": "On the solution of GSPN reward models",
+          "url": "https://doi.org/10.1016/0166-5316(91)90003-l",
+          "venue": "Performance Evaluation",
+          "year": 1991
+        },
+        {
+          "authors": [
+            "Rafael Rafailov",
+            "Archit Sharma",
+            "Eric Mitchell",
+            "Christopher D. Manning",
+            "Stefano Ermon",
+            "Chelsea Finn"
+          ],
+          "doi": "10.52202/075280-2338",
+          "evidence_id": "ev_openalex_0003",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 646,
+            "openalex_id": "https://openalex.org/W7133208539"
+          },
+          "publisher": "",
+          "query": "reward model",
+          "rank": 3,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.5748,
+          "snippet": "",
+          "snippet_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source_adapter": "openalex",
+          "source_type": "peer_reviewed_article",
+          "title": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model",
+          "url": "https://doi.org/10.52202/075280-2338",
+          "venue": "neural information processing systems",
+          "year": 2023
+        }
+      ],
+      "limit": 3,
+      "query": "reward model",
+      "source": "openalex",
+      "url": "https://api.openalex.org/works?search=reward+model&per_page=3&mailto=reasoning-engine%40example.org"
+    },
+    "semantic_scholar__basic": {
+      "body": "semantic_scholar__basic.body",
+      "error": null,
+      "evidence": [
+        {
+          "authors": [
+            "Yu Meng"
+          ],
+          "doi": "10.6/simpo",
+          "evidence_id": "ev_semantic_scholar_0001",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 100,
+            "external_ids": {
+              "DOI": "10.6/simpo"
+            }
+          },
+          "publisher": "",
+          "query": "edge query",
+          "rank": 1,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.8672,
+          "snippet": "Reference-free preference optimization.",
+          "snippet_hash": "sha256:e8f2757ce205c2ffe66990ef44953259a47e4e6d14e3afbaf25f24b041e70f86",
+          "source_adapter": "semantic_scholar",
+          "source_type": "peer_reviewed_article",
+          "title": "SimPO",
+          "url": "https://s2.org/1",
+          "venue": "NeurIPS",
+          "year": 2024
+        },
+        {
+          "authors": [],
+          "doi": null,
+          "evidence_id": "ev_semantic_scholar_0002",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": null,
+            "external_ids": {}
+          },
+          "publisher": "",
+          "query": "edge query",
+          "rank": 2,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.48,
+          "snippet": "",
+          "snippet_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source_adapter": "semantic_scholar",
+          "source_type": "preprint",
+          "title": "Untitled",
+          "url": null,
+          "venue": "",
+          "year": null
+        }
+      ],
+      "limit": 5,
+      "query": "edge query",
+      "source": "semantic_scholar",
+      "url": "https://api.semanticscholar.org/graph/v1/paper/search?query=edge+query&limit=5&fields=title%2Cabstract%2Cyear%2Cauthors%2Cvenue%2CexternalIds%2CcitationCount%2Curl%2CpublicationTypes"
+    },
+    "semantic_scholar__recorded": {
+      "body": "semantic_scholar.body",
+      "error": null,
+      "evidence": [
+        {
+          "authors": [
+            "Rafael Rafailov",
+            "Archit Sharma",
+            "E. Mitchell",
+            "Stefano Ermon",
+            "Christopher D. Manning",
+            "Chelsea Finn"
+          ],
+          "doi": "10.52202/075280-2338",
+          "evidence_id": "ev_semantic_scholar_0001",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 11135,
+            "external_ids": {
+              "ArXiv": "2305.18290",
+              "CorpusId": 258959321,
+              "DBLP": "journals/corr/abs-2305-18290",
+              "DOI": "10.52202/075280-2338"
+            }
+          },
+          "publisher": "",
+          "query": "reward model",
+          "rank": 1,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 1.0,
+          "snippet": "While large-scale unsupervised language models (LMs) learn broad world knowledge and some reasoning skills, achieving precise control of their behavior is difficult due to the completely unsupervised nature of their training. Existing methods for gaining such steerability collect human labels of the relative quality of model generations and fine-tune the unsupervised LM to align with these preferences, often with reinforcement learning from human feedback (RLHF). However, RLHF is a complex and often unstable procedure, first fitting a reward model that reflects the human preferences, and then fine-tuning the large unsupervised LM using reinforcement learning to maximize this estimated reward without drifting too far from the original model. In this paper we introduce a new parameterization of the reward model in RLHF that enables extraction of the corresponding optimal policy in closed form, allowing us to solve the standard RLHF problem with only a simple classification loss. The resulting algorithm, which we call Direct Preference Optimization (DPO), is stable, performant, and computationally lightweight, eliminating the need for sampling from the LM during fine-tuning or performing significant hyperparameter tuning. Our experiments show that DPO can fine-tune LMs to align with human preferences as well as or better than existing methods. Notably, fine-tuning with DPO exceeds PPO-based RLHF in ability to control sentiment of generations, and matches or improves response qua",
+          "snippet_hash": "sha256:4c7e86a610bd09a1ccf89821df3a8ca24e5e29a39d4ad31f64e6ff49c73b99aa",
+          "source_adapter": "semantic_scholar",
+          "source_type": "peer_reviewed_article",
+          "title": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model",
+          "url": "https://www.semanticscholar.org/paper/0d1c76d45afa012ded7ab741194baf142117c495",
+          "venue": "Neural Information Processing Systems",
+          "year": 2023
+        },
+        {
+          "authors": [
+            "Leo Gao",
+            "John D. Schulman",
+            "Jacob Hilton"
+          ],
+          "doi": null,
+          "evidence_id": "ev_semantic_scholar_0002",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 1397,
+            "external_ids": {
+              "ArXiv": "2210.10760",
+              "CorpusId": 252992904,
+              "DBLP": "conf/icml/GaoSH23"
+            }
+          },
+          "publisher": "",
+          "query": "reward model",
+          "rank": 2,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.8,
+          "snippet": "In reinforcement learning from human feedback, it is common to optimize against a reward model trained to predict human preferences. Because the reward model is an imperfect proxy, optimizing its value too much can hinder ground truth performance, in accordance with Goodhart's law. This effect has been frequently observed, but not carefully measured due to the expense of collecting human preference data. In this work, we use a synthetic setup in which a fixed\"gold-standard\"reward model plays the role of humans, providing labels used to train a proxy reward model. We study how the gold reward model score changes as we optimize against the proxy reward model using either reinforcement learning or best-of-$n$ sampling. We find that this relationship follows a different functional form depending on the method of optimization, and that in both cases its coefficients scale smoothly with the number of reward model parameters. We also study the effect on this relationship of the size of the reward model dataset, the number of reward model and policy parameters, and the coefficient of the KL penalty added to the reward in the reinforcement learning setup. We explore the implications of these empirical results for theoretical considerations in AI alignment.",
+          "snippet_hash": "sha256:ca06ca6395ac5c10796a390cd26776a59ccc3e1fc9f2d39c351adab42c088c1b",
+          "source_adapter": "semantic_scholar",
+          "source_type": "peer_reviewed_article",
+          "title": "Scaling Laws for Reward Model Overoptimization",
+          "url": "https://www.semanticscholar.org/paper/fb3dc5e20e0a71134ca916f0d6d8d41f01225b4b",
+          "venue": "International Conference on Machine Learning",
+          "year": 2022
+        },
+        {
+          "authors": [
+            "Saumya Malik",
+            "Valentina Pyatkin",
+            "Sander Land",
+            "Jacob Daniel Morrison",
+            "Noah A. Smith",
+            "Hanna Hajishirzi",
+            "Nathan Lambert"
+          ],
+          "doi": "10.48550/arxiv.2506.01937",
+          "evidence_id": "ev_semantic_scholar_0003",
+          "licence_notes": null,
+          "metadata": {
+            "cited_by": 156,
+            "external_ids": {
+              "ArXiv": "2506.01937",
+              "CorpusId": 279119102,
+              "DBLP": "journals/corr/abs-2506-01937",
+              "DOI": "10.48550/arXiv.2506.01937"
+            }
+          },
+          "publisher": "",
+          "query": "reward model",
+          "rank": 3,
+          "risk_flags": [],
+          "run_id": "run_fixture",
+          "score": 0.4928,
+          "snippet": "Reward models are used throughout the post-training of language models to capture nuanced signals from preference data and provide a training target for optimization across instruction following, reasoning, safety, and more domains. The community has begun establishing best practices for evaluating reward models, from the development of benchmarks that test capabilities in specific skill areas to others that test agreement with human preferences. At the same time, progress in evaluation has not been mirrored by the effectiveness of reward models in downstream tasks -- simpler direct alignment algorithms are reported to work better in many cases. This paper introduces RewardBench 2, a new multi-skill reward modeling benchmark designed to bring new, challenging data for accuracy-based reward model evaluation -- models score about 20 points on average lower on RewardBench 2 compared to the first RewardBench -- while being highly correlated with downstream performance. Compared to most other benchmarks, RewardBench 2 sources new human prompts instead of existing prompts from downstream evaluations, facilitating more rigorous evaluation practices. In this paper, we describe our benchmark construction process and report how existing models perform on it, while quantifying how performance on the benchmark correlates with downstream use of the models in both inference-time scaling algorithms, like best-of-N sampling, and RLHF training algorithms like proximal policy optimization.",
+          "snippet_hash": "sha256:7bfd413b37980e4d631f4cc38dfd9b957ac87261b421bdc2a8dc2bc603819222",
+          "source_adapter": "semantic_scholar",
+          "source_type": "peer_reviewed_article",
+          "title": "RewardBench 2: Advancing Reward Model Evaluation",
+          "url": "https://www.semanticscholar.org/paper/6069fa0fc5cccb8ebd0061c5e1816f5069cc255b",
+          "venue": "arXiv.org",
+          "year": 2025
+        }
+      ],
+      "limit": 3,
+      "query": "reward model",
+      "source": "semantic_scholar",
+      "url": "https://api.semanticscholar.org/graph/v1/paper/search?query=reward+model&limit=3&fields=title%2Cabstract%2Cyear%2Cauthors%2Cvenue%2CexternalIds%2CcitationCount%2Curl%2CpublicationTypes"
+    }
+  },
+  "urls": [
+    {
+      "limit": 3,
+      "query": "reward model",
+      "source": "openalex",
+      "url": "https://api.openalex.org/works?search=reward+model&per_page=3&mailto=reasoning-engine%40example.org"
+    },
+    {
+      "limit": 10,
+      "query": "MCP prompt-injection: a/b & c?",
+      "source": "openalex",
+      "url": "https://api.openalex.org/works?search=MCP+prompt-injection%3A+a%2Fb+%26+c%3F&per_page=10&mailto=reasoning-engine%40example.org"
+    },
+    {
+      "limit": 5,
+      "query": "caf\u00e9 \u0646\u062a\u06cc\u062c\u0647",
+      "source": "openalex",
+      "url": "https://api.openalex.org/works?search=caf%C3%A9+%D9%86%D8%AA%DB%8C%D8%AC%D9%87&per_page=5&mailto=reasoning-engine%40example.org"
+    },
+    {
+      "limit": 3,
+      "query": "reward model",
+      "source": "crossref",
+      "url": "https://api.crossref.org/works?query=reward+model&rows=3&mailto=reasoning-engine%40example.org&select=title%2Cauthor%2CDOI%2Cpublisher%2Ccontainer-title%2Cabstract%2Cis-referenced-by-count%2CURL%2Cissued%2Cpublished"
+    },
+    {
+      "limit": 10,
+      "query": "MCP prompt-injection: a/b & c?",
+      "source": "crossref",
+      "url": "https://api.crossref.org/works?query=MCP+prompt-injection%3A+a%2Fb+%26+c%3F&rows=10&mailto=reasoning-engine%40example.org&select=title%2Cauthor%2CDOI%2Cpublisher%2Ccontainer-title%2Cabstract%2Cis-referenced-by-count%2CURL%2Cissued%2Cpublished"
+    },
+    {
+      "limit": 5,
+      "query": "caf\u00e9 \u0646\u062a\u06cc\u062c\u0647",
+      "source": "crossref",
+      "url": "https://api.crossref.org/works?query=caf%C3%A9+%D9%86%D8%AA%DB%8C%D8%AC%D9%87&rows=5&mailto=reasoning-engine%40example.org&select=title%2Cauthor%2CDOI%2Cpublisher%2Ccontainer-title%2Cabstract%2Cis-referenced-by-count%2CURL%2Cissued%2Cpublished"
+    },
+    {
+      "limit": 3,
+      "query": "reward model",
+      "source": "arxiv",
+      "url": "https://export.arxiv.org/api/query?search_query=all%3Areward+model&start=0&max_results=3&sortBy=relevance"
+    },
+    {
+      "limit": 10,
+      "query": "MCP prompt-injection: a/b & c?",
+      "source": "arxiv",
+      "url": "https://export.arxiv.org/api/query?search_query=all%3AMCP+prompt-injection%3A+a%2Fb+%26+c%3F&start=0&max_results=10&sortBy=relevance"
+    },
+    {
+      "limit": 5,
+      "query": "caf\u00e9 \u0646\u062a\u06cc\u062c\u0647",
+      "source": "arxiv",
+      "url": "https://export.arxiv.org/api/query?search_query=all%3Acaf%C3%A9+%D9%86%D8%AA%DB%8C%D8%AC%D9%87&start=0&max_results=5&sortBy=relevance"
+    },
+    {
+      "limit": 3,
+      "query": "reward model",
+      "source": "semantic_scholar",
+      "url": "https://api.semanticscholar.org/graph/v1/paper/search?query=reward+model&limit=3&fields=title%2Cabstract%2Cyear%2Cauthors%2Cvenue%2CexternalIds%2CcitationCount%2Curl%2CpublicationTypes"
+    },
+    {
+      "limit": 10,
+      "query": "MCP prompt-injection: a/b & c?",
+      "source": "semantic_scholar",
+      "url": "https://api.semanticscholar.org/graph/v1/paper/search?query=MCP+prompt-injection%3A+a%2Fb+%26+c%3F&limit=10&fields=title%2Cabstract%2Cyear%2Cauthors%2Cvenue%2CexternalIds%2CcitationCount%2Curl%2CpublicationTypes"
+    },
+    {
+      "limit": 5,
+      "query": "caf\u00e9 \u0646\u062a\u06cc\u062c\u0647",
+      "source": "semantic_scholar",
+      "url": "https://api.semanticscholar.org/graph/v1/paper/search?query=caf%C3%A9+%D9%86%D8%AA%DB%8C%D8%AC%D9%87&limit=5&fields=title%2Cabstract%2Cyear%2Cauthors%2Cvenue%2CexternalIds%2CcitationCount%2Curl%2CpublicationTypes"
+    },
+    {
+      "limit": 3,
+      "query": "reward model",
+      "source": "europepmc",
+      "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=reward+model&format=json&pageSize=3&resultType=core"
+    },
+    {
+      "limit": 10,
+      "query": "MCP prompt-injection: a/b & c?",
+      "source": "europepmc",
+      "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=MCP+prompt-injection%3A+a%2Fb+%26+c%3F&format=json&pageSize=10&resultType=core"
+    },
+    {
+      "limit": 5,
+      "query": "caf\u00e9 \u0646\u062a\u06cc\u062c\u0647",
+      "source": "europepmc",
+      "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=caf%C3%A9+%D9%86%D8%AA%DB%8C%D8%AC%D9%87&format=json&pageSize=5&resultType=core"
+    },
+    {
+      "limit": 3,
+      "query": "reward model",
+      "source": "doaj",
+      "url": "https://doaj.org/api/search/articles/reward%20model?pageSize=3"
+    },
+    {
+      "limit": 10,
+      "query": "MCP prompt-injection: a/b & c?",
+      "source": "doaj",
+      "url": "https://doaj.org/api/search/articles/MCP%20prompt-injection%3A%20a%2Fb%20%26%20c%3F?pageSize=10"
+    },
+    {
+      "limit": 5,
+      "query": "caf\u00e9 \u0646\u062a\u06cc\u062c\u0647",
+      "source": "doaj",
+      "url": "https://doaj.org/api/search/articles/caf%C3%A9%20%D9%86%D8%AA%DB%8C%D8%AC%D9%87?pageSize=5"
+    },
+    {
+      "limit": 3,
+      "query": "reward model",
+      "source": "dblp",
+      "url": "https://dblp.org/search/publ/api?q=reward+model&format=json&h=3"
+    },
+    {
+      "limit": 10,
+      "query": "MCP prompt-injection: a/b & c?",
+      "source": "dblp",
+      "url": "https://dblp.org/search/publ/api?q=MCP+prompt-injection%3A+a%2Fb+%26+c%3F&format=json&h=10"
+    },
+    {
+      "limit": 5,
+      "query": "caf\u00e9 \u0646\u062a\u06cc\u062c\u0647",
+      "source": "dblp",
+      "url": "https://dblp.org/search/publ/api?q=caf%C3%A9+%D9%86%D8%AA%DB%8C%D8%AC%D9%87&format=json&h=5"
+    }
+  ]
+}
