@@ -49,8 +49,11 @@ fi
 if ! command -v "$APP_NAME" >/dev/null 2>&1; then
   warn "$APP_NAME command not found."
 
-  if [[ -f "pyproject.toml" ]]; then
-    warn "pyproject.toml found. Installing this project in editable mode..."
+  if [[ -f "Cargo.toml" ]] && command -v cargo >/dev/null 2>&1; then
+    warn "Cargo.toml found. Installing the Rust binary (with the local HTTP server)..."
+    cargo install --locked --path crates/re-cli --features local-host
+  elif [[ -f "pyproject.toml" ]]; then
+    warn "Installing the deprecated Python package (install Rust from https://rustup.rs for the supported binary)..."
     python3 -m venv .venv
     # shellcheck disable=SC1091
     source .venv/bin/activate

@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import warnings
 from pathlib import Path
 
 from reasoning_engine.db import init_db
@@ -48,7 +49,22 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+DEPRECATION_MESSAGE = (
+    "the Python reasoning-engine is deprecated and will be removed in 0.3.0; "
+    "install the Rust binary (same commands, same database): "
+    "https://github.com/Raoof128/reasoning-engine#installation"
+)
+
+
+def warn_deprecated() -> None:
+    """Warn on stderr. Python hides DeprecationWarning outside __main__ by default."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("always", DeprecationWarning)
+        warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning, stacklevel=3)
+
+
 def main(argv: list[str] | None = None) -> int:
+    warn_deprecated()
     parser = build_parser()
     args = parser.parse_args(argv)
 

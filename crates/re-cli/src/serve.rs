@@ -25,6 +25,10 @@ pub struct ServeArgs {
     /// Serve even if `setup` left the HTTP server disabled.
     #[arg(long)]
     pub http: bool,
+    /// The Python CLI's spelling of `--http`, accepted so existing scripts
+    /// and launchers keep working.
+    #[arg(long, value_parser = ["http"], hide = true)]
+    pub transport: Option<String>,
     /// Bind address (loopback unless --unsafe-bind-public).
     #[arg(long)]
     pub host: Option<String>,
@@ -100,7 +104,7 @@ pub async fn run(
     server: ReasoningServer,
     args: &ServeArgs,
 ) -> Result<u8, Box<dyn std::error::Error + Send + Sync>> {
-    if !config.http.enabled && !args.http {
+    if !config.http.enabled && !args.http && args.transport.is_none() {
         eprintln!(
             "the local HTTP server is off; enable it with `reasoning-engine setup --http` \
              or pass --http"

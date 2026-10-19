@@ -237,6 +237,18 @@ mod serve {
             String::from_utf8_lossy(&missing.stderr)
                 .contains("NO_SUCH_TOKEN_VAR is not set or is empty")
         );
+        // The Python CLI's `--transport http` opts in like `--http`.
+        let python_style = bin(home.path())
+            .args(["serve", "--transport", "http"])
+            .args(["--bearer-token-env", "NO_SUCH_TOKEN_VAR"])
+            .output()
+            .expect("runs");
+        assert_eq!(python_style.status.code(), Some(1));
+        let stdio = bin(home.path())
+            .args(["serve", "--transport", "stdio"])
+            .output()
+            .expect("runs");
+        assert_eq!(stdio.status.code(), Some(2), "only http, as in Python");
     }
 
     fn post(port: u16, token: Option<&str>) -> String {

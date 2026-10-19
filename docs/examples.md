@@ -209,7 +209,7 @@ Expected output includes:
     "result": "pass"
   },
   "run_id": "run_<id>",
-  "run_pack": "runs/run_<id>"
+  "run_pack": "/home/you/.reasoning-engine/runs/run_<id>"
 }
 ```
 
@@ -218,7 +218,7 @@ Expected output includes:
 Start a local Streamable HTTP MCP endpoint:
 
 ```bash
-reasoning-engine serve --transport http --host 127.0.0.1 --port 8765
+reasoning-engine serve --http --host 127.0.0.1 --port 8765
 ```
 
 Use this endpoint in compatible local MCP clients:
@@ -227,11 +227,17 @@ Use this endpoint in compatible local MCP clients:
 http://127.0.0.1:8765/mcp
 ```
 
-Public binding requires an explicit unsafe opt-in:
+Public binding requires an explicit unsafe opt-in and a bearer token:
 
 ```bash
-reasoning-engine serve --transport http --host 0.0.0.0 --unsafe-bind-public
+export REASONING_ENGINE_HTTP_TOKEN="$(openssl rand -hex 32)"
+reasoning-engine serve --http --host 0.0.0.0 --unsafe-bind-public \
+  --bearer-token-env REASONING_ENGINE_HTTP_TOKEN
 ```
+
+Add `--ui` to browse sessions, branch trees, claims and evidence at
+`http://127.0.0.1:8765/ui/` (read-only; the browser asks for the token as
+the password).
 
 For a Notion AI Custom MCP test through a temporary Cloudflare HTTPS tunnel:
 

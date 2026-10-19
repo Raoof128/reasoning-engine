@@ -1,13 +1,13 @@
 [project]
 name = "reasoning-engine"
-version = "0.1.0"
+version = "0.2.0"
 description = "MCP server implementing Actor-Critic-Planner-Reflexion reasoning for deep research"
 requires-python = ">=3.12"
 license = "MIT"
 authors = [{ name = "Raouf" }]
 keywords = ["mcp", "reasoning", "research", "claude", "prm", "reflexion"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 7 - Inactive",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
