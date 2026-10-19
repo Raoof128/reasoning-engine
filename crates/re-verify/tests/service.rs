@@ -89,7 +89,7 @@ async fn offline_pipeline_exports_a_pack_python_accepts() {
 }
 
 #[tokio::test]
-async fn two_pipelines_on_one_store_keep_both_runs_claims() {
+async fn two_pipelines_on_one_store_keep_both_runs_evidence_and_claims() {
     let dir = tempfile::tempdir().expect("tmp");
     let service = service(dir.path());
     let mut runs = Vec::new();
@@ -107,13 +107,21 @@ async fn two_pipelines_on_one_store_keep_both_runs_claims() {
             )
             .await
             .expect("pipeline");
-        runs.push(result["run_id"].as_str().expect("run id").to_string());
+        let evidence = result["evidence"].as_array().expect("evidence").len();
+        runs.push((
+            result["run_id"].as_str().expect("run id").to_string(),
+            evidence,
+        ));
     }
 
-    // Both runs number their claims from claim_0001; neither may overwrite
-    // the other's rows.
+    // Both runs number their evidence from ev_0001 and their claims from
+    // claim_0001; neither may overwrite the other's rows.
     let store = service.store();
-    for (run_id, expected) in runs.iter().zip([2, 1]) {
+    for ((run_id, evidence_count), expected) in runs.iter().zip([2, 1]) {
+        let evidence = store.list_evidence(run_id).expect("evidence");
+        assert_eq!(evidence.len(), *evidence_count, "{run_id}");
+        assert_eq!(evidence[0]["evidence_id"], "ev_0001");
+        assert!(evidence.iter().all(|e| e["run_id"] == run_id.as_str()));
         let claims = store.list_claims(run_id).expect("claims");
         assert_eq!(claims.len(), expected, "{run_id}");
         assert_eq!(claims[0]["claim_id"], "claim_0001");
@@ -121,6 +129,10 @@ async fn two_pipelines_on_one_store_keep_both_runs_claims() {
         let verifications = store.list_verifications(run_id).expect("verifications");
         assert_eq!(verifications.len(), expected, "{run_id}");
     }
+    assert_eq!(
+        store.count_rows("evidence_records").expect("count"),
+        i64::try_from(runs[0].1 + runs[1].1).expect("count")
+    );
     assert_eq!(store.count_rows("claims").expect("count"), 3);
 }
 

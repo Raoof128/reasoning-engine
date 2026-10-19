@@ -35,26 +35,32 @@ def test_service_runs_pipeline_and_exports_attested_pack(tmp_path, db_path):
     assert result["evidence"][0]["snippet"] in result["verified_against_snippets"]
 
 
-def test_two_pipelines_on_one_store_keep_both_runs_claims(tmp_path, db_path):
+def test_two_pipelines_on_one_store_keep_both_runs_evidence_and_claims(tmp_path, db_path):
     init_db(db_path)
     service = VerifiableResearchService(db_path=db_path, runs_dir=tmp_path)
 
-    run_ids = [
+    results = [
         service.run_research_pipeline(
             query="Scholar Gateway exposes semantic search",
             draft=draft,
             mode="standard",
             profile="general",
-        )["run_id"]
+        )
         for draft in [
             "Scholar Gateway exposes semantic search. Teams should audit tools.",
             "Scholar Gateway exposes semantic search.",
         ]
     ]
 
-    # Both runs number their claims from claim_0001; neither may overwrite
-    # the other's rows.
-    for run_id, expected in zip(run_ids, [2, 1], strict=True):
+    # Both runs number their evidence from ev_0001 and their claims from
+    # claim_0001; neither may overwrite the other's rows.
+    for result, expected in zip(results, [2, 1], strict=True):
+        run_id = result["run_id"]
+        evidence = service.store.list_evidence(run_id)
+        assert evidence
+        assert len(evidence) == len(result["evidence"])
+        assert evidence[0]["evidence_id"] == "ev_0001"
+        assert all(record["run_id"] == run_id for record in evidence)
         claims = service.store.list_claims(run_id)
         assert len(claims) == expected
         assert claims[0]["claim_id"] == "claim_0001"

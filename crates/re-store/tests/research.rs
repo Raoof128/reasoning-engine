@@ -107,6 +107,26 @@ fn claim(run: &ResearchRun, text: &str) -> ClaimRecord {
 }
 
 #[test]
+fn runs_sharing_evidence_ids_keep_their_own_rows() {
+    let (_d, s) = store();
+    let runs = [
+        ResearchRun::create("First", "general", "standard"),
+        ResearchRun::create("Second", "general", "standard"),
+    ];
+    for run in &runs {
+        s.save_run(run).unwrap();
+        s.save_evidence(&evidence(run)).unwrap();
+    }
+    for run in &runs {
+        let listed = s.list_evidence(&run.run_id).unwrap();
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0]["evidence_id"], "ev_0001");
+        assert_eq!(listed[0]["query"], run.query.as_str());
+    }
+    assert_eq!(s.count_rows("evidence_records").unwrap(), 2);
+}
+
+#[test]
 fn runs_sharing_claim_and_verification_ids_keep_their_own_rows() {
     let (_d, s) = store();
     let runs = [

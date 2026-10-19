@@ -6,8 +6,9 @@ from pathlib import Path
 
 DEFAULT_DB_PATH = Path(__file__).parent / "reasoning.db"
 DB_FILE_MODE = 0o600
-# Version 3 keys claims and claim_verifications by run; see _migrate_claims.
-USER_VERSION = 3
+# Version 3 keyed claims and claim_verifications by run; version 4 also keys
+# evidence_records by run. See _migrate_run_keys.
+USER_VERSION = 4
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS sessions (
@@ -85,11 +86,12 @@ CREATE TABLE IF NOT EXISTS research_runs (
 );
 
 CREATE TABLE IF NOT EXISTS evidence_records (
-    evidence_id TEXT PRIMARY KEY,
+    evidence_id TEXT NOT NULL,
     run_id TEXT NOT NULL REFERENCES research_runs(run_id),
     payload TEXT NOT NULL,
     snippet_hash TEXT NOT NULL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (run_id, evidence_id)
 );
 
 CREATE TABLE IF NOT EXISTS evidence_gaps (
@@ -149,38 +151,46 @@ CREATE INDEX IF NOT EXISTS idx_verifications_run ON claim_verifications(run_id);
 CREATE INDEX IF NOT EXISTS idx_provenance_run ON provenance_events(run_id);
 """
 
-# Primary-key columns of claims plus claim_verifications: 4 once both are
-# keyed by (run_id, ...), 2 for the version-2 tables keyed by the bare claim
-# and verification IDs. Claim IDs restart at claim_0001 in every run, so under
-# version 2 a second run overwrote the first run's claims. The check reads the
-# schema, not user_version, because older builds reset the version to 2.
-_CLAIMS_V2_CHECK = """
+# Primary-key columns of the run-keyed tables: 6 once evidence_records, claims
+# and claim_verifications are all keyed by (run_id, ...), 5 for version 3
+# (claim tables only), 3 for version 2 (none). Evidence and claim IDs restart
+# at ev_0001 and claim_0001 in every run, so a table keyed by the bare ID let a
+# second run overwrite the first run's rows. The check reads the schema, not
+# user_version, because older builds reset the version to 2.
+_RUN_KEYS_CHECK = """
 SELECT
-    (SELECT COUNT(*) FROM pragma_table_info('claims') WHERE pk > 0)
+    (SELECT COUNT(*) FROM pragma_table_info('evidence_records') WHERE pk > 0)
+  + (SELECT COUNT(*) FROM pragma_table_info('claims') WHERE pk > 0)
   + (SELECT COUNT(*) FROM pragma_table_info('claim_verifications') WHERE pk > 0)
 """
 
-# Move the version-2 tables aside so SCHEMA_SQL can create the run-keyed ones
-# under the same names.
-_CLAIMS_V2_SET_ASIDE = """
+# Move the old tables aside so SCHEMA_SQL can create the run-keyed ones under
+# the same names. Every run-keyed table is rebuilt, whichever of them is
+# already keyed by run.
+_RUN_KEYS_SET_ASIDE = """
+DROP INDEX IF EXISTS idx_evidence_run;
 DROP INDEX IF EXISTS idx_claims_run;
 DROP INDEX IF EXISTS idx_verifications_run;
-ALTER TABLE claim_verifications RENAME TO claim_verifications_v2;
-ALTER TABLE claims RENAME TO claims_v2;
+ALTER TABLE evidence_records RENAME TO evidence_records_old;
+ALTER TABLE claim_verifications RENAME TO claim_verifications_old;
+ALTER TABLE claims RENAME TO claims_old;
 """
 
 # Copy every row into the run-keyed tables, then drop the old ones.
 # Verifications whose claim a later run already overwrote are kept; they stay
 # readable by run even though their claim row is gone.
-_CLAIMS_V2_COPY = """
+_RUN_KEYS_COPY = """
+INSERT INTO evidence_records (evidence_id, run_id, payload, snippet_hash, created_at)
+    SELECT evidence_id, run_id, payload, snippet_hash, created_at FROM evidence_records_old;
 INSERT INTO claims (claim_id, run_id, payload, status, created_at)
-    SELECT claim_id, run_id, payload, status, created_at FROM claims_v2;
+    SELECT claim_id, run_id, payload, status, created_at FROM claims_old;
 INSERT INTO claim_verifications
     (verification_id, claim_id, run_id, payload, support_status, created_at)
     SELECT verification_id, claim_id, run_id, payload, support_status, created_at
-    FROM claim_verifications_v2;
-DROP TABLE claim_verifications_v2;
-DROP TABLE claims_v2;
+    FROM claim_verifications_old;
+DROP TABLE evidence_records_old;
+DROP TABLE claim_verifications_old;
+DROP TABLE claims_old;
 """
 
 
@@ -197,17 +207,17 @@ def _harden_connection(conn: sqlite3.Connection) -> None:
     conn.execute("PRAGMA synchronous = NORMAL")
 
 
-def _migrate_claims(conn: sqlite3.Connection) -> None:
-    """Re-key version-2 claims and claim_verifications by run, keeping every row.
+def _migrate_run_keys(conn: sqlite3.Connection) -> None:
+    """Re-key older evidence_records, claims and claim_verifications by run.
 
-    Foreign keys are off for the copy because a version-2 file can hold
-    verifications whose claim a later run overwrote.
+    Every row is kept. Foreign keys are off for the copy because an older file
+    can hold verifications whose claim a later run overwrote.
     """
-    if conn.execute(_CLAIMS_V2_CHECK).fetchone()[0] == 4:
+    if conn.execute(_RUN_KEYS_CHECK).fetchone()[0] == 6:
         return
     conn.execute("PRAGMA foreign_keys = OFF")
     try:
-        conn.executescript(f"BEGIN;{_CLAIMS_V2_SET_ASIDE}{SCHEMA_SQL}{_CLAIMS_V2_COPY}COMMIT;")
+        conn.executescript(f"BEGIN;{_RUN_KEYS_SET_ASIDE}{SCHEMA_SQL}{_RUN_KEYS_COPY}COMMIT;")
     except Exception:
         conn.rollback()
         raise
@@ -223,7 +233,7 @@ def init_db(db_path: str | None = None) -> str:
     try:
         _harden_connection(conn)
         conn.executescript(SCHEMA_SQL)
-        _migrate_claims(conn)
+        _migrate_run_keys(conn)
         conn.execute(f"PRAGMA user_version = {USER_VERSION}")
         conn.commit()
     finally:

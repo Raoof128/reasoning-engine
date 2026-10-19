@@ -8,7 +8,7 @@ use rusqlite::{Connection, Transaction};
 
 use crate::error::StoreError;
 use crate::schema::{
-    CLAIMS_V2_CHECK, CLAIMS_V2_COPY, CLAIMS_V2_SET_ASIDE, PYTHON_USER_VERSION, SCHEMA_SQL,
+    PYTHON_USER_VERSION, RUN_KEYS_CHECK, RUN_KEYS_COPY, RUN_KEYS_SET_ASIDE, SCHEMA_SQL,
 };
 
 /// A handle on one engine database.
@@ -44,20 +44,20 @@ fn harden(conn: &Connection) -> Result<(), StoreError> {
     Ok(())
 }
 
-/// Re-key version-2 `claims` and `claim_verifications` by run, keeping every
-/// row. Foreign keys are off for the copy because a version-2 file can hold
-/// verifications whose claim a later run overwrote; see
-/// [`crate::schema::CLAIMS_V2_COPY`].
-fn migrate_claims(conn: &mut Connection) -> Result<(), StoreError> {
-    let key_columns: i64 = conn.query_row(CLAIMS_V2_CHECK, [], |row| row.get(0))?;
-    if key_columns == 4 {
+/// Re-key version-2 and version-3 `evidence_records`, `claims` and
+/// `claim_verifications` by run, keeping every row. Foreign keys are off for
+/// the copy because an older file can hold verifications whose claim a later
+/// run overwrote; see [`crate::schema::RUN_KEYS_COPY`].
+fn migrate_run_keys(conn: &mut Connection) -> Result<(), StoreError> {
+    let key_columns: i64 = conn.query_row(RUN_KEYS_CHECK, [], |row| row.get(0))?;
+    if key_columns == 6 {
         return Ok(());
     }
     conn.pragma_update(None, "foreign_keys", "OFF")?;
     let migrated = conn.transaction().and_then(|tx| {
-        tx.execute_batch(CLAIMS_V2_SET_ASIDE)?;
+        tx.execute_batch(RUN_KEYS_SET_ASIDE)?;
         tx.execute_batch(SCHEMA_SQL)?;
-        tx.execute_batch(CLAIMS_V2_COPY)?;
+        tx.execute_batch(RUN_KEYS_COPY)?;
         tx.commit()
     });
     conn.pragma_update(None, "foreign_keys", "ON")?;
@@ -84,10 +84,10 @@ impl Store {
     /// Open or create the database, apply the schema, and harden the
     /// connection. Idempotent, like Python's `init_db`.
     ///
-    /// A new file gets mode `0600` on Unix. Version-2 claim tables are
-    /// re-keyed by run, and a `user_version` below Python's 3 is raised to it
-    /// so the file looks the same to both implementations; a higher value is
-    /// never lowered.
+    /// A new file gets mode `0600` on Unix. Evidence and claim tables from
+    /// older versions are re-keyed by run, and a `user_version` below
+    /// Python's 4 is raised to it so the file looks the same to both
+    /// implementations; a higher value is never lowered.
     ///
     /// # Errors
     /// I/O failures preparing the directory, or `SQLite` failures.
@@ -100,7 +100,7 @@ impl Store {
         let mut conn = Connection::open(&path)?;
         harden(&conn)?;
         conn.execute_batch(SCHEMA_SQL)?;
-        migrate_claims(&mut conn)?;
+        migrate_run_keys(&mut conn)?;
         let version: i64 = conn.query_row("PRAGMA user_version", [], |row| row.get(0))?;
         if version < PYTHON_USER_VERSION {
             conn.pragma_update(None, "user_version", PYTHON_USER_VERSION)?;

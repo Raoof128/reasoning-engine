@@ -1,5 +1,7 @@
 import sqlite3
 
+import pytest
+
 from reasoning_engine.db import init_db
 
 
@@ -41,8 +43,19 @@ def test_init_db_creates_verifiable_research_tables(db_path):
     assert "quality_gate_results" in tables
     assert "provenance_events" in tables
     assert "attestation_manifests" in tables
-    assert version >= 3
+    assert version >= 4
 
+
+# evidence_records before version 4: keyed by the bare per-run evidence ID.
+V3_EVIDENCE_TABLE = """
+CREATE TABLE evidence_records (
+    evidence_id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL REFERENCES research_runs(run_id),
+    payload TEXT NOT NULL,
+    snippet_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+"""
 
 # The claim tables before version 3: keyed by the bare per-run IDs.
 V2_CLAIM_TABLES = """
@@ -73,22 +86,30 @@ def _schema(path):
     return [(t, n, tbl, " ".join(sql.split())) for t, n, tbl, sql in rows]
 
 
-def test_init_db_migrates_version_2_claim_tables(tmp_path):
+@pytest.mark.parametrize(
+    ("legacy_tables", "version"),
+    [(V3_EVIDENCE_TABLE + V2_CLAIM_TABLES, 2), (V3_EVIDENCE_TABLE, 3)],
+    ids=["v2", "v3"],
+)
+def test_init_db_migrates_older_run_keyed_tables(tmp_path, legacy_tables, version):
     from reasoning_engine.db import SCHEMA_SQL
     from reasoning_engine.verifiable.models import ClaimRecord
     from reasoning_engine.verifiable.store import ResearchStore
 
-    db = str(tmp_path / "v2.db")
+    db = str(tmp_path / "legacy.db")
     fresh = init_db(str(tmp_path / "fresh.db"))
     conn = sqlite3.connect(db)
-    conn.executescript(V2_CLAIM_TABLES + SCHEMA_SQL)
+    conn.executescript(legacy_tables + SCHEMA_SQL)
+    conn.execute(f"PRAGMA user_version = {version}")
+    # run_b's ev_0001 and claim_0001 already overwrote run_a's.
     conn.executescript(
         """
-        PRAGMA user_version = 2;
         INSERT INTO research_runs VALUES
             ('run_a', 'A', 'general', 'standard', 'complete', '2026-01-01T00:00:00Z'),
             ('run_b', 'B', 'general', 'standard', 'complete', '2026-01-02T00:00:00Z');
-        -- run_b's claim_0001 already overwrote run_a's.
+        INSERT INTO evidence_records VALUES
+            ('ev_0001', 'run_b', '{"snippet": "B1"}', 'sha256:b1', '2026-01-02 00:00:00'),
+            ('ev_0002', 'run_a', '{"snippet": "A2"}', 'sha256:a2', '2026-01-01 00:00:00');
         INSERT INTO claims VALUES
             ('claim_0001', 'run_b', '{"text": "B1"}', 'supported', '2026-01-02 00:00:00'),
             ('claim_0002', 'run_a', '{"text": "A2"}', 'supported', '2026-01-01 00:00:00');
@@ -104,11 +125,19 @@ def test_init_db_migrates_version_2_claim_tables(tmp_path):
 
     assert _schema(db) == _schema(fresh)
     conn = sqlite3.connect(db)
-    assert conn.execute("PRAGMA user_version").fetchone()[0] == 3
-    created = conn.execute("SELECT created_at FROM claims WHERE run_id = 'run_a'").fetchone()[0]
+    assert conn.execute("PRAGMA user_version").fetchone()[0] == 4
+    evidence_row = conn.execute(
+        "SELECT snippet_hash, created_at FROM evidence_records WHERE run_id = 'run_a'"
+    ).fetchone()
+    claim_created = conn.execute("SELECT created_at FROM claims WHERE run_id = 'run_a'").fetchone()[
+        0
+    ]
     conn.close()
-    assert created == "2026-01-01 00:00:00"
+    assert evidence_row == ("sha256:a2", "2026-01-01 00:00:00")
+    assert claim_created == "2026-01-01 00:00:00"
     store = ResearchStore(db)
+    assert store.list_evidence("run_a") == [{"snippet": "A2"}]
+    assert store.list_evidence("run_b") == [{"snippet": "B1"}]
     assert store.list_claims("run_a") == [{"text": "A2"}]
     assert store.list_claims("run_b") == [{"text": "B1"}]
     assert len(store.list_verifications("run_a")) == 2
