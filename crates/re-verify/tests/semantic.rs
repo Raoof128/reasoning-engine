@@ -122,6 +122,12 @@ async fn nli_beats_lexical_on_contradiction_recall() {
 /// label. Run with `--no-capture`.
 #[tokio::test]
 #[ignore = "downloads the BGE model; prints cosine quantiles"]
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_precision_loss,
+    reason = "quantile indices of a short, non-empty list"
+)]
 async fn hybrid_cosine_by_label() {
     let embedder = OnnxEmbedder::load(&default_models_dir(), false)
         .await
