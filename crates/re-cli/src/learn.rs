@@ -69,6 +69,48 @@ fn describe(version: u32, prior: &Prior) -> String {
     text
 }
 
+/// Parse an interval: a whole number followed by `d`, `h` or `m`.
+///
+/// # Errors
+/// Anything else, or zero.
+pub fn parse_interval(text: &str) -> Result<std::time::Duration, String> {
+    let text = text.trim();
+    let split = text.len().saturating_sub(1);
+    let (number, unit) = text.split_at(split);
+    let seconds = match unit {
+        "d" => 86_400,
+        "h" => 3_600,
+        "m" => 60,
+        _ => return Err(format!("expected a number and d, h or m, like 7d: {text}")),
+    };
+    match number.parse::<u64>() {
+        Ok(n) if n > 0 => Ok(std::time::Duration::from_secs(n * seconds)),
+        _ => Err(format!(
+            "expected a positive whole number before {unit}: {text}"
+        )),
+    }
+}
+
+/// `watch <run_id> [--every <interval>]`: once (exit 3 when anything
+/// drifted), or forever at the interval.
+///
+/// # Errors
+/// An unknown run or a pipeline failure.
+pub async fn watch(
+    service: &re_verify::VerifiableResearchService,
+    run_id: &str,
+    every: Option<std::time::Duration>,
+) -> Result<u8, Failure> {
+    loop {
+        let report = service.watch(run_id).await?;
+        crate::print_json(&report);
+        let Some(interval) = every else {
+            return Ok(if report["changed"] == true { 3 } else { 0 });
+        };
+        tokio::time::sleep(interval).await;
+    }
+}
+
 /// `prior <command>`.
 ///
 /// # Errors

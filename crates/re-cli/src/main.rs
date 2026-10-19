@@ -73,6 +73,16 @@ enum Command {
         #[command(subcommand)]
         command: ScholarCommand,
     },
+    /// Re-verify a research run and report what drifted (changed verdicts,
+    /// newly retracted or flagged sources); exits 3 when anything changed.
+    #[cfg(feature = "learn")]
+    Watch {
+        /// The run to re-verify.
+        run_id: String,
+        /// Repeat at this interval (`7d`, `12h`, `30m`) instead of once.
+        #[arg(long, value_parser = learn::parse_interval)]
+        every: Option<std::time::Duration>,
+    },
     /// Train or inspect the learned prior that seeds branch scores.
     #[cfg(feature = "learn")]
     Prior {
@@ -427,6 +437,11 @@ async fn run(cli: Cli) -> Result<u8, Failure> {
         }
         #[cfg(feature = "learn")]
         Command::Prior { command } => learn::run(&load_config()?, &command),
+        #[cfg(feature = "learn")]
+        Command::Watch { run_id, every } => {
+            let config = load_config()?;
+            learn::watch(&service(&config).await?, &run_id, every).await
+        }
         Command::Research {
             query,
             draft,

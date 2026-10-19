@@ -453,3 +453,49 @@ fn a_prior_needs_enough_history() {
     assert!(shown.status.success());
     assert!(String::from_utf8_lossy(&shown.stdout).starts_with("no prior yet"));
 }
+
+#[cfg(feature = "learn")]
+#[test]
+fn watch_reverifies_a_run_and_reports_drift_by_exit_code() {
+    let home = tempfile::tempdir().expect("tmp");
+    let research = bin(home.path())
+        .args([
+            "research",
+            "Scholar Gateway exposes semantic search",
+            "--draft",
+            "Mock evidence for Scholar Gateway exposes semantic search.",
+        ])
+        .output()
+        .expect("runs");
+    assert!(research.status.success());
+    let run_id = stdout_json(&research)["run_id"]
+        .as_str()
+        .expect("run id")
+        .to_string();
+
+    let watched = bin(home.path())
+        .args(["watch", &run_id])
+        .output()
+        .expect("runs");
+    assert_eq!(
+        watched.status.code(),
+        Some(0),
+        "the offline mock never drifts"
+    );
+    let report = stdout_json(&watched);
+    assert_eq!(report["changed"], false);
+    assert_ne!(report["new_run_id"], run_id.as_str());
+    assert!(
+        std::path::Path::new(report["report"].as_str().expect("path")).exists(),
+        "{report}"
+    );
+
+    bin(home.path())
+        .args(["watch", "run_000000000000"])
+        .assert()
+        .code(1);
+    bin(home.path())
+        .args(["watch", &run_id, "--every", "soon"])
+        .assert()
+        .code(2);
+}

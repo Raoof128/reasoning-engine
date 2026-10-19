@@ -92,7 +92,7 @@ Needs Rust 1.89 or newer (1.92 for `semantic`).
 git clone https://github.com/Raoof128/reasoning-engine.git
 cd reasoning-engine
 cargo install --locked --path crates/re-cli                          # stdio MCP only
-cargo install --locked --path crates/re-cli --features local-host,trust,tasks,semantic,fulltext,graph   # everything
+cargo install --locked --path crates/re-cli --features local-host,trust,tasks,semantic,fulltext,graph,learn   # everything
 ```
 
 ### Docker
@@ -152,6 +152,7 @@ cp skill/deep-research.md ~/.claude/skills/
 | `tasks` | Evidence cache, cost ledger, and angle prefetch over the MCP tasks extension | yes |
 | `fulltext` | Claims verified against open-access full text; publication-type scoring and retraction flags | no |
 | `graph` | Evidence graph and retraction cascades, contradiction search, conformal calibration, adversarial angle, budget re-estimation | no |
+| `learn` | Learned branch prior (`prior train`), cross-session evidence memory, living reports (`watch`) | no |
 | `semantic` | `hybrid` and `nli` verifier tiers (ONNX models, downloaded on first use) | no |
 | `scholar-gateway` | Token-gated Scholar Gateway as an extra search source | no |
 
@@ -363,6 +364,29 @@ Four checks that ask "is this claim as solid as it looks?".
 - **Budget re-estimation.** Under `REASONING_ENGINE_DORA=directional`, `select_next_branches` re-estimates the budget once, after the first evaluation round. It uses how much the branches disagree and how well they score, and moves at most one strategy tier.
 
 Recorded runs store every switch, and the calibration itself, in `replay.json`. OpenAlex lookups and contradiction searches go through the tape, so `replay` stays offline and byte-identical.
+
+## Learning and living reports (`learn`)
+
+**A prior learned from your own sessions.** `reasoning-engine prior train` turns every session with two or more scored branches into training data.
+
+- **Input:** what was known when each branch was registered: its trace words (hashed), depth, length, sources, whether it has a parent, and the session's difficulty.
+- **Label:** whether the branch ended in the top three by score.
+- **Model:** an L2-regularised logistic regression, stored as `~/.reasoning-engine/prior-v<N>.json` with held-out log-loss against the base rate. Older versions are kept.
+- **Minimum data:** it refuses to train on fewer than 30 sessions.
+
+With a prior in place:
+
+- `register_branch` seeds a new branch's score (and returns `prior_score`), weighted by `min(1, sessions / 200)`.
+- `select_next_branches` lists `prior_disagreement` when Claude's score and the prior differ by more than 0.4. That's a cue to reflect.
+- `prior show` describes the prior in use.
+
+**Evidence memory.** Every retrieved source is remembered across runs, along with how the final verdicts used it (`supported`, `partially_supported`, `contradicted` or `uncited`). `recall_memory_tool` with `include_evidence: true` returns `{memories, evidence}`, ranked by BM25. Without the flag, the result keeps its usual shape.
+
+**Living reports.** `reasoning-engine watch <run_id>` re-runs a finished run's research, using the claims in its pack, and compares the new verdicts with the old.
+
+- It writes `runs/<run_id>/watch/<date>.diff.md`, covering changed verdicts, sources newly retracted or flagged, sources gained or lost, and new retraction cascades.
+- It exits `3` when anything changed, so it slots into cron or CI.
+- `--every 7d` keeps watching.
 
 ## Local HTTP server and audit UI
 

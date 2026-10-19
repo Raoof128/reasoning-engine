@@ -213,6 +213,68 @@ impl VerifiableResearchService {
         self
     }
 
+    /// Re-run a finished research run (same query, profile, mode, and the
+    /// claims in its pack) and report what drifted since: changed verdicts, newly
+    /// flagged or retracted sources, sources gained or lost, and new
+    /// retraction cascades (plan Phase 11). The report is written to
+    /// `<runs_dir>/<run_id>/watch/<date>.diff.md`, beside the attested
+    /// files.
+    ///
+    /// # Errors
+    /// An unknown run, a run without its pack, or pipeline failures.
+    #[cfg(feature = "learn")]
+    pub async fn watch(&self, run_id: &str) -> Result<Value, VerifyError> {
+        let run = self.store.get_run(run_id)?;
+        let pack = self.runs_dir.join(run_id);
+        if !pack.join("attestation.json").exists() {
+            return Err(VerifyError::Io(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!("no run pack for {run_id} in {}", self.runs_dir.display()),
+            )));
+        }
+        // The pack's attested claims: the database keys claims by a
+        // per-run `claim_0001`, so later runs overwrite its rows.
+        let claims: Vec<Value> =
+            serde_json::from_str(&std::fs::read_to_string(pack.join("claims.json"))?)
+                .map_err(|e| VerifyError::Io(std::io::Error::other(e)))?;
+        let sentences: Vec<String> = claims
+            .iter()
+            .filter_map(|c| c.get("text").and_then(Value::as_str))
+            .map(|text| {
+                let text = text.trim();
+                if text.ends_with(['.', '!', '?']) {
+                    text.to_string()
+                } else {
+                    format!("{text}.")
+                }
+            })
+            .collect();
+        let result = self
+            .run_research_pipeline(
+                &run.query,
+                &sentences.join(" "),
+                &run.mode,
+                &run.profile,
+                false,
+            )
+            .await?;
+        let new_run_id = result["run_id"].as_str().unwrap_or_default().to_string();
+        let new_pack = std::path::PathBuf::from(result["run_pack"].as_str().unwrap_or_default());
+        let drift = crate::diff::diff(&pack, &new_pack);
+        let date: String = utc_now().chars().take(10).collect();
+        let dir = pack.join("watch");
+        std::fs::create_dir_all(&dir)?;
+        let path = dir.join(format!("{date}.diff.md"));
+        std::fs::write(&path, drift.markdown(run_id, &new_run_id, &date))?;
+        Ok(json!({
+            "run_id": run_id,
+            "new_run_id": new_run_id,
+            "changed": !drift.is_empty(),
+            "report": path.to_string_lossy(),
+            "drift": to_value(&drift),
+        }))
+    }
+
     /// Remember `evidence` with the strongest use the final verdicts made
     /// of each record.
     #[cfg(feature = "learn")]
