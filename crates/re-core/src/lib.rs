@@ -9,6 +9,7 @@
 
 pub mod claims;
 pub mod difficulty;
+pub mod directional;
 pub mod dora;
 pub mod gate;
 pub mod hashing;

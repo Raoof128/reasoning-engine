@@ -396,3 +396,66 @@ async fn a_real_client_sees_twenty_tools_and_python_metadata() {
     client.cancel().await.expect("cancel");
     handle.await.expect("join").expect("server exits cleanly");
 }
+
+#[tokio::test]
+async fn directional_dora_adds_directions_only_when_enabled() {
+    let dir = tempfile::tempdir().expect("tmp");
+    let store = Store::open(dir.path().join("reasoning.db")).expect("store");
+    let search = Arc::new(AcademicSearchAggregator::new(vec![Arc::new(
+        MockScholarGateway,
+    )]));
+    let service = Arc::new(VerifiableResearchService::new(
+        store,
+        dir.path().join("runs"),
+        search,
+        Box::new(LexicalOverlap),
+    ));
+    let legacy = ReasoningServer::new(Tools::new(Arc::clone(&service)).with_directional(false));
+    let directional = ReasoningServer::new(Tools::new(service).with_directional(true));
+
+    let session = ok(
+        &legacy,
+        "init_research_session",
+        json!({"query": "compare reward models"}),
+    )
+    .await;
+    let sid = session["session_id"].as_str().expect("id").to_string();
+    for q in [0.9, 0.4] {
+        let branch = ok(
+            &legacy,
+            "register_branch",
+            json!({"session_id": sid, "trace": ["t"]}),
+        )
+        .await;
+        let bid = branch["branch_id"].as_str().expect("id");
+        ok(
+            &legacy,
+            "score_branch",
+            json!({"session_id": sid, "branch_id": bid, "q_score": q, "advantage": 0.1, "critique": "", "confidence": 0.5}),
+        )
+        .await;
+    }
+    let without = ok(&legacy, "select_next_branches", json!({"session_id": sid})).await;
+    assert!(
+        without.get("directions").is_none(),
+        "off by default, so Python parity holds"
+    );
+    let plan = ok(
+        &directional,
+        "select_next_branches",
+        json!({"session_id": sid}),
+    )
+    .await;
+    let directions = plan["directions"].as_array().expect("directions");
+    assert_eq!(directions.len(), 2);
+    assert!(
+        directions[0]["quality"].as_f64().expect("q")
+            > directions[1]["quality"].as_f64().expect("q")
+    );
+    let keys: Vec<&String> = plan.as_object().expect("object").keys().collect();
+    assert_eq!(
+        keys.last().map(|k| k.as_str()),
+        Some("directions"),
+        "legacy fields first, unchanged"
+    );
+}

@@ -7,6 +7,7 @@
 use std::sync::Arc;
 
 use indexmap::IndexMap;
+use re_core::directional::{BranchInfo, plan_directions};
 use re_core::dora::select_branches;
 use re_core::planning::{evidence_gap_questions, plan_research_angles};
 use re_core::profiles::classify_research_mode;
@@ -41,14 +42,27 @@ fn to_value<T: Serialize>(value: &T) -> Value {
 /// Executes tools against one research service.
 pub struct Tools {
     service: Arc<VerifiableResearchService>,
+    directional: bool,
 }
 
 impl Tools {
     /// Tools over `service` (sessions use its store too, as Python's server
-    /// shares one database path).
+    /// shares one database path). `REASONING_ENGINE_DORA=directional` adds
+    /// per-direction advice to `select_next_branches`.
     #[must_use]
     pub fn new(service: Arc<VerifiableResearchService>) -> Self {
-        Self { service }
+        let directional = std::env::var("REASONING_ENGINE_DORA").is_ok_and(|v| v == "directional");
+        Self {
+            service,
+            directional,
+        }
+    }
+
+    /// Turn directional DORA advice on or off, overriding the environment.
+    #[must_use]
+    pub fn with_directional(mut self, on: bool) -> Self {
+        self.directional = on;
+        self
     }
 
     fn store(&self) -> &re_store::Store {
@@ -163,14 +177,33 @@ impl Tools {
             &result.branches_to_prune,
             result.budget_remaining,
         )?;
-        Ok(json!({
+        let mut payload = json!({
             "branches_to_continue": result.branches_to_continue,
             "branches_to_reflect": result.branches_to_reflect,
             "branches_to_prune": result.branches_to_prune,
             "allocation": result.allocation,
             "kappa": py_round(result.kappa, 4),
             "budget_remaining": result.budget_remaining,
-        }))
+        });
+        // Plan 6.3: the same fields plus optional per-direction advice.
+        if self.directional {
+            let branches: Vec<BranchInfo> = self
+                .store()
+                .get_session_branches(&session_id)?
+                .into_iter()
+                .map(|b| BranchInfo {
+                    id: b.id,
+                    parent_id: b.parent_id,
+                    q_score: b.q_score,
+                    visits: b.visits,
+                    status: b.status,
+                })
+                .collect();
+            let directions =
+                plan_directions(&branches, result.budget_remaining, session.difficulty);
+            payload["directions"] = to_value(&directions);
+        }
+        Ok(payload)
     }
 
     fn record_reflection(&self, a: &Args<'_>) -> ToolResult {
