@@ -27,9 +27,10 @@ trust = ["re-verify/trust"]
 # Speculative retrieval: evidence cache, cost ledger and angle prefetch
 # over the MCP tasks extension (plan Phase 8).
 tasks = ["re-mcp/tasks"]
-# Full text and source quality (plan Phase 9): profile-aware publication
-# type scoring, and retracted work never supports a claim.
-fulltext = []
+# Full text and source quality (plan Phase 9): claims verified against
+# open-access full text, profile-aware publication type scoring, and
+# retracted work never supports a claim.
+fulltext = ["re-verify/fulltext"]
 
 [dependencies]
 tokio-util = { workspace = true, optional = true }

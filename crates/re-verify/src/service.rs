@@ -101,7 +101,13 @@ pub struct VerifiableResearchService {
     signer: Option<Arc<dyn AttestationSigner>>,
     ledger: bool,
     quality: bool,
+    #[cfg(feature = "fulltext")]
+    fulltext: Option<re_retrieval::fulltext::FullTextFetcher>,
 }
+
+/// Records whose full text a pipeline run fetches, best ranked first.
+#[cfg(feature = "fulltext")]
+pub const FULL_TEXT_LIMIT: usize = 5;
 
 /// Print the high-stakes fallback warning once per process.
 static HIGH_STAKES_WARNED: std::sync::Once = std::sync::Once::new();
@@ -133,7 +139,87 @@ impl VerifiableResearchService {
             signer: None,
             ledger: false,
             quality: false,
+            #[cfg(feature = "fulltext")]
+            fulltext: None,
         }
+    }
+
+    /// Verify claims against open-access full text fetched with `fetcher`
+    /// for the best [`FULL_TEXT_LIMIT`] citable records (plan Phase 9).
+    #[cfg(feature = "fulltext")]
+    #[must_use]
+    pub fn with_full_text(mut self, fetcher: re_retrieval::fulltext::FullTextFetcher) -> Self {
+        self.fulltext = Some(fetcher);
+        self
+    }
+
+    /// Fetch and chunk the full text of the first [`FULL_TEXT_LIMIT`]
+    /// records with an open-access source, concurrently, and record what
+    /// was found in a `full_text` provenance event. Failures are recorded
+    /// and the record keeps its snippet.
+    #[cfg(feature = "fulltext")]
+    async fn full_texts(
+        &self,
+        run_id: &str,
+        evidence: &[EvidenceRecord],
+    ) -> Result<std::collections::BTreeMap<String, Vec<crate::chunks::Chunk>>, VerifyError> {
+        let mut texts = std::collections::BTreeMap::new();
+        let Some(fetcher) = &self.fulltext else {
+            return Ok(texts);
+        };
+        let wanted: Vec<&EvidenceRecord> = evidence
+            .iter()
+            .filter(|e| !fetcher.candidates(&e.hints).is_empty())
+            .take(FULL_TEXT_LIMIT)
+            .collect();
+        if wanted.is_empty() {
+            return Ok(texts);
+        }
+        let mut jobs = tokio::task::JoinSet::new();
+        for (index, record) in wanted.iter().enumerate() {
+            let fetcher = fetcher.clone();
+            let hints = record.hints.clone();
+            jobs.spawn(async move { (index, fetcher.fetch(&hints).await) });
+        }
+        let mut outcomes = Vec::with_capacity(wanted.len());
+        while let Some(joined) = jobs.join_next().await {
+            if let Ok(outcome) = joined {
+                outcomes.push(outcome);
+            }
+        }
+        outcomes.sort_by_key(|(index, _)| *index);
+        let mut documents = Vec::with_capacity(outcomes.len());
+        for (index, result) in outcomes {
+            let id = &wanted[index].evidence_id;
+            documents.push(match result {
+                Ok(Some(document)) => {
+                    let chunks = crate::chunks::chunk(&document.sections);
+                    let sections: Vec<&str> =
+                        document.sections.iter().map(|s| s.label.as_str()).collect();
+                    let summary = json!({
+                        "evidence_id": id,
+                        "format": document.format,
+                        "url": document.url,
+                        "sections": sections,
+                        "chunks": chunks.len(),
+                    });
+                    texts.insert(id.clone(), chunks);
+                    summary
+                }
+                Ok(None) => json!({"evidence_id": id, "error_type": "empty_result"}),
+                Err(error) => json!({
+                    "evidence_id": id,
+                    "error_type": error.error_type,
+                    "message": error.message,
+                }),
+            });
+        }
+        self.store.append_provenance(
+            run_id,
+            "full_text",
+            &payload(&[("documents", Value::from(documents))]),
+        )?;
+        Ok(texts)
     }
 
     /// Score sources by the run profile's preferred and weak publication
@@ -368,6 +454,47 @@ impl VerifiableResearchService {
         })
     }
 
+    /// Verify `claims` against `citable` evidence (and its full text, when
+    /// fetched), then apply the numeric check.
+    #[cfg_attr(
+        not(feature = "fulltext"),
+        allow(
+            clippy::unused_async,
+            clippy::unused_async_trait_impl,
+            reason = "fetches full text with fulltext"
+        )
+    )]
+    async fn verify_claims(
+        &self,
+        run_id: &str,
+        verifier: &dyn Verifier,
+        claims: &mut [ClaimRecord],
+        citable: &[EvidenceRecord],
+    ) -> Result<Vec<VerificationRecord>, VerifyError> {
+        #[cfg(feature = "fulltext")]
+        let texts = self.full_texts(run_id, citable).await?;
+        #[cfg(feature = "fulltext")]
+        #[cfg_attr(not(feature = "trust"), allow(unused_mut))]
+        let mut verifications = crate::chunks::verify(verifier, claims, citable, &texts);
+        #[cfg(not(feature = "fulltext"))]
+        let _ = run_id;
+        #[cfg(not(feature = "fulltext"))]
+        #[cfg_attr(not(feature = "trust"), allow(unused_mut))]
+        let mut verifications = verifier.verify(claims, citable);
+        // A quantitative claim cannot be supported by evidence without its
+        // number (plan section 6.6), anywhere in the paper when the full
+        // text was read.
+        #[cfg(all(feature = "trust", feature = "fulltext"))]
+        crate::numeric::enforce(
+            claims,
+            &mut verifications,
+            &crate::chunks::with_full_text(citable, &texts),
+        );
+        #[cfg(all(feature = "trust", not(feature = "fulltext")))]
+        crate::numeric::enforce(claims, &mut verifications, citable);
+        Ok(verifications)
+    }
+
     /// Start a run, search, extract and verify claims, gate, export and
     /// attest the run pack.
     ///
@@ -399,12 +526,9 @@ impl VerifiableResearchService {
         } else {
             evidence.clone()
         };
-        #[cfg_attr(not(feature = "trust"), allow(unused_mut))]
-        let mut verifications = verifier.verify(&mut claims, &citable);
-        // A quantitative claim cannot be supported by evidence without its
-        // number (plan section 6.6).
-        #[cfg(feature = "trust")]
-        crate::numeric::enforce(&mut claims, &mut verifications, &citable);
+        let verifications = self
+            .verify_claims(&run.run_id, verifier, &mut claims, &citable)
+            .await?;
         for claim in &claims {
             self.store.save_claim(claim)?;
         }

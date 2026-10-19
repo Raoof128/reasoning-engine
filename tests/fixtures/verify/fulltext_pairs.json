@@ -1,0 +1,311 @@
+{
+  "description": "Claims about three open-access papers (CC BY 4.0, see ../fulltext/README.md). Gold policy: a finding stated in the methods, results or discussion is supported; background found only in the abstract or introduction (prior work, motivation) is partially_supported; anything absent or contradicted is unsupported. Labelled by the implementer from the papers; needs human review.",
+  "documents": {
+    "naps": "../fulltext/PMC10710987.xml",
+    "protein": "../fulltext/PMC10405750.xml",
+    "verifiagent": "../fulltext/arxiv-2504.00406v2-p1-6.pdf"
+  },
+  "pairs": [
+    {
+      "id": "naps-01",
+      "document": "naps",
+      "claim": "Morning resistance training produced similar ratings of perceived exertion in the nap and no-nap conditions.",
+      "label": "supported",
+      "note": "results"
+    },
+    {
+      "id": "naps-02",
+      "document": "naps",
+      "claim": "Athletes reported napping for about 35 minutes on average.",
+      "label": "supported",
+      "note": "results"
+    },
+    {
+      "id": "naps-03",
+      "document": "naps",
+      "claim": "Sleep on the night before each trial did not differ between the nap and control conditions.",
+      "label": "supported",
+      "note": "results"
+    },
+    {
+      "id": "naps-04",
+      "document": "naps",
+      "claim": "Napping did not change reaction time.",
+      "label": "supported",
+      "note": "results"
+    },
+    {
+      "id": "naps-05",
+      "document": "naps",
+      "claim": "Mean power output in the fixed-intensity cycling session did not differ between the nap and control conditions.",
+      "label": "supported",
+      "note": "results"
+    },
+    {
+      "id": "naps-06",
+      "document": "naps",
+      "claim": "Whether athletes actually slept was self-reported and was not confirmed with polysomnography.",
+      "label": "supported",
+      "note": "discussion (limitations)"
+    },
+    {
+      "id": "naps-07",
+      "document": "naps",
+      "claim": "The nap increased afternoon peak power output.",
+      "label": "supported",
+      "note": "results; also in the abstract"
+    },
+    {
+      "id": "naps-08",
+      "document": "naps",
+      "claim": "Insufficient sleep impairs physical performance, mood and cognitive function.",
+      "label": "partially_supported",
+      "note": "introduction only (prior work)"
+    },
+    {
+      "id": "naps-09",
+      "document": "naps",
+      "claim": "In elite karate athletes, a 30-minute nap improved cognitive outcomes.",
+      "label": "partially_supported",
+      "note": "introduction only (prior work)"
+    },
+    {
+      "id": "naps-10",
+      "document": "naps",
+      "claim": "Professional rugby athletes sleep about six and a half hours per night on average.",
+      "label": "partially_supported",
+      "note": "introduction only (prior work)"
+    },
+    {
+      "id": "naps-11",
+      "document": "naps",
+      "claim": "Most professional rugby athletes report napping on match days.",
+      "label": "partially_supported",
+      "note": "introduction only (prior work)"
+    },
+    {
+      "id": "naps-12",
+      "document": "naps",
+      "claim": "Daytime naps are commonly used by elite athletes.",
+      "label": "partially_supported",
+      "note": "abstract background only"
+    },
+    {
+      "id": "naps-13",
+      "document": "naps",
+      "claim": "The nap improved afternoon reaction time.",
+      "label": "unsupported",
+      "note": "contradicted by the results"
+    },
+    {
+      "id": "naps-14",
+      "document": "naps",
+      "claim": "Napping increased total sleep time on the following night.",
+      "label": "unsupported",
+      "note": "not studied"
+    },
+    {
+      "id": "naps-15",
+      "document": "naps",
+      "claim": "Caffeine taken before the nap enhanced its effect on sprint performance.",
+      "label": "unsupported",
+      "note": "not studied"
+    },
+    {
+      "id": "naps-16",
+      "document": "naps",
+      "claim": "Female athletes benefited more from napping than male athletes.",
+      "label": "unsupported",
+      "note": "not studied"
+    },
+    {
+      "id": "protein-01",
+      "document": "protein",
+      "claim": "All participants in the study were male trained swimmers.",
+      "label": "supported",
+      "note": "methods (the abstract omits sex)"
+    },
+    {
+      "id": "protein-02",
+      "document": "protein",
+      "claim": "The protein group drank whey protein isolate about 30 minutes before bedtime.",
+      "label": "supported",
+      "note": "methods"
+    },
+    {
+      "id": "protein-03",
+      "document": "protein",
+      "claim": "Peak oxygen uptake improved over the two weeks of training in both groups.",
+      "label": "supported",
+      "note": "results"
+    },
+    {
+      "id": "protein-04",
+      "document": "protein",
+      "claim": "Pre-sleep whey protein did not reduce blood markers of muscle damage.",
+      "label": "supported",
+      "note": "discussion and conclusions"
+    },
+    {
+      "id": "protein-05",
+      "document": "protein",
+      "claim": "Most participants could not tell which supplement they had consumed.",
+      "label": "supported",
+      "note": "results"
+    },
+    {
+      "id": "protein-06",
+      "document": "protein",
+      "claim": "The study was double-blind.",
+      "label": "supported",
+      "note": "methods"
+    },
+    {
+      "id": "protein-07",
+      "document": "protein",
+      "claim": "Blood samples were analysed for interleukin-6, interleukin-10 and tumour necrosis factor alpha.",
+      "label": "supported",
+      "note": "methods; also in the abstract"
+    },
+    {
+      "id": "protein-08",
+      "document": "protein",
+      "claim": "Sprint interval training sessions usually consist of 4 to 12 all-out efforts lasting about 10 to 30 seconds.",
+      "label": "partially_supported",
+      "note": "introduction only (prior work)"
+    },
+    {
+      "id": "protein-09",
+      "document": "protein",
+      "claim": "Protein taken before sleep increases overnight plasma amino acid availability and muscle protein synthesis.",
+      "label": "partially_supported",
+      "note": "introduction only (prior work)"
+    },
+    {
+      "id": "protein-10",
+      "document": "protein",
+      "claim": "Whey and casein taken before sleep produce similar muscle protein synthesis.",
+      "label": "partially_supported",
+      "note": "introduction only (prior work)"
+    },
+    {
+      "id": "protein-11",
+      "document": "protein",
+      "claim": "Pre-sleep protein can improve overnight muscle recovery after exercise-induced muscle damage.",
+      "label": "partially_supported",
+      "note": "abstract background only"
+    },
+    {
+      "id": "protein-12",
+      "document": "protein",
+      "claim": "Pre-sleep protein supplementation improved 200-m swimming performance.",
+      "label": "unsupported",
+      "note": "contradicted by the results"
+    },
+    {
+      "id": "protein-13",
+      "document": "protein",
+      "claim": "The study included both male and female swimmers.",
+      "label": "unsupported",
+      "note": "contradicted by the methods"
+    },
+    {
+      "id": "protein-14",
+      "document": "protein",
+      "claim": "Casein was used as the protein supplement.",
+      "label": "unsupported",
+      "note": "contradicted: whey"
+    },
+    {
+      "id": "protein-15",
+      "document": "protein",
+      "claim": "Participants in the protein group slept significantly longer.",
+      "label": "unsupported",
+      "note": "not studied"
+    },
+    {
+      "id": "verifiagent-01",
+      "document": "verifiagent",
+      "claim": "VerifiAgent was evaluated on GSM8K and MATH for mathematical reasoning.",
+      "label": "supported",
+      "note": "experiments"
+    },
+    {
+      "id": "verifiagent-02",
+      "document": "verifiagent",
+      "claim": "On the ReWild hybrid reasoning dataset, VerifiAgent achieved the best accuracy of 0.78.",
+      "label": "supported",
+      "note": "experiments"
+    },
+    {
+      "id": "verifiagent-03",
+      "document": "verifiagent",
+      "claim": "By default, both the reasoner and VerifiAgent used GPT-4o as their backbone model.",
+      "label": "supported",
+      "note": "experiments"
+    },
+    {
+      "id": "verifiagent-04",
+      "document": "verifiagent",
+      "claim": "The Backward Verifier masks a condition of the question and asks the model to predict it.",
+      "label": "supported",
+      "note": "experiments (baselines)"
+    },
+    {
+      "id": "verifiagent-05",
+      "document": "verifiagent",
+      "claim": "Inference scaling with VerifiAgent outperformed majority voting while using fewer samples.",
+      "label": "supported",
+      "note": "experiments"
+    },
+    {
+      "id": "verifiagent-06",
+      "document": "verifiagent",
+      "claim": "When the reasoner is stronger than VerifiAgent's backbone, adding VerifiAgent gives only a limited gain.",
+      "label": "supported",
+      "note": "experiments"
+    },
+    {
+      "id": "verifiagent-07",
+      "document": "verifiagent",
+      "claim": "Ni et al. trained a verification model that judges language-to-code outputs using program text and execution results.",
+      "label": "partially_supported",
+      "note": "introduction only (prior work)"
+    },
+    {
+      "id": "verifiagent-08",
+      "document": "verifiagent",
+      "claim": "Existing verification methods are often domain-restricted and computationally expensive.",
+      "label": "partially_supported",
+      "note": "abstract and introduction background"
+    },
+    {
+      "id": "verifiagent-09",
+      "document": "verifiagent",
+      "claim": "Large language models often produce unreliable or incorrect responses.",
+      "label": "partially_supported",
+      "note": "abstract and introduction background"
+    },
+    {
+      "id": "verifiagent-10",
+      "document": "verifiagent",
+      "claim": "VerifiAgent requires fine-tuning on task-specific verification data.",
+      "label": "unsupported",
+      "note": "contradicted: training-free"
+    },
+    {
+      "id": "verifiagent-11",
+      "document": "verifiagent",
+      "claim": "VerifiAgent was evaluated on code generation benchmarks such as HumanEval.",
+      "label": "unsupported",
+      "note": "not studied"
+    },
+    {
+      "id": "verifiagent-12",
+      "document": "verifiagent",
+      "claim": "The Deductive Verifier achieved the highest accuracy on StrategyQA.",
+      "label": "unsupported",
+      "note": "contradicted by Table 2"
+    }
+  ]
+}

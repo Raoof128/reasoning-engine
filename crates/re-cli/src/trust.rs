@@ -46,9 +46,12 @@ pub async fn record(
     let tier = config.verifier();
     let plan = RecordPlan {
         quality: cfg!(feature = "fulltext"),
+        fulltext: cfg!(feature = "fulltext") && !offline(),
         ..RecordPlan::now(sources, offline(), &tier)
     };
     let verifier = load_verifier(Some(&tier), &config.models_dir(), offline()).await?;
+    #[cfg(feature = "fulltext")]
+    let tape_for_text = Arc::clone(&tape);
     let service = VerifiableResearchService::new(
         Store::open(config.db_path())?,
         config.runs_dir(),
@@ -59,6 +62,15 @@ pub async fn record(
     .with_recorder(plan.recorder(tape));
     let service = if plan.quality {
         service.with_quality()
+    } else {
+        service
+    };
+    // Full text is fetched through the same tape, so replay needs no
+    // network either.
+    #[cfg(feature = "fulltext")]
+    let service = if plan.fulltext {
+        let client = re_retrieval::HttpClient::new()?.with_tape(Arc::clone(&tape_for_text));
+        service.with_full_text(re_retrieval::fulltext::FullTextFetcher::new(client))
     } else {
         service
     };

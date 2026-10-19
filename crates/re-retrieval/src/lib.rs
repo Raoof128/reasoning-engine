@@ -12,6 +12,8 @@ pub mod base;
 pub mod cache;
 pub mod client;
 pub mod error;
+#[cfg(feature = "fulltext")]
+pub mod fulltext;
 pub mod quality;
 pub mod result;
 pub mod sources;

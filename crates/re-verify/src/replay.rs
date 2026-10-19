@@ -48,6 +48,9 @@ pub struct RecordPlan {
     /// Whether source-quality scoring was on
     /// ([`VerifiableResearchService::with_quality`]).
     pub quality: bool,
+    /// Whether claims were verified against full text (`fulltext`
+    /// feature).
+    pub fulltext: bool,
 }
 
 impl RecordPlan {
@@ -61,6 +64,7 @@ impl RecordPlan {
             offline,
             verifier: verifier.to_string(),
             quality: false,
+            fulltext: false,
         }
     }
 
@@ -80,8 +84,50 @@ impl RecordPlan {
         if self.quality {
             settings.insert("quality".into(), true.into());
         }
+        if self.fulltext {
+            settings.insert("fulltext".into(), true.into());
+        }
         Recorder { tape, settings }
     }
+}
+
+/// Turn on what the recording turned on.
+fn with_settings(
+    service: VerifiableResearchService,
+    inputs: &Value,
+    tape: Arc<Tape>,
+) -> Result<VerifiableResearchService, VerifyError> {
+    let on = |key: &str| inputs.get(key).and_then(Value::as_bool) == Some(true);
+    let service = if on("quality") {
+        service.with_quality()
+    } else {
+        service
+    };
+    if on("fulltext") {
+        with_full_text(service, tape)
+    } else {
+        Ok(service)
+    }
+}
+
+/// Read full text from the replayed tape, as the recording did.
+#[cfg(feature = "fulltext")]
+fn with_full_text(
+    service: VerifiableResearchService,
+    tape: Arc<Tape>,
+) -> Result<VerifiableResearchService, VerifyError> {
+    let client = re_retrieval::HttpClient::new()?.with_tape(tape);
+    Ok(service.with_full_text(re_retrieval::fulltext::FullTextFetcher::new(client)))
+}
+
+#[cfg(not(feature = "fulltext"))]
+fn with_full_text(
+    _: VerifiableResearchService,
+    _: Arc<Tape>,
+) -> Result<VerifiableResearchService, VerifyError> {
+    Err(invalid(
+        "this pack verified claims against full text; replay it with a `fulltext` build",
+    ))
 }
 
 fn invalid(message: impl Into<String>) -> VerifyError {
@@ -151,7 +197,7 @@ pub async fn replay_pack(
             "REASONING_ENGINE_SOURCES" => Some(joined.clone()),
             _ => None,
         },
-        Some(tape),
+        Some(Arc::clone(&tape)),
     )?;
     let verifier =
         load_verifier(Some(text(&inputs, "verifier")?), models_dir, offline_models).await?;
@@ -164,11 +210,7 @@ pub async fn replay_pack(
         verifier,
     )
     .with_models(models_dir, offline_models);
-    let service = if inputs.get("quality").and_then(Value::as_bool) == Some(true) {
-        service.with_quality()
-    } else {
-        service
-    };
+    let service = with_settings(service, &inputs, tape)?;
 
     let result = {
         let _pinned = pin(&clock, seed);

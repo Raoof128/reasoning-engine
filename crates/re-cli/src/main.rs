@@ -122,6 +122,12 @@ enum BenchCommand {
         /// Tiers to score; model tiers need `--features semantic`.
         #[arg(long = "tier", default_values_t = default_tiers())]
         tiers: Vec<String>,
+        /// Instead, compare abstract-only with full-text verification on
+        /// this set of claims about open-access papers
+        /// (`tests/fixtures/verify/fulltext_pairs.json`).
+        #[cfg(feature = "fulltext")]
+        #[arg(long = "full-text", value_name = "SET")]
+        full_text: Option<PathBuf>,
     },
 }
 
@@ -187,10 +193,78 @@ async fn service(config: &Config) -> Result<VerifiableResearchService, Failure> 
     #[cfg(feature = "tasks")]
     let service = service.with_ledger();
     #[cfg(feature = "fulltext")]
-    let service = service.with_quality();
+    let service = {
+        let service = service.with_quality();
+        if offline {
+            service
+        } else {
+            let fetcher =
+                re_retrieval::fulltext::FullTextFetcher::new(re_retrieval::HttpClient::new()?)
+                    .with_cache_dir(config.fulltext_dir());
+            service.with_full_text(fetcher)
+        }
+    };
     #[cfg(feature = "trust")]
     let service = trust::sign(config, service);
     Ok(service)
+}
+
+/// `bench verify`: each tier on the labelled claim/sentence set.
+async fn bench_verify(set: &std::path::Path, tiers: &[String]) -> Result<u8, Failure> {
+    let config = load_config()?;
+    let text =
+        std::fs::read_to_string(set).map_err(|e| format!("cannot read {}: {e}", set.display()))?;
+    let labelled: re_verify::bench::LabelledSet = serde_json::from_str(&text)?;
+    let offline = std::env::var("REASONING_ENGINE_OFFLINE").is_ok_and(|v| v == "1");
+    println!(
+        "Verifier benchmark on {} ({} pairs)\n",
+        set.display(),
+        labelled.pairs.len()
+    );
+    for tier in tiers {
+        let verifier = load_verifier(Some(tier), &config.models_dir(), offline).await?;
+        println!(
+            "{}",
+            re_verify::bench::evaluate(verifier.as_ref(), &labelled.pairs).table()
+        );
+    }
+    Ok(0)
+}
+
+/// `bench verify --full-text`: abstract-only against full text, per tier.
+#[cfg(feature = "fulltext")]
+async fn bench_full_text(set: &std::path::Path, tiers: &[String]) -> Result<u8, Failure> {
+    let config = load_config()?;
+    let text =
+        std::fs::read_to_string(set).map_err(|e| format!("cannot read {}: {e}", set.display()))?;
+    let labelled: re_verify::bench::FullTextSet = serde_json::from_str(&text)?;
+    let dir = set.parent().unwrap_or_else(|| std::path::Path::new("."));
+    let offline = std::env::var("REASONING_ENGINE_OFFLINE").is_ok_and(|v| v == "1");
+    println!(
+        "Full-text verifier benchmark on {} ({} claims, {} papers)\n",
+        set.display(),
+        labelled.pairs.len(),
+        labelled.documents.len()
+    );
+    for tier in tiers {
+        let verifier = load_verifier(Some(tier), &config.models_dir(), offline).await?;
+        let [abstract_only, chunked, full] =
+            re_verify::bench::evaluate_full_text(verifier.as_ref(), &labelled, dir)?;
+        println!(
+            "{}\n{}\n{}",
+            abstract_only.table(),
+            chunked.table(),
+            full.table()
+        );
+        println!(
+            "partially_supported precision: {:.3} abstract only, {:.3} abstract in chunks, \
+             {:.3} full text\n",
+            abstract_only.precision("partially_supported"),
+            chunked.precision("partially_supported"),
+            full.precision("partially_supported")
+        );
+    }
+    Ok(0)
 }
 
 /// `print(json.dumps(payload, indent=2, sort_keys=True))`.
@@ -246,28 +320,18 @@ async fn run(cli: Cli) -> Result<u8, Failure> {
             print_json(&outcome.to_json());
             Ok(0)
         }
+        #[cfg(feature = "fulltext")]
         Command::Bench {
-            command: BenchCommand::Verify { set, tiers },
-        } => {
-            let config = load_config()?;
-            let text = std::fs::read_to_string(&set)
-                .map_err(|e| format!("cannot read {}: {e}", set.display()))?;
-            let labelled: re_verify::bench::LabelledSet = serde_json::from_str(&text)?;
-            let offline = std::env::var("REASONING_ENGINE_OFFLINE").is_ok_and(|v| v == "1");
-            println!(
-                "Verifier benchmark on {} ({} pairs)\n",
-                set.display(),
-                labelled.pairs.len()
-            );
-            for tier in &tiers {
-                let verifier = load_verifier(Some(tier), &config.models_dir(), offline).await?;
-                println!(
-                    "{}",
-                    re_verify::bench::evaluate(verifier.as_ref(), &labelled.pairs).table()
-                );
-            }
-            Ok(0)
-        }
+            command:
+                BenchCommand::Verify {
+                    tiers,
+                    full_text: Some(set),
+                    ..
+                },
+        } => bench_full_text(&set, &tiers).await,
+        Command::Bench {
+            command: BenchCommand::Verify { set, tiers, .. },
+        } => bench_verify(&set, &tiers).await,
         #[cfg(not(feature = "trust"))]
         Command::VerifyRunpack { dir } => {
             let result = verify_run_pack_attestation(&dir);

@@ -176,6 +176,13 @@ impl Config {
             .unwrap_or_else(|| self.data_dir().join("signing.key"))
     }
 
+    /// `<data_dir>/fulltext`: parsed open-access papers.
+    #[cfg(feature = "fulltext")]
+    #[must_use]
+    pub fn fulltext_dir(&self) -> PathBuf {
+        self.data_dir().join("fulltext")
+    }
+
     /// `REASONING_ENGINE_MODELS_DIR`, or `<data_dir>/models`.
     #[must_use]
     pub fn models_dir(&self) -> PathBuf {
