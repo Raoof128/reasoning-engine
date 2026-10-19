@@ -50,6 +50,10 @@ fn restrict_permissions(path: &Path) -> Result<(), StoreError> {
 }
 
 #[cfg(not(unix))]
+#[allow(
+    clippy::unnecessary_wraps,
+    reason = "same signature as the fallible unix version"
+)]
 fn restrict_permissions(_path: &Path) -> Result<(), StoreError> {
     Ok(())
 }
