@@ -5,13 +5,20 @@ use uuid::Uuid;
 /// `str(uuid.uuid4())`: hyphenated, lowercase.
 #[must_use]
 pub fn new_uuid() -> String {
-    Uuid::new_v4().hyphenated().to_string()
+    random_uuid().hyphenated().to_string()
+}
+
+/// A version-4 UUID from the OS, or from the seeded stream while pinned.
+fn random_uuid() -> Uuid {
+    crate::pin::next_bytes().map_or_else(Uuid::new_v4, |bytes| {
+        uuid::Builder::from_random_bytes(bytes).into_uuid()
+    })
 }
 
 /// `uuid.uuid4().hex[:n]`, with `n` capped at 32.
 #[must_use]
 pub fn short_hex(n: usize) -> String {
-    let mut hex = Uuid::new_v4().simple().to_string();
+    let mut hex = random_uuid().simple().to_string();
     hex.truncate(n.min(32));
     hex
 }

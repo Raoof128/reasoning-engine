@@ -2362,6 +2362,7 @@ dependencies = [
 name = "re-retrieval"
 version = "0.2.0"
 dependencies = [
+ "base64 0.22.1",
  "indexmap",
  "quick-xml",
  "re-core",
@@ -2370,6 +2371,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "tempfile",
  "thiserror",
  "tokio",
  "wiremock",

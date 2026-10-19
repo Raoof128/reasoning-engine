@@ -12,6 +12,7 @@ pub mod hybrid;
 #[cfg(feature = "semantic")]
 pub mod models;
 pub mod nli;
+pub mod replay;
 pub mod runpack;
 pub mod service;
 pub mod verify;

@@ -10,6 +10,7 @@ use re_model::ids::short_hex;
 use re_model::records::{
     ClaimRecord, EvidenceGap, EvidenceRecord, ResearchRun, RetrievalError, VerificationRecord,
 };
+use re_retrieval::tape::Tape;
 use re_retrieval::{AcademicSearchAggregator, RetrievalResult};
 use re_store::Store;
 use serde_json::{Map, Value, json};
@@ -17,7 +18,7 @@ use serde_json::{Map, Value, json};
 use crate::claims::extract_claims;
 use crate::error::VerifyError;
 use crate::gate::gate_records;
-use crate::runpack::{RunPackInput, export_run_pack, verify_run_pack_attestation};
+use crate::runpack::{ReplayFiles, RunPackInput, export_run_pack, verify_run_pack_attestation};
 use crate::verify::{Verifier, load_verifier};
 
 /// `REASONING_ENGINE_MODELS_DIR`, or `~/.reasoning-engine/models`.
@@ -73,6 +74,17 @@ fn payload(pairs: &[(&str, Value)]) -> Map<String, Value> {
         .collect()
 }
 
+/// What a recorded run keeps so `reasoning-engine replay` can re-run it
+/// (plan Phase 7).
+#[derive(Debug, Clone)]
+pub struct Recorder {
+    /// The tape the search client records to.
+    pub tape: Arc<Tape>,
+    /// Clock, seed, sources and verifier; the pipeline adds its own inputs
+    /// and writes the lot to `replay.json`.
+    pub settings: Map<String, Value>,
+}
+
 /// The verifiable research service.
 pub struct VerifiableResearchService {
     store: Store,
@@ -83,6 +95,7 @@ pub struct VerifiableResearchService {
     high_stakes: tokio::sync::OnceCell<Option<Box<dyn Verifier>>>,
     models_dir: PathBuf,
     offline: bool,
+    recorder: Option<Recorder>,
 }
 
 /// Print the high-stakes fallback warning once per process.
@@ -111,7 +124,16 @@ impl VerifiableResearchService {
             high_stakes: tokio::sync::OnceCell::new(),
             models_dir: default_models_dir(),
             offline: std::env::var("REASONING_ENGINE_OFFLINE").is_ok_and(|v| v == "1"),
+            recorder: None,
         }
+    }
+
+    /// Record pipeline runs for replay: their run packs gain `replay.json`
+    /// and the recorded responses from `recorder.tape`.
+    #[must_use]
+    pub fn with_recorder(mut self, recorder: Recorder) -> Self {
+        self.recorder = Some(recorder);
+        self
     }
 
     /// Where model tiers look for (and download) their models.
@@ -316,6 +338,22 @@ impl VerifiableResearchService {
         let report = build_report(&run, &claims, &verifications, &gate);
         let claim_dicts: Vec<Value> = claims.iter().map(to_value).collect();
         let verification_dicts: Vec<Value> = verifications.iter().map(to_value).collect();
+        let replay = self.recorder.as_ref().map(|recorder| {
+            let mut inputs = recorder.settings.clone();
+            for (key, value) in [
+                ("query", Value::from(query)),
+                ("draft", draft.into()),
+                ("mode", mode.into()),
+                ("profile", profile.into()),
+                ("use_mock_empty", use_mock_empty.into()),
+            ] {
+                inputs.insert(key.into(), value);
+            }
+            ReplayFiles {
+                inputs: Value::Object(inputs),
+                recordings: recorder.tape.rendered(),
+            }
+        });
         let output = export_run_pack(
             &self.runs_dir,
             &RunPackInput {
@@ -329,6 +367,7 @@ impl VerifiableResearchService {
                 report_markdown: &report,
                 verifier_method: verifier.method(),
                 verifier_models: &verifier.models(),
+                replay: replay.as_ref(),
             },
         )?;
         let attestation = verify_run_pack_attestation(&output);

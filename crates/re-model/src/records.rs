@@ -61,6 +61,8 @@ pub const RETRIEVAL_ERROR_TYPES: &[&str] = &[
     "licence_restricted",
     "unsupported_query",
     "adapter_misconfigured",
+    // Rust-only: a replayed run asked for a response that was not recorded.
+    "replay_miss",
 ];
 
 /// Check a support status.

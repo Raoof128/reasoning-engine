@@ -10,6 +10,7 @@
 //!   checks `run_pack_hash` against the listed hashes, so a pack whose
 //!   attestation was edited along with an artifact no longer reads valid.
 
+use std::collections::BTreeMap;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -66,7 +67,26 @@ pub struct RunPackInput<'a> {
     pub verifier_method: &'a str,
     /// Pinned models the verifier used; empty for the lexical tier.
     pub verifier_models: &'a [String],
+    /// What a recorded run keeps for `replay`, if it was recorded.
+    pub replay: Option<&'a ReplayFiles>,
 }
+
+/// The extra files of a recorded run (plan Phase 7): `replay.json` holds
+/// the inputs, `http/<key>.json` the recorded responses. They are hashed
+/// under the attestation's `replay` key, outside `artifact_hashes`, so
+/// Python's verifier still checks the core artifacts unchanged.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct ReplayFiles {
+    /// Query, draft, mode, profile, clock, seed, sources and verifier.
+    pub inputs: Value,
+    /// `<key>.json` to file text.
+    pub recordings: BTreeMap<String, String>,
+}
+
+/// The replay inputs file.
+pub const REPLAY_INPUTS: &str = "replay.json";
+/// Where recorded responses live inside a pack.
+pub const RECORDINGS_DIR: &str = "http";
 
 /// `methodology.md`: Python's fixed text for model-free runs (keeping those
 /// packs byte-identical), plus a section naming the method and pinned
@@ -222,8 +242,54 @@ pub fn export_run_pack(base_dir: &Path, input: &RunPackInput<'_>) -> io::Result<
         attestation["verifier"] =
             json!({"method": input.verifier_method, "models": input.verifier_models});
     }
+    if let Some(replay) = input.replay {
+        attestation["replay"] = Value::Object(write_replay_files(&output, replay)?);
+    }
     write("attestation.json", &pretty(&attestation))?;
     Ok(output)
+}
+
+fn write_replay_files(output: &Path, replay: &ReplayFiles) -> io::Result<Map<String, Value>> {
+    let mut hashes = Map::new();
+    let inputs = pretty(&replay.inputs);
+    fs::write(output.join(REPLAY_INPUTS), &inputs)?;
+    hashes.insert(
+        REPLAY_INPUTS.into(),
+        sha256_prefixed(inputs.as_bytes()).into(),
+    );
+    if !replay.recordings.is_empty() {
+        fs::create_dir_all(output.join(RECORDINGS_DIR))?;
+    }
+    for (name, text) in &replay.recordings {
+        if !is_recording_name(name) {
+            return Err(io::Error::other(format!("bad recording name: {name}")));
+        }
+        fs::write(output.join(RECORDINGS_DIR).join(name), text)?;
+        hashes.insert(
+            format!("{RECORDINGS_DIR}/{name}"),
+            sha256_prefixed(text.as_bytes()).into(),
+        );
+    }
+    Ok(hashes)
+}
+
+/// `<64 lowercase hex>.json`, the only names a recording may have.
+fn is_recording_name(name: &str) -> bool {
+    name.strip_suffix(".json").is_some_and(|stem| {
+        stem.len() == 64
+            && stem
+                .bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    })
+}
+
+/// Where a `replay` entry may point: `replay.json` or `http/<key>.json`.
+fn replay_path(dir: &Path, name: &str) -> Option<PathBuf> {
+    if name == REPLAY_INPUTS {
+        return Some(dir.join(REPLAY_INPUTS));
+    }
+    let file = name.strip_prefix(RECORDINGS_DIR)?.strip_prefix('/')?;
+    is_recording_name(file).then(|| dir.join(RECORDINGS_DIR).join(file))
 }
 
 /// A plain file name: no separators, no `..`, nothing absolute.
@@ -270,6 +336,18 @@ pub fn verify_run_pack_attestation(run_pack_dir: &Path) -> Value {
             missing.push(name.clone());
         } else if hash_file(&artifact).ok().as_deref() != expected.as_str() {
             mismatched.push(name.clone());
+        }
+    }
+    if let Some(replay) = attestation.get("replay").and_then(Value::as_object) {
+        for (name, expected) in replay {
+            match replay_path(run_pack_dir, name) {
+                None => mismatched.push(name.clone()),
+                Some(path) if !path.exists() => missing.push(name.clone()),
+                Some(path) if hash_file(&path).ok().as_deref() != expected.as_str() => {
+                    mismatched.push(name.clone());
+                }
+                Some(_) => {}
+            }
         }
     }
     let run_pack_hash = attestation

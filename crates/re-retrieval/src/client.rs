@@ -1,6 +1,7 @@
 //! HTTP plumbing shared by every adapter (port of `base._request`,
 //! `fetch_json` and `fetch_text`).
 
+use std::sync::Arc;
 use std::time::Duration;
 
 use reqwest::StatusCode;
@@ -9,6 +10,7 @@ use serde_json::Value;
 
 use crate::base::user_agent;
 use crate::error::AdapterError;
+use crate::tape::{Tape, TapeMode};
 
 /// Python's default per-request timeout. Tighter deadlines belong in the
 /// aggregator's fan-out policy, where they can be measured (plan section 4).
@@ -23,10 +25,12 @@ pub struct Fetched {
     pub headers: HeaderMap,
 }
 
-/// A pooled HTTP client with the engine's `User-Agent`.
+/// A pooled HTTP client with the engine's `User-Agent`, optionally
+/// recording to or replaying from a [`Tape`].
 #[derive(Debug, Clone)]
 pub struct HttpClient {
     inner: reqwest::Client,
+    tape: Option<Arc<Tape>>,
 }
 
 impl HttpClient {
@@ -53,7 +57,14 @@ impl HttpClient {
             .timeout(timeout)
             .build()
             .map_err(|e| AdapterError::new("adapter_misconfigured", e.to_string(), false))?;
-        Ok(Self { inner })
+        Ok(Self { inner, tape: None })
+    }
+
+    /// Record to, or replay from, `tape`.
+    #[must_use]
+    pub fn with_tape(mut self, tape: Arc<Tape>) -> Self {
+        self.tape = Some(tape);
+        self
     }
 
     /// GET `url` with `Accept: application/json` plus `headers`.
@@ -70,6 +81,18 @@ impl HttpClient {
         url: &str,
         headers: &[(&str, String)],
     ) -> Result<Fetched, AdapterError> {
+        match &self.tape {
+            Some(tape) if tape.mode() == TapeMode::Replay => tape.replay(url),
+            Some(tape) => {
+                let result = self.fetch(url, headers).await;
+                tape.record(url, &result);
+                result
+            }
+            None => self.fetch(url, headers).await,
+        }
+    }
+
+    async fn fetch(&self, url: &str, headers: &[(&str, String)]) -> Result<Fetched, AdapterError> {
         let mut request = self.inner.get(url).header(ACCEPT, "application/json");
         for (name, value) in headers {
             request = request.header(*name, value);
