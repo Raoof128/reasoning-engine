@@ -167,6 +167,20 @@ cp skill/deep-research.md ~/.claude/skills/
 
 The numbers come from `reasoning-engine bench verify` on 147 labelled claim/evidence pairs in `tests/fixtures/verify/labelled_pairs.json`. The labels were AI-written and have not yet been reviewed by a person. Lexical cannot detect contradiction at all, and embeddings cannot see negation, so `hybrid` mainly serves as NLI's shortlist. `high_stakes` runs always use `nli` when the build and models allow it. Models are pinned by revision and SHA-256 and checked on every load.
 
+### SciFact scoreboard
+
+A public yardstick, not one we labelled ourselves. `reasoning-engine bench verify --dataset scifact` scores every built tier on SciFact's dev split (Wadden et al. 2020): 300 expert-written claims, turned into 340 claim/abstract pairs with the whole abstract as the evidence. The dataset (claims CC BY 4.0, abstracts ODC-By 1.0) is downloaded once into `~/.reasoning-engine/scifact/`, checked against a pinned SHA-256, and never committed. A weekly workflow (`.github/workflows/bench.yml`) uploads a fresh table as an artifact.
+
+| Tier | Accuracy | F1 supported | F1 contradicted | F1 neutral | Macro F1 | ms / pair |
+|---|---:|---:|---:|---:|---:|---:|
+| `lexical` | 0.538 | 0.532 | 0.000 | 0.641 | 0.391 | 0.1 |
+| `hybrid` | 0.582 | 0.657 | 0.000 | 0.642 | 0.433 | 114.3 |
+| `nli` | 0.479 | 0.160 | 0.472 | 0.600 | 0.411 | 276.1 |
+
+Verifiers at commit `fd4c0a940c7a`, measured 2026-10-19 on 4 CPUs.
+
+This set is much harder than the labelled pairs above. A whole abstract is a long premise for a sentence-level NLI model, so `nli` almost never reaches its 0.7 entailment bar: when it says `supported` it is right every time, but it finds only 9% of the supported pairs. It is still the only tier that catches contradictions. Treat these numbers as the baseline the next verifier has to beat.
+
 ## Academic search and the verifiable pipeline
 
 Search is live by default and fans out concurrently across seven free sources:
