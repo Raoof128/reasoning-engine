@@ -21,7 +21,7 @@ fn opens_a_python_database_without_changing_it() {
         let expected = i64::try_from(expected).unwrap();
         assert_eq!(store.count_rows(table).unwrap(), expected, "table {table}");
     }
-    assert_eq!(store.user_version().unwrap(), 2);
+    assert_eq!(store.user_version().unwrap(), 4);
     drop(store);
     assert_eq!(
         schema_of(&db),
@@ -38,6 +38,151 @@ fn fresh_rust_database_has_python_schema() {
     make_python_db(&py_db);
     Store::open(&rs_db).unwrap();
     assert_eq!(schema_of(&rs_db), schema_of(&py_db));
+}
+
+/// `evidence_records` as Python and Rust created it before version 4: keyed
+/// by the bare per-run evidence ID.
+const V3_EVIDENCE_TABLE: &str = "
+CREATE TABLE evidence_records (
+    evidence_id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL REFERENCES research_runs(run_id),
+    payload TEXT NOT NULL,
+    snippet_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+";
+
+/// The claim tables as Python and Rust created them before version 3: keyed
+/// by the bare per-run claim and verification IDs.
+const V2_CLAIM_TABLES: &str = "
+CREATE TABLE claims (
+    claim_id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL REFERENCES research_runs(run_id),
+    payload TEXT NOT NULL,
+    status TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE claim_verifications (
+    verification_id TEXT PRIMARY KEY,
+    claim_id TEXT NOT NULL REFERENCES claims(claim_id),
+    run_id TEXT NOT NULL REFERENCES research_runs(run_id),
+    payload TEXT NOT NULL,
+    support_status TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+";
+
+/// Write an older database whose `legacy_tables` predate the current
+/// schema, holding two runs where `run_b`'s `ev_0001` and `claim_0001` already
+/// overwrote `run_a`'s.
+fn write_legacy_db(db: &std::path::Path, legacy_tables: &str, version: i64) {
+    let conn = rusqlite::Connection::open(db).unwrap();
+    // ver_a1's claim is gone; a version-3 file migrated from version 2
+    // carries such rows too.
+    conn.pragma_update(None, "foreign_keys", "OFF").unwrap();
+    conn.execute_batch(legacy_tables).unwrap();
+    conn.execute_batch(re_store::schema::SCHEMA_SQL).unwrap();
+    conn.pragma_update(None, "user_version", version).unwrap();
+    conn.execute_batch(
+        r#"
+        INSERT INTO research_runs VALUES
+            ('run_a', 'A', 'general', 'standard', 'complete', '2026-01-01T00:00:00Z'),
+            ('run_b', 'B', 'general', 'standard', 'complete', '2026-01-02T00:00:00Z');
+        INSERT INTO evidence_records VALUES
+            ('ev_0001', 'run_b', '{"snippet": "B1"}', 'sha256:b1', '2026-01-02 00:00:00'),
+            ('ev_0002', 'run_a', '{"snippet": "A2"}', 'sha256:a2', '2026-01-01 00:00:00');
+        INSERT INTO claims VALUES
+            ('claim_0001', 'run_b', '{"text": "B1"}', 'supported', '2026-01-02 00:00:00'),
+            ('claim_0002', 'run_a', '{"text": "A2"}', 'supported', '2026-01-01 00:00:00');
+        INSERT INTO claim_verifications VALUES
+            ('ver_a1', 'claim_0001', 'run_a', '{"v": "a1"}', 'supported', '2026-01-01 00:00:00'),
+            ('ver_a2', 'claim_0002', 'run_a', '{"v": "a2"}', 'supported', '2026-01-01 00:00:00'),
+            ('ver_b1', 'claim_0001', 'run_b', '{"v": "b1"}', 'supported', '2026-01-02 00:00:00');
+        "#,
+    )
+    .unwrap();
+}
+
+/// Open the database written by [`write_legacy_db`] and check the migration
+/// re-keyed every table by run and kept every row.
+fn assert_migrates(legacy_tables: &str, version: i64) {
+    use re_model::records::ClaimRecord;
+    use serde_json::json;
+
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("legacy.db");
+    let fresh = dir.path().join("fresh.db");
+    write_legacy_db(&db, legacy_tables, version);
+    Store::open(&fresh).unwrap();
+
+    let store = Store::open(&db).unwrap();
+    assert_eq!(schema_of(&db), schema_of(&fresh));
+    assert_eq!(store.user_version().unwrap(), 4);
+    assert_eq!(
+        store.list_evidence("run_a").unwrap(),
+        [json!({"snippet": "A2"})]
+    );
+    assert_eq!(
+        store.list_evidence("run_b").unwrap(),
+        [json!({"snippet": "B1"})]
+    );
+    assert_eq!(store.list_claims("run_a").unwrap(), [json!({"text": "A2"})]);
+    assert_eq!(store.list_claims("run_b").unwrap(), [json!({"text": "B1"})]);
+    assert_eq!(store.list_verifications("run_a").unwrap().len(), 2);
+    assert_eq!(store.list_verifications("run_b").unwrap().len(), 1);
+    let conn = rusqlite::Connection::open(&db).unwrap();
+    let evidence_row: (String, String) = conn
+        .query_row(
+            "SELECT snippet_hash, created_at FROM evidence_records WHERE run_id = 'run_a'",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(
+        evidence_row,
+        ("sha256:a2".into(), "2026-01-01 00:00:00".into())
+    );
+    let claim_created: String = conn
+        .query_row(
+            "SELECT created_at FROM claims WHERE run_id = 'run_a'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(claim_created, "2026-01-01 00:00:00");
+
+    // From now on run_a can store its claim_0001 beside run_b's.
+    let claim = ClaimRecord::new(
+        "claim_0001",
+        "run_a",
+        "A1",
+        "empirical",
+        "general",
+        "high",
+        "low",
+        true,
+        "test",
+    )
+    .unwrap();
+    store.save_claim(&claim).unwrap();
+    assert_eq!(store.list_claims("run_a").unwrap().len(), 2);
+    assert_eq!(store.list_claims("run_b").unwrap(), [json!({"text": "B1"})]);
+    drop(store);
+
+    // Reopening is a no-op.
+    let schema = schema_of(&db);
+    Store::open(&db).unwrap();
+    assert_eq!(schema_of(&db), schema);
+}
+
+#[test]
+fn migrates_version_2_tables_keeping_every_row() {
+    assert_migrates(&format!("{V3_EVIDENCE_TABLE}{V2_CLAIM_TABLES}"), 2);
+}
+
+#[test]
+fn migrates_version_3_evidence_table_keeping_every_row() {
+    assert_migrates(V3_EVIDENCE_TABLE, 3);
 }
 
 #[test]

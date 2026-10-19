@@ -232,8 +232,8 @@ impl VerifiableResearchService {
                 format!("no run pack for {run_id} in {}", self.runs_dir.display()),
             )));
         }
-        // The pack's attested claims: the database keys claims by a
-        // per-run `claim_0001`, so later runs overwrite its rows.
+        // The pack's attested claims, not the database's: the pack is what
+        // the attestation covers.
         let claims: Vec<Value> =
             serde_json::from_str(&std::fs::read_to_string(pack.join("claims.json"))?)
                 .map_err(|e| VerifyError::Io(std::io::Error::other(e)))?;

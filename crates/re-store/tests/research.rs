@@ -1,7 +1,9 @@
 //! Mirrors `tests/test_verifiable_store.py`.
 
 use re_model::clock::utc_now;
-use re_model::records::{ClaimRecord, EvidenceGap, EvidenceRecord, ResearchRun};
+use re_model::records::{
+    ClaimRecord, EvidenceGap, EvidenceRecord, ResearchRun, VerificationRecord,
+};
 use re_store::Store;
 use serde_json::{Map, Value, json};
 
@@ -87,6 +89,84 @@ fn store_round_trips_run_evidence_gap_and_claim() {
         s.get_run("run_missing").unwrap_err().to_string(),
         "unknown research run: run_missing"
     );
+}
+
+fn claim(run: &ResearchRun, text: &str) -> ClaimRecord {
+    ClaimRecord::new(
+        "claim_0001",
+        &run.run_id,
+        text,
+        "empirical",
+        "general",
+        "high",
+        "low",
+        true,
+        "test",
+    )
+    .unwrap()
+}
+
+#[test]
+fn runs_sharing_evidence_ids_keep_their_own_rows() {
+    let (_d, s) = store();
+    let runs = [
+        ResearchRun::create("First", "general", "standard"),
+        ResearchRun::create("Second", "general", "standard"),
+    ];
+    for run in &runs {
+        s.save_run(run).unwrap();
+        s.save_evidence(&evidence(run)).unwrap();
+    }
+    for run in &runs {
+        let listed = s.list_evidence(&run.run_id).unwrap();
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0]["evidence_id"], "ev_0001");
+        assert_eq!(listed[0]["query"], run.query.as_str());
+    }
+    assert_eq!(s.count_rows("evidence_records").unwrap(), 2);
+}
+
+#[test]
+fn runs_sharing_claim_and_verification_ids_keep_their_own_rows() {
+    let (_d, s) = store();
+    let runs = [
+        ResearchRun::create("First", "general", "standard"),
+        ResearchRun::create("Second", "general", "standard"),
+    ];
+    for run in &runs {
+        s.save_run(run).unwrap();
+        s.save_claim(&claim(run, &run.query)).unwrap();
+        let verification = VerificationRecord {
+            // The counter and graph verifiers mint `ver_<claim_id>`.
+            verification_id: "ver_claim_0001".into(),
+            claim_id: "claim_0001".into(),
+            method: "test".into(),
+            evidence_ids: vec![],
+            support_status: "not_verifiable".into(),
+            support_rationale: run.query.clone(),
+            missing_evidence: None,
+            contradictory_evidence_ids: vec![],
+            confidence: 0.0,
+            requires_human_review: false,
+            verified_at: utc_now(),
+        };
+        s.save_verification(&run.run_id, &verification).unwrap();
+    }
+    for run in &runs {
+        let claims = s.list_claims(&run.run_id).unwrap();
+        assert_eq!(claims.len(), 1);
+        assert_eq!(claims[0]["text"], run.query.as_str());
+        let verifications = s.list_verifications(&run.run_id).unwrap();
+        assert_eq!(verifications.len(), 1);
+        assert_eq!(verifications[0]["support_rationale"], run.query.as_str());
+    }
+    // Saving again still replaces within a run.
+    s.save_claim(&claim(&runs[0], "Revised")).unwrap();
+    assert_eq!(
+        s.list_claims(&runs[0].run_id).unwrap()[0]["text"],
+        "Revised"
+    );
+    assert_eq!(s.count_rows("claims").unwrap(), 2);
 }
 
 #[test]
