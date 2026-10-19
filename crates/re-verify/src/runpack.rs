@@ -77,7 +77,7 @@ pub struct RunPackInput<'a> {
 }
 
 /// Something that signs a run pack's `run_pack_hash` (plan Phase 7). The
-/// Ed25519 implementation lives in [`crate::signing`] (`trust` feature);
+/// Ed25519 implementation lives in `signing` (`trust` feature);
 /// without a signer the attestation keeps Python's `null` signature.
 pub trait AttestationSigner: Send + Sync {
     /// `signature_algorithm`, e.g. `ed25519`.
