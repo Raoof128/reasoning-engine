@@ -8,3 +8,6 @@ __pycache__
 *.log
 runs
 .DS_Store
+target
+models
+*.onnx

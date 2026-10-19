@@ -1,0 +1,88 @@
+[workspace]
+members = ["crates/*"]
+resolver = "3"
+
+[workspace.package]
+version = "0.2.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+authors = ["Raouf"]
+repository = "https://github.com/Raoof128/reasoning-engine"
+
+# Every crate in docs/rust-rewrite-plan-2026.md section 2.1, pinned exactly.
+# Cargo only resolves the entries a member crate actually uses.
+[workspace.dependencies]
+# Core
+serde = { version = "=1.0.229", features = ["derive"] }
+# float_roundtrip: the default parser is not correctly rounded and reads
+# 0.24062499999999998 as 0.240625, which breaks bit-exact golden parity.
+serde_json = { version = "=1.0.154", features = ["preserve_order", "float_roundtrip"] }
+indexmap = { version = "=2.14.2", features = ["serde"] }
+regex = "=1.13.1"
+thiserror = "=2.0.21"
+anyhow = "=1.0.104"
+unicode-segmentation = "=1.13.3"
+uuid = { version = "=1.28.0", features = ["v4"] }
+sha2 = "=0.11.1"
+subtle = "=2.6.1"
+
+# Async, HTTP, MCP
+tokio = { version = "=1.53.3", features = ["macros", "rt-multi-thread", "io-std", "time", "sync"] }
+reqwest = { version = "=0.13.5", default-features = false, features = ["rustls", "json", "http2", "gzip"] }
+rmcp = { version = "=3.5.1", features = ["server", "macros", "transport-io"] }
+schemars = "=1.2.3"
+axum = "=0.8.9"
+tower-http = "=0.7.1"
+governor = "=0.10.4"
+quick-xml = "=0.42.0"
+
+# Storage
+rusqlite = { version = "=0.40.2", features = ["bundled"] }
+
+# CLI and telemetry
+clap = { version = "=4.6.7", features = ["derive"] }
+inquire = "=0.9.4"
+tracing = "=0.1.44"
+
+# Semantic verifier (feature `semantic`)
+fastembed = "=7.1.1"
+ort = "=2.0.0-rc.14"
+tantivy = "=0.27.0"
+
+# Beast mode, phases 7-12 (feature-gated in their crates)
+hayagriva = "=0.10.1"
+ed25519-dalek = "=3.0.0"
+nom = "=8.0.0"
+petgraph = "=0.8.3"
+usearch = "=2.26.5"
+pdfium-render = "=0.9.4"
+pdf-extract = "=0.12.1"
+linfa = "=0.8.1"
+askama = "=0.16.1"
+wasmtime = "=50.0.0-rc.1"
+
+# Testing and benchmarks
+proptest = "=1.12.0"
+insta = { version = "=1.49.0", features = ["json"] }
+criterion = { version = "=0.8.2", default-features = false, features = ["cargo_bench_support"] }
+wiremock = "=0.6.5"
+assert_cmd = "=2.2.2"
+tempfile = "=3.27.0"
+
+# re-core is pure: no I/O, no async. Keep it that way.
+re-core = { path = "crates/re-core" }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+# Parity with Python requires usize -> f64 conversions on small counts
+# (word counts, list lengths). Values are far below 2^52, so no precision loss.
+cast_precision_loss = "allow"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"

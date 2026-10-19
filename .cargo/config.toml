@@ -1,0 +1,3 @@
+[alias]
+# The exact checks CI and the agent contract run before every commit.
+lint = "clippy --workspace --all-targets --all-features -- -D warnings"
