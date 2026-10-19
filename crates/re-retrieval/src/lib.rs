@@ -13,8 +13,9 @@ pub mod client;
 pub mod error;
 pub mod result;
 pub mod sources;
+pub mod tape;
 
-pub use aggregate::{AcademicSearchAggregator, adapters_from, default_adapters};
+pub use aggregate::{AcademicSearchAggregator, adapters_from, adapters_with, default_adapters};
 pub use client::HttpClient;
 pub use error::AdapterError;
 pub use result::RetrievalResult;

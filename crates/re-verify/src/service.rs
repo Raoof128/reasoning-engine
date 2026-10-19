@@ -10,6 +10,7 @@ use re_model::ids::short_hex;
 use re_model::records::{
     ClaimRecord, EvidenceGap, EvidenceRecord, ResearchRun, RetrievalError, VerificationRecord,
 };
+use re_retrieval::tape::Tape;
 use re_retrieval::{AcademicSearchAggregator, RetrievalResult};
 use re_store::Store;
 use serde_json::{Map, Value, json};
@@ -17,7 +18,9 @@ use serde_json::{Map, Value, json};
 use crate::claims::extract_claims;
 use crate::error::VerifyError;
 use crate::gate::gate_records;
-use crate::runpack::{RunPackInput, export_run_pack, verify_run_pack_attestation};
+use crate::runpack::{
+    AttestationSigner, ReplayFiles, RunPackInput, export_run_pack, verify_run_pack_attestation,
+};
 use crate::verify::{Verifier, load_verifier};
 
 /// `REASONING_ENGINE_MODELS_DIR`, or `~/.reasoning-engine/models`.
@@ -73,6 +76,17 @@ fn payload(pairs: &[(&str, Value)]) -> Map<String, Value> {
         .collect()
 }
 
+/// What a recorded run keeps so `reasoning-engine replay` can re-run it
+/// (plan Phase 7).
+#[derive(Debug, Clone)]
+pub struct Recorder {
+    /// The tape the search client records to.
+    pub tape: Arc<Tape>,
+    /// Clock, seed, sources and verifier; the pipeline adds its own inputs
+    /// and writes the lot to `replay.json`.
+    pub settings: Map<String, Value>,
+}
+
 /// The verifiable research service.
 pub struct VerifiableResearchService {
     store: Store,
@@ -83,6 +97,8 @@ pub struct VerifiableResearchService {
     high_stakes: tokio::sync::OnceCell<Option<Box<dyn Verifier>>>,
     models_dir: PathBuf,
     offline: bool,
+    recorder: Option<Recorder>,
+    signer: Option<Arc<dyn AttestationSigner>>,
 }
 
 /// Print the high-stakes fallback warning once per process.
@@ -111,7 +127,25 @@ impl VerifiableResearchService {
             high_stakes: tokio::sync::OnceCell::new(),
             models_dir: default_models_dir(),
             offline: std::env::var("REASONING_ENGINE_OFFLINE").is_ok_and(|v| v == "1"),
+            recorder: None,
+            signer: None,
         }
+    }
+
+    /// Sign every exported run pack with `signer` and append it to the
+    /// database's transparency log.
+    #[must_use]
+    pub fn with_signer(mut self, signer: Arc<dyn AttestationSigner>) -> Self {
+        self.signer = Some(signer);
+        self
+    }
+
+    /// Record pipeline runs for replay: their run packs gain `replay.json`
+    /// and the recorded responses from `recorder.tape`.
+    #[must_use]
+    pub fn with_recorder(mut self, recorder: Recorder) -> Self {
+        self.recorder = Some(recorder);
+        self
     }
 
     /// Where model tiers look for (and download) their models.
@@ -303,7 +337,12 @@ impl VerifiableResearchService {
         let evidence_dicts: Vec<Value> = evidence.iter().map(EvidenceRecord::to_dict).collect();
         let mut claims = extract_claims(&run.run_id, draft, &run.profile)?;
         let verifier = self.verifier_for(&run.mode).await;
-        let verifications = verifier.verify(&mut claims, evidence);
+        #[cfg_attr(not(feature = "trust"), allow(unused_mut))]
+        let mut verifications = verifier.verify(&mut claims, evidence);
+        // A quantitative claim cannot be supported by evidence without its
+        // number (plan section 6.6).
+        #[cfg(feature = "trust")]
+        crate::numeric::enforce(&mut claims, &mut verifications, evidence);
         for claim in &claims {
             self.store.save_claim(claim)?;
         }
@@ -316,6 +355,26 @@ impl VerifiableResearchService {
         let report = build_report(&run, &claims, &verifications, &gate);
         let claim_dicts: Vec<Value> = claims.iter().map(to_value).collect();
         let verification_dicts: Vec<Value> = verifications.iter().map(to_value).collect();
+        let replay = self.recorder.as_ref().map(|recorder| {
+            let mut inputs = recorder.settings.clone();
+            for (key, value) in [
+                ("query", Value::from(query)),
+                ("draft", draft.into()),
+                ("mode", mode.into()),
+                ("profile", profile.into()),
+                ("use_mock_empty", use_mock_empty.into()),
+            ] {
+                inputs.insert(key.into(), value);
+            }
+            ReplayFiles {
+                inputs: Value::Object(inputs),
+                recordings: recorder.tape.rendered(),
+            }
+        });
+        #[cfg(feature = "trust")]
+        let references = references_for(&run.profile, &evidence_dicts);
+        #[cfg(not(feature = "trust"))]
+        let references: Option<(String, String)> = None;
         let output = export_run_pack(
             &self.runs_dir,
             &RunPackInput {
@@ -329,8 +388,15 @@ impl VerifiableResearchService {
                 report_markdown: &report,
                 verifier_method: verifier.method(),
                 verifier_models: &verifier.models(),
+                replay: replay.as_ref(),
+                signer: self.signer.as_deref(),
+                references: references.as_ref().map(|(n, t)| (n.as_str(), t.as_str())),
             },
         )?;
+        if self.signer.is_some() {
+            let hash = crate::runpack::read_run_pack_hash(&output)?;
+            self.store.append_transparency(&run.run_id, &hash)?;
+        }
         let attestation = verify_run_pack_attestation(&output);
         let snippets: Vec<&str> = evidence.iter().map(|e| e.snippet.as_str()).collect();
         Ok(json!({
@@ -341,6 +407,20 @@ impl VerifiableResearchService {
             "evidence": evidence_dicts,
             "verified_against_snippets": snippets,
         }))
+    }
+}
+
+/// `references.<style>.md` in the profile's citation style. A style that
+/// cannot render is reported and skipped; `sources.bib` is always there.
+#[cfg(feature = "trust")]
+fn references_for(profile: &str, evidence: &[Value]) -> Option<(String, String)> {
+    let style = re_core::profiles::get_profile(profile).ok()?.citation_style;
+    match crate::citations::render_references(evidence, style) {
+        Ok(text) => Some((crate::citations::file_name(style), text)),
+        Err(error) => {
+            eprintln!("warning: no styled reference list: {error}");
+            None
+        }
     }
 }
 

@@ -85,6 +85,9 @@ fn export_rust(base: &Path, i: &Inputs) -> std::path::PathBuf {
             report_markdown: &i.report,
             verifier_method: "term_overlap_mvp",
             verifier_models: &[],
+            replay: None,
+            signer: None,
+            references: None,
         },
     )
     .expect("rust export")

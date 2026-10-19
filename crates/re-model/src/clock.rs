@@ -2,9 +2,13 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-/// Current time, second precision, `Z` suffix.
+/// Current time, second precision, `Z` suffix; the pinned time while
+/// [`crate::pin::pin`] is in effect.
 #[must_use]
 pub fn utc_now() -> String {
+    if let Some(pinned) = crate::pin::clock() {
+        return pinned;
+    }
     let secs = match SystemTime::now().duration_since(UNIX_EPOCH) {
         Ok(d) => i64::try_from(d.as_secs()).unwrap_or(i64::MAX),
         Err(e) => -i64::try_from(e.duration().as_secs()).unwrap_or(i64::MAX),

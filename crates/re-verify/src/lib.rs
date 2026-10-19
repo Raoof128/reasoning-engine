@@ -5,6 +5,8 @@
 #![deny(missing_docs)]
 
 pub mod bench;
+#[cfg(feature = "trust")]
+pub mod citations;
 pub mod claims;
 pub mod error;
 pub mod gate;
@@ -12,8 +14,13 @@ pub mod hybrid;
 #[cfg(feature = "semantic")]
 pub mod models;
 pub mod nli;
+#[cfg(feature = "trust")]
+pub mod numeric;
+pub mod replay;
 pub mod runpack;
 pub mod service;
+#[cfg(feature = "trust")]
+pub mod signing;
 pub mod verify;
 
 pub use error::VerifyError;

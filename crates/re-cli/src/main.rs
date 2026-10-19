@@ -8,6 +8,8 @@ mod config;
 #[cfg(feature = "local-host")]
 mod serve;
 mod setup;
+#[cfg(feature = "trust")]
+mod trust;
 
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -18,6 +20,7 @@ use re_core::pyjson::{DumpOptions, dumps};
 use re_mcp::{ReasoningServer, Tools};
 use re_retrieval::AcademicSearchAggregator;
 use re_store::Store;
+#[cfg(not(feature = "trust"))]
 use re_verify::runpack::verify_run_pack_attestation;
 use re_verify::{VerifiableResearchService, load_verifier};
 use serde_json::Value;
@@ -57,6 +60,11 @@ enum Command {
         /// Research profile, or `auto`.
         #[arg(long, default_value = "auto")]
         profile: String,
+        /// Pin the clock and ID seed and record every HTTP response into the
+        /// run pack, so `replay` can re-run it offline byte for byte.
+        #[cfg(feature = "trust")]
+        #[arg(long)]
+        record: bool,
     },
     /// Academic search.
     Scholar {
@@ -69,10 +77,39 @@ enum Command {
         command: BenchCommand,
     },
     /// Check a run pack's attestation; exits 1 when it does not verify.
+    /// With `trust`, also checks the signature and transparency log and
+    /// exits 2 for an unsigned pack.
     VerifyRunpack {
         /// The run-pack directory.
         dir: PathBuf,
+        /// Require this signer (base64 Ed25519 public key).
+        #[cfg(feature = "trust")]
+        #[arg(long)]
+        public_key: Option<String>,
     },
+    /// The run-pack signing key.
+    #[cfg(feature = "trust")]
+    Keys {
+        #[command(subcommand)]
+        command: KeysCommand,
+    },
+    /// Re-run a recorded run pack offline and compare every artifact; exits
+    /// 1 when anything differs.
+    #[cfg(feature = "trust")]
+    Replay {
+        /// A run ID (under the runs directory) or a run-pack directory.
+        run: String,
+        /// Keep the replayed run pack and print where it is.
+        #[arg(long)]
+        keep: bool,
+    },
+}
+
+#[cfg(feature = "trust")]
+#[derive(Debug, Subcommand)]
+enum KeysCommand {
+    /// Print the public key, creating the key pair if there is none.
+    Show,
 }
 
 #[derive(Debug, Subcommand)]
@@ -129,10 +166,11 @@ async fn service(config: &Config) -> Result<VerifiableResearchService, Failure> 
     let models_dir = config.models_dir();
     let verifier = load_verifier(Some(&config.verifier()), &models_dir, offline).await?;
     let search = Arc::new(AcademicSearchAggregator::from_env()?);
-    Ok(
-        VerifiableResearchService::new(store, config.runs_dir(), search, verifier)
-            .with_models(models_dir, offline),
-    )
+    let service = VerifiableResearchService::new(store, config.runs_dir(), search, verifier)
+        .with_models(models_dir, offline);
+    #[cfg(feature = "trust")]
+    let service = trust::sign(config, service);
+    Ok(service)
 }
 
 /// `print(json.dumps(payload, indent=2, sort_keys=True))`.
@@ -160,8 +198,15 @@ async fn run(cli: Cli) -> Result<u8, Failure> {
             draft,
             mode,
             profile,
+            #[cfg(feature = "trust")]
+            record,
         } => {
             let config = load_config()?;
+            #[cfg(feature = "trust")]
+            if record {
+                print_json(&trust::record(&config, &query, &draft, &mode, &profile).await?);
+                return Ok(0);
+            }
             let payload = service(&config)
                 .await?
                 .run_research_pipeline(&query, &draft, &mode, &profile, false)
@@ -203,10 +248,32 @@ async fn run(cli: Cli) -> Result<u8, Failure> {
             }
             Ok(0)
         }
+        #[cfg(not(feature = "trust"))]
         Command::VerifyRunpack { dir } => {
             let result = verify_run_pack_attestation(&dir);
             print_json(&result);
             Ok(u8::from(result["valid"] != true))
+        }
+        #[cfg(feature = "trust")]
+        Command::VerifyRunpack { dir, public_key } => {
+            let config = load_config()?;
+            let (report, code) = trust::verify(&config, &dir, public_key.as_deref());
+            print_json(&report);
+            Ok(code)
+        }
+        #[cfg(feature = "trust")]
+        Command::Keys {
+            command: KeysCommand::Show,
+        } => {
+            print_json(&trust::show_key(&load_config()?)?);
+            Ok(0)
+        }
+        #[cfg(feature = "trust")]
+        Command::Replay { run, keep } => {
+            let config = load_config()?;
+            let (report, code) = trust::replay(&config, &run, keep).await?;
+            print_json(&report);
+            Ok(code)
         }
     }
 }

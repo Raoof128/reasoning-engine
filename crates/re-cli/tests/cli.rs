@@ -9,7 +9,8 @@ use serde_json::Value;
 
 /// Variables that would point the binary outside the test's home. The
 /// rest of the environment stays (Windows needs `SystemRoot` and friends).
-const ENGINE_VARS: [&str; 7] = [
+const ENGINE_VARS: [&str; 8] = [
+    "REASONING_ENGINE_SIGNING_KEY",
     "REASONING_ENGINE_DB",
     "REASONING_ENGINE_RUNS_DIR",
     "REASONING_ENGINE_VERIFIER",
@@ -333,5 +334,100 @@ mod serve {
         let _ = child.wait();
         assert!(unauthorised.contains(" 401 "), "{unauthorised}");
         assert!(authorised.contains(" 200 "), "{authorised}");
+    }
+}
+
+#[cfg(feature = "trust")]
+mod trust {
+    use std::path::{Path, PathBuf};
+
+    use super::{bin, stdout_json};
+
+    fn research(home: &Path, record: bool) -> PathBuf {
+        let mut args = vec!["research", "Scholar Gateway exposes semantic search"];
+        args.extend(["--draft", "Scholar Gateway exposes semantic search."]);
+        if record {
+            args.push("--record");
+        }
+        let output = bin(home).args(&args).output().expect("runs");
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        PathBuf::from(stdout_json(&output)["run_pack"].as_str().expect("run_pack"))
+    }
+
+    #[test]
+    fn packs_are_signed_logged_and_verified_with_exit_codes() {
+        let home = tempfile::tempdir().expect("tmp");
+        let key = stdout_json(
+            &bin(home.path())
+                .args(["keys", "show"])
+                .output()
+                .expect("runs"),
+        );
+        assert_eq!(key["created"], true);
+        let public_key = key["public_key"].as_str().expect("key").to_string();
+        let pack = research(home.path(), false);
+        let pack = pack.to_str().expect("utf-8");
+
+        let ok = bin(home.path())
+            .args(["verify-runpack", pack])
+            .output()
+            .expect("runs");
+        assert_eq!(ok.status.code(), Some(0));
+        let report = stdout_json(&ok);
+        assert_eq!(report["verdict"], "ok");
+        assert_eq!(report["transparency_log"]["included"], true);
+        bin(home.path())
+            .args(["verify-runpack", pack, "--public-key", &public_key])
+            .assert()
+            .code(0);
+        bin(home.path())
+            .args(["verify-runpack", pack, "--public-key", "c29tZW9uZSBlbHNl"])
+            .assert()
+            .code(1);
+
+        // A pack with no signature verifies its hashes but vouches for
+        // nothing: exit 2.
+        let attestation = std::path::Path::new(pack).join("attestation.json");
+        let text = std::fs::read_to_string(&attestation).expect("read");
+        let mut unsigned: serde_json::Value = serde_json::from_str(&text).expect("json");
+        for key in ["signature", "signature_algorithm"] {
+            unsigned[key] = serde_json::Value::Null;
+        }
+        std::fs::write(&attestation, unsigned.to_string()).expect("write");
+        bin(home.path())
+            .args(["verify-runpack", pack])
+            .assert()
+            .code(2);
+    }
+
+    #[test]
+    fn recorded_runs_replay_identically_and_unrecorded_ones_are_refused() {
+        let home = tempfile::tempdir().expect("tmp");
+        let pack = research(home.path(), true);
+        assert!(pack.join("replay.json").exists());
+        let run_id = pack.file_name().and_then(|n| n.to_str()).expect("run id");
+        let replay = bin(home.path())
+            .args(["replay", run_id])
+            .output()
+            .expect("runs");
+        assert_eq!(
+            replay.status.code(),
+            Some(0),
+            "{}",
+            String::from_utf8_lossy(&replay.stdout)
+        );
+        assert_eq!(stdout_json(&replay)["identical"], true);
+
+        let plain = research(home.path(), false);
+        let refused = bin(home.path())
+            .args(["replay", plain.to_str().expect("utf-8")])
+            .output()
+            .expect("runs");
+        assert_eq!(refused.status.code(), Some(1));
+        assert!(String::from_utf8_lossy(&refused.stderr).contains("was not recorded"));
     }
 }

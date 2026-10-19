@@ -8,6 +8,7 @@
 
 pub mod clock;
 pub mod ids;
+pub mod pin;
 pub mod records;
 
 pub use records::ModelError;

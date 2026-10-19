@@ -18,6 +18,7 @@ use crate::error::AdapterError;
 use crate::result::RetrievalResult;
 use crate::sources::mock::MockScholarGateway;
 use crate::sources::{FREE_SOURCES, HttpAdapter, SourceAdapter, SourceConfig, free_source};
+use crate::tape::Tape;
 
 /// Python's `ThreadPoolExecutor(max_workers=...)` cap on in-flight searches.
 pub const MAX_WORKERS: usize = 8;
@@ -63,6 +64,18 @@ pub fn default_adapters() -> Result<Vec<Adapter>, AdapterError> {
 /// # Errors
 /// If the shared HTTP client cannot be built.
 pub fn adapters_from(env: impl Fn(&str) -> Option<String>) -> Result<Vec<Adapter>, AdapterError> {
+    adapters_with(env, None)
+}
+
+/// [`adapters_from`] with the shared HTTP client recording to, or replaying
+/// from, `tape`. Scholar Gateway (MCP, token-gated) is never taped.
+///
+/// # Errors
+/// If the shared HTTP client cannot be built.
+pub fn adapters_with(
+    env: impl Fn(&str) -> Option<String>,
+    tape: Option<Arc<Tape>>,
+) -> Result<Vec<Adapter>, AdapterError> {
     if env("REASONING_ENGINE_OFFLINE").as_deref() == Some("1") {
         return Ok(vec![Arc::new(MockScholarGateway)]);
     }
@@ -78,7 +91,10 @@ pub fn adapters_from(env: impl Fn(&str) -> Option<String>) -> Result<Vec<Adapter
             .collect()
     };
     // One pooled client: every source reuses its connections and TLS state.
-    let client = HttpClient::new()?;
+    let client = match tape {
+        Some(tape) => HttpClient::new()?.with_tape(tape),
+        None => HttpClient::new()?,
+    };
     let non_empty = |var: &str| env(var).filter(|v| !v.is_empty());
     let config = SourceConfig {
         contact_email: env("REASONING_ENGINE_CONTACT_EMAIL")
