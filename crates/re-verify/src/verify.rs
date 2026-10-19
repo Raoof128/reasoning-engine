@@ -33,17 +33,70 @@ pub trait Verifier: Send + Sync {
         claims: &mut [ClaimRecord],
         evidence: &[EvidenceRecord],
     ) -> Vec<VerificationRecord>;
+
+    /// Pinned model identities, recorded in run packs so a run can be
+    /// reproduced. Empty for the model-free lexical tier.
+    fn models(&self) -> Vec<String> {
+        Vec::new()
+    }
 }
 
-/// Build the verifier named by `REASONING_ENGINE_VERIFIER` (`lexical` when
-/// unset or empty).
+/// Every tier name `REASONING_ENGINE_VERIFIER` accepts.
+pub const TIERS: [&str; 3] = ["lexical", "hybrid", "nli"];
+
+fn tier(name: Option<&str>) -> Result<&'static str, VerifyError> {
+    let name = name
+        .map(str::trim)
+        .filter(|n| !n.is_empty())
+        .unwrap_or("lexical");
+    TIERS
+        .into_iter()
+        .find(|t| *t == name)
+        .ok_or_else(|| VerifyError::UnknownVerifier(name.to_string()))
+}
+
+/// Load the named tier: `lexical` (default), or `hybrid` / `nli`, which need
+/// the `semantic` feature and may download their models first.
 ///
 /// # Errors
-/// [`VerifyError::UnknownVerifier`] for any other name.
+/// An unknown name, a model tier in a build without `semantic`, or a model
+/// that cannot be loaded (including offline with no model installed).
+#[allow(
+    clippy::unused_async,
+    reason = "awaits model downloads when built with semantic"
+)]
+pub async fn load_verifier(
+    name: Option<&str>,
+    models_dir: &std::path::Path,
+    offline: bool,
+) -> Result<Box<dyn Verifier>, VerifyError> {
+    let _ = (models_dir, offline);
+    match tier(name)? {
+        "lexical" => Ok(Box::new(LexicalOverlap)),
+        #[cfg(feature = "semantic")]
+        "hybrid" => {
+            let embedder = crate::models::OnnxEmbedder::load(models_dir, offline).await?;
+            Ok(Box::new(crate::hybrid::HybridVerifier::new(embedder)))
+        }
+        #[cfg(feature = "semantic")]
+        "nli" => {
+            let embedder = crate::models::OnnxEmbedder::load(models_dir, offline).await?;
+            let nli = crate::models::OnnxNli::load(models_dir, offline).await?;
+            Ok(Box::new(crate::nli::NliVerifier::new(embedder, nli)))
+        }
+        other => Err(VerifyError::NeedsSemantic(other.to_string())),
+    }
+}
+
+/// The model-free verifier named by `REASONING_ENGINE_VERIFIER` (`lexical`
+/// when unset or empty); see [`load_verifier`] for the model tiers.
+///
+/// # Errors
+/// An unknown name, or a model tier (use [`load_verifier`]).
 pub fn verifier_from_name(name: Option<&str>) -> Result<Box<dyn Verifier>, VerifyError> {
-    match name.map(str::trim).filter(|n| !n.is_empty()) {
-        None | Some("lexical") => Ok(Box::new(LexicalOverlap)),
-        Some(other) => Err(VerifyError::UnknownVerifier(other.to_string())),
+    match tier(name)? {
+        "lexical" => Ok(Box::new(LexicalOverlap)),
+        other => Err(VerifyError::NeedsSemantic(other.to_string())),
     }
 }
 
@@ -199,6 +252,10 @@ mod tests {
         assert!(verifier_from_name(Some(" lexical ")).is_ok());
         assert!(matches!(
             verifier_from_name(Some("nli")),
+            Err(VerifyError::NeedsSemantic(_))
+        ));
+        assert!(matches!(
+            verifier_from_name(Some("oracle")),
             Err(VerifyError::UnknownVerifier(_))
         ));
     }

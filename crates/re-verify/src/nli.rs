@@ -131,6 +131,10 @@ impl<E: Embedder, N: NliModel> Verifier for NliVerifier<E, N> {
         "nli_cross_encoder"
     }
 
+    fn models(&self) -> Vec<String> {
+        vec![self.embedder.id(), self.nli.id()]
+    }
+
     fn verify(
         &self,
         claims: &mut [ClaimRecord],

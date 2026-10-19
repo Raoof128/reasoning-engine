@@ -122,19 +122,7 @@ pub enum ModelError {
     Load(&'static str, String),
 }
 
-/// `REASONING_ENGINE_MODELS_DIR`, or `~/.reasoning-engine/models`.
-#[must_use]
-pub fn default_models_dir() -> PathBuf {
-    if let Some(dir) = std::env::var_os("REASONING_ENGINE_MODELS_DIR").filter(|d| !d.is_empty()) {
-        return PathBuf::from(dir);
-    }
-    let home = std::env::var_os("HOME")
-        .or_else(|| std::env::var_os("USERPROFILE"))
-        .map(PathBuf::from);
-    home.unwrap_or_default()
-        .join(".reasoning-engine")
-        .join("models")
-}
+pub use crate::service::default_models_dir;
 
 fn sha256_file(path: &Path) -> std::io::Result<String> {
     let mut hasher = Sha256::new();

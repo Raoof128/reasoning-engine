@@ -18,7 +18,21 @@ use crate::claims::extract_claims;
 use crate::error::VerifyError;
 use crate::gate::gate_records;
 use crate::runpack::{RunPackInput, export_run_pack, verify_run_pack_attestation};
-use crate::verify::{Verifier, verifier_from_name};
+use crate::verify::{Verifier, load_verifier};
+
+/// `REASONING_ENGINE_MODELS_DIR`, or `~/.reasoning-engine/models`.
+#[must_use]
+pub fn default_models_dir() -> PathBuf {
+    if let Some(dir) = std::env::var_os("REASONING_ENGINE_MODELS_DIR").filter(|d| !d.is_empty()) {
+        return PathBuf::from(dir);
+    }
+    let home = std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
+        .map(PathBuf::from);
+    home.unwrap_or_default()
+        .join(".reasoning-engine")
+        .join("models")
+}
 
 /// Python's default search limit inside the pipeline.
 pub const PIPELINE_SEARCH_LIMIT: usize = 10;
@@ -65,6 +79,19 @@ pub struct VerifiableResearchService {
     runs_dir: PathBuf,
     search: Arc<AcademicSearchAggregator>,
     verifier: Box<dyn Verifier>,
+    /// The `nli` tier `high_stakes` runs use, loaded on first need.
+    high_stakes: tokio::sync::OnceCell<Option<Box<dyn Verifier>>>,
+    models_dir: PathBuf,
+    offline: bool,
+}
+
+/// Print the high-stakes fallback warning once per process.
+static HIGH_STAKES_WARNED: std::sync::Once = std::sync::Once::new();
+
+fn warn_high_stakes(reason: &str) {
+    HIGH_STAKES_WARNED.call_once(|| {
+        eprintln!("warning: high_stakes runs use the nli verifier, but {reason}; using the configured tier");
+    });
 }
 
 impl VerifiableResearchService {
@@ -81,19 +108,59 @@ impl VerifiableResearchService {
             runs_dir: runs_dir.into(),
             search,
             verifier,
+            high_stakes: tokio::sync::OnceCell::new(),
+            models_dir: default_models_dir(),
+            offline: std::env::var("REASONING_ENGINE_OFFLINE").is_ok_and(|v| v == "1"),
         }
     }
 
+    /// Where model tiers look for (and download) their models.
+    #[must_use]
+    pub fn with_models(mut self, models_dir: impl Into<PathBuf>, offline: bool) -> Self {
+        self.models_dir = models_dir.into();
+        self.offline = offline;
+        self
+    }
+
+    /// The configured verifier, or `nli` for `high_stakes` runs when this
+    /// build and its models allow it (plan decision 1).
+    async fn verifier_for(&self, mode: &str) -> &dyn Verifier {
+        if mode != "high_stakes" || self.verifier.method() == "nli_cross_encoder" {
+            return self.verifier.as_ref();
+        }
+        let loaded = self
+            .high_stakes
+            .get_or_init(|| async {
+                if !cfg!(feature = "semantic") {
+                    warn_high_stakes("this build lacks the semantic feature");
+                    return None;
+                }
+                match load_verifier(Some("nli"), &self.models_dir, self.offline).await {
+                    Ok(verifier) => Some(verifier),
+                    Err(error) => {
+                        warn_high_stakes(&error.to_string());
+                        None
+                    }
+                }
+            })
+            .await;
+        loaded.as_deref().unwrap_or(self.verifier.as_ref())
+    }
+
     /// A service configured from the environment: adapters as
-    /// `default_adapters`, verifier from `REASONING_ENGINE_VERIFIER`.
+    /// `default_adapters`, verifier from `REASONING_ENGINE_VERIFIER`, models
+    /// from `REASONING_ENGINE_MODELS_DIR`.
     ///
     /// # Errors
-    /// An unknown verifier or an HTTP client that cannot be built.
-    pub fn from_env(store: Store, runs_dir: impl Into<PathBuf>) -> Result<Self, VerifyError> {
-        let verifier =
-            verifier_from_name(std::env::var("REASONING_ENGINE_VERIFIER").ok().as_deref())?;
+    /// An unknown verifier, a model that cannot load, or an HTTP client that
+    /// cannot be built.
+    pub async fn from_env(store: Store, runs_dir: impl Into<PathBuf>) -> Result<Self, VerifyError> {
+        let name = std::env::var("REASONING_ENGINE_VERIFIER").ok();
+        let offline = std::env::var("REASONING_ENGINE_OFFLINE").is_ok_and(|v| v == "1");
+        let models_dir = default_models_dir();
+        let verifier = load_verifier(name.as_deref(), &models_dir, offline).await?;
         let search = Arc::new(AcademicSearchAggregator::from_env()?);
-        Ok(Self::new(store, runs_dir, search, verifier))
+        Ok(Self::new(store, runs_dir, search, verifier).with_models(models_dir, offline))
     }
 
     /// The underlying store.
@@ -235,7 +302,8 @@ impl VerifiableResearchService {
         let evidence = &search.evidence_records;
         let evidence_dicts: Vec<Value> = evidence.iter().map(EvidenceRecord::to_dict).collect();
         let mut claims = extract_claims(&run.run_id, draft, &run.profile)?;
-        let verifications = self.verifier.verify(&mut claims, evidence);
+        let verifier = self.verifier_for(&run.mode).await;
+        let verifications = verifier.verify(&mut claims, evidence);
         for claim in &claims {
             self.store.save_claim(claim)?;
         }
@@ -259,6 +327,8 @@ impl VerifiableResearchService {
                 provenance: &provenance,
                 quality_gate: &gate,
                 report_markdown: &report,
+                verifier_method: verifier.method(),
+                verifier_models: &verifier.models(),
             },
         )?;
         let attestation = verify_run_pack_attestation(&output);

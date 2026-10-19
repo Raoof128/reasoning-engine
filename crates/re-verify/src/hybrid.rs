@@ -191,6 +191,10 @@ impl<E: Embedder> Verifier for HybridVerifier<E> {
         "hybrid_bm25_embedding_rrf"
     }
 
+    fn models(&self) -> Vec<String> {
+        vec![self.embedder.id()]
+    }
+
     fn verify(
         &self,
         claims: &mut [ClaimRecord],

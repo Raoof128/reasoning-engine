@@ -17,4 +17,4 @@ pub mod verify;
 
 pub use error::VerifyError;
 pub use service::VerifiableResearchService;
-pub use verify::{LexicalOverlap, Verifier, verifier_from_name};
+pub use verify::{LexicalOverlap, Verifier, load_verifier, verifier_from_name};

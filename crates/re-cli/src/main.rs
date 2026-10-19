@@ -19,7 +19,7 @@ use re_mcp::{ReasoningServer, Tools};
 use re_retrieval::AcademicSearchAggregator;
 use re_store::Store;
 use re_verify::runpack::verify_run_pack_attestation;
-use re_verify::{VerifiableResearchService, verifier_from_name};
+use re_verify::{VerifiableResearchService, load_verifier};
 use serde_json::Value;
 
 use crate::config::{Config, config_path};
@@ -96,16 +96,16 @@ fn load_config() -> Result<Config, Failure> {
     }))
 }
 
-fn service(config: &Config) -> Result<VerifiableResearchService, Failure> {
+async fn service(config: &Config) -> Result<VerifiableResearchService, Failure> {
     let store = Store::open(config.db_path())?;
-    let verifier = verifier_from_name(Some(&config.verifier()))?;
+    let offline = std::env::var("REASONING_ENGINE_OFFLINE").is_ok_and(|v| v == "1");
+    let models_dir = config.models_dir();
+    let verifier = load_verifier(Some(&config.verifier()), &models_dir, offline).await?;
     let search = Arc::new(AcademicSearchAggregator::from_env()?);
-    Ok(VerifiableResearchService::new(
-        store,
-        config.runs_dir(),
-        search,
-        verifier,
-    ))
+    Ok(
+        VerifiableResearchService::new(store, config.runs_dir(), search, verifier)
+            .with_models(models_dir, offline),
+    )
 }
 
 /// `print(json.dumps(payload, indent=2, sort_keys=True))`.
@@ -118,14 +118,14 @@ async fn run(cli: Cli) -> Result<u8, Failure> {
         Command::Setup(args) => Ok(setup::run(&args)?),
         Command::Mcp => {
             let config = load_config()?;
-            let server = ReasoningServer::new(Tools::new(Arc::new(service(&config)?)));
+            let server = ReasoningServer::new(Tools::new(Arc::new(service(&config).await?)));
             server.serve_stdio().await?;
             Ok(0)
         }
         #[cfg(feature = "local-host")]
         Command::Serve(args) => {
             let config = load_config()?;
-            let server = ReasoningServer::new(Tools::new(Arc::new(service(&config)?)));
+            let server = ReasoningServer::new(Tools::new(Arc::new(service(&config).await?)));
             serve::run(&config, server, &args).await
         }
         Command::Research {
@@ -135,7 +135,8 @@ async fn run(cli: Cli) -> Result<u8, Failure> {
             profile,
         } => {
             let config = load_config()?;
-            let payload = service(&config)?
+            let payload = service(&config)
+                .await?
                 .run_research_pipeline(&query, &draft, &mode, &profile, false)
                 .await?;
             print_json(&payload);
@@ -145,7 +146,7 @@ async fn run(cli: Cli) -> Result<u8, Failure> {
             command: ScholarCommand::Search { query, limit },
         } => {
             let config = load_config()?;
-            let service = service(&config)?;
+            let service = service(&config).await?;
             let run = service.start_run(&query, "standard", "auto")?;
             let outcome = service
                 .scholar_search(&run.run_id, &query, limit, false)

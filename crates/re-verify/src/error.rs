@@ -20,6 +20,13 @@ pub enum VerifyError {
     #[error("run pack io error: {0}")]
     Io(#[from] std::io::Error),
     /// `REASONING_ENGINE_VERIFIER` names no known verifier.
-    #[error("unknown verifier: {0} (expected one of: lexical)")]
+    #[error("unknown verifier: {0} (expected one of: lexical, hybrid, nli)")]
     UnknownVerifier(String),
+    /// A model tier was requested from a build without it.
+    #[error("verifier {0} needs a build with `--features semantic`; this build has only lexical")]
+    NeedsSemantic(String),
+    /// A verifier model could not be loaded.
+    #[cfg(feature = "semantic")]
+    #[error(transparent)]
+    VerifierModel(#[from] crate::models::ModelError),
 }
