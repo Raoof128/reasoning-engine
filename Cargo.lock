@@ -1394,6 +1394,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "re-verify"
+version = "0.2.0"
+dependencies = [
+ "re-core",
+ "re-model",
+ "re-retrieval",
+ "re-store",
+ "regex",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "regex"
 version = "1.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -75,6 +75,7 @@ re-core = { path = "crates/re-core" }
 re-model = { path = "crates/re-model" }
 re-store = { path = "crates/re-store" }
 re-retrieval = { path = "crates/re-retrieval" }
+re-verify = { path = "crates/re-verify" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
