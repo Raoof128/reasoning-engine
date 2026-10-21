@@ -130,16 +130,19 @@ Add to your project's `.mcp.json`:
 }
 ```
 
-Or register it for every project:
+Or register it for every project, in Claude Code or Codex:
 
 ```bash
 claude mcp add reasoning-engine -s user -- reasoning-engine mcp
+codex mcp add reasoning-engine -- reasoning-engine mcp
 ```
 
-Then copy the skill for the `/deep-research` slash command:
+Then install the `deep-research` skill. Both clients load a skill from its own folder as `SKILL.md`:
 
 ```bash
-cp skill/deep-research.md ~/.claude/skills/
+mkdir -p ~/.claude/skills/deep-research ~/.codex/skills/deep-research
+cp skill/deep-research.md ~/.claude/skills/deep-research/SKILL.md
+cp skill/deep-research.md ~/.codex/skills/deep-research/SKILL.md
 ```
 
 ## Features
@@ -511,7 +514,7 @@ reasoning-engine/
     re-cli/         # The reasoning-engine binary
   tests/            # Golden vectors, recorded HTTP, parity harness, labelled pairs
   src/              # Deprecated Python implementation (removed in 0.3.0)
-  skill/            # Claude Code skill file
+  skill/            # deep-research skill (Claude Code and Codex)
 ```
 
 ## Background
