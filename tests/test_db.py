@@ -86,22 +86,15 @@ def _schema(path):
     return [(t, n, tbl, " ".join(sql.split())) for t, n, tbl, sql in rows]
 
 
-@pytest.mark.parametrize(
-    ("legacy_tables", "version"),
-    [(V3_EVIDENCE_TABLE + V2_CLAIM_TABLES, 2), (V3_EVIDENCE_TABLE, 3)],
-    ids=["v2", "v3"],
-)
-def test_init_db_migrates_older_run_keyed_tables(tmp_path, legacy_tables, version):
+def _write_legacy_db(db, legacy_tables, version):
+    """An older database where run_b's ev_0001 and claim_0001 already overwrote run_a's."""
     from reasoning_engine.db import SCHEMA_SQL
-    from reasoning_engine.verifiable.models import ClaimRecord
-    from reasoning_engine.verifiable.store import ResearchStore
 
-    db = str(tmp_path / "legacy.db")
-    fresh = init_db(str(tmp_path / "fresh.db"))
     conn = sqlite3.connect(db)
+    # Both implementations have always switched the file to WAL on open.
+    conn.execute("PRAGMA journal_mode = WAL")
     conn.executescript(legacy_tables + SCHEMA_SQL)
     conn.execute(f"PRAGMA user_version = {version}")
-    # run_b's ev_0001 and claim_0001 already overwrote run_a's.
     conn.executescript(
         """
         INSERT INTO research_runs VALUES
@@ -120,6 +113,20 @@ def test_init_db_migrates_older_run_keyed_tables(tmp_path, legacy_tables, versio
         """
     )
     conn.close()
+
+
+@pytest.mark.parametrize(
+    ("legacy_tables", "version"),
+    [(V3_EVIDENCE_TABLE + V2_CLAIM_TABLES, 2), (V3_EVIDENCE_TABLE, 3)],
+    ids=["v2", "v3"],
+)
+def test_init_db_migrates_older_run_keyed_tables(tmp_path, legacy_tables, version):
+    from reasoning_engine.verifiable.models import ClaimRecord
+    from reasoning_engine.verifiable.store import ResearchStore
+
+    db = str(tmp_path / "legacy.db")
+    fresh = init_db(str(tmp_path / "fresh.db"))
+    _write_legacy_db(db, legacy_tables, version)
 
     init_db(db)
 
@@ -163,3 +170,36 @@ def test_init_db_migrates_older_run_keyed_tables(tmp_path, legacy_tables, versio
     schema = _schema(db)
     init_db(db)
     assert _schema(db) == schema
+
+
+def test_concurrent_init_db_migrates_a_legacy_database_once(tmp_path):
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    db = str(tmp_path / "legacy.db")
+    fresh = init_db(str(tmp_path / "fresh.db"))
+    _write_legacy_db(db, V3_EVIDENCE_TABLE + V2_CLAIM_TABLES, 2)
+
+    # Every opener may see the legacy schema before any of them migrates; the
+    # losers wait on the write lock and rebuild an already-run-keyed schema,
+    # which must be a no-op on the data.
+    openers = 4
+    barrier = threading.Barrier(openers)
+
+    def open_db(_):
+        barrier.wait()
+        return init_db(db)
+
+    with ThreadPoolExecutor(openers) as pool:
+        list(pool.map(open_db, range(openers)))
+
+    assert _schema(db) == _schema(fresh)
+    conn = sqlite3.connect(db)
+    counts = [
+        conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+        for table in ("evidence_records", "claims", "claim_verifications")
+    ]
+    version = conn.execute("PRAGMA user_version").fetchone()[0]
+    conn.close()
+    assert counts == [2, 2, 3]
+    assert version == 4

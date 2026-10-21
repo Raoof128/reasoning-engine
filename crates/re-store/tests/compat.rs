@@ -80,6 +80,10 @@ fn write_legacy_db(db: &std::path::Path, legacy_tables: &str, version: i64) {
     // ver_a1's claim is gone; a version-3 file migrated from version 2
     // carries such rows too.
     conn.pragma_update(None, "foreign_keys", "OFF").unwrap();
+    // Both implementations have always switched the file to WAL on open.
+    let _mode: String = conn
+        .query_row("PRAGMA journal_mode = WAL", [], |row| row.get(0))
+        .unwrap();
     conn.execute_batch(legacy_tables).unwrap();
     conn.execute_batch(re_store::schema::SCHEMA_SQL).unwrap();
     conn.pragma_update(None, "user_version", version).unwrap();
@@ -183,6 +187,42 @@ fn migrates_version_2_tables_keeping_every_row() {
 #[test]
 fn migrates_version_3_evidence_table_keeping_every_row() {
     assert_migrates(V3_EVIDENCE_TABLE, 3);
+}
+
+#[test]
+fn concurrent_opens_migrate_a_legacy_database_once() {
+    use std::sync::{Arc, Barrier};
+
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("legacy.db");
+    let fresh = dir.path().join("fresh.db");
+    write_legacy_db(&db, &format!("{V3_EVIDENCE_TABLE}{V2_CLAIM_TABLES}"), 2);
+    Store::open(&fresh).unwrap();
+
+    // Every opener may see the legacy schema before any of them migrates;
+    // the losers wait on the write lock and rebuild an already-run-keyed
+    // schema, which must be a no-op on the data.
+    let openers = 4;
+    let barrier = Arc::new(Barrier::new(openers));
+    let handles: Vec<_> = (0..openers)
+        .map(|_| {
+            let (db, barrier) = (db.clone(), Arc::clone(&barrier));
+            std::thread::spawn(move || {
+                barrier.wait();
+                Store::open(&db).map(drop)
+            })
+        })
+        .collect();
+    for handle in handles {
+        handle.join().unwrap().unwrap();
+    }
+
+    let store = Store::open(&db).unwrap();
+    assert_eq!(schema_of(&db), schema_of(&fresh));
+    assert_eq!(store.user_version().unwrap(), 4);
+    assert_eq!(store.count_rows("evidence_records").unwrap(), 2);
+    assert_eq!(store.count_rows("claims").unwrap(), 2);
+    assert_eq!(store.count_rows("claim_verifications").unwrap(), 3);
 }
 
 #[test]
