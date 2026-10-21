@@ -243,6 +243,18 @@ GATE_CASES = [
         [{"gap_id": "g1", "reason": "No evidence found."}],
     ),
     (
+        "partial_support_warns",
+        [
+            {"claim_id": "c1", "requires_citation": True},
+            {"claim_id": "c2", "requires_citation": True},
+        ],
+        [
+            {"claim_id": "c1", "support_status": "supported"},
+            {"claim_id": "c2", "support_status": "partially_supported"},
+        ],
+        [],
+    ),
+    (
         "later_verification_wins",
         [{"claim_id": "c1", "requires_citation": True}],
         [

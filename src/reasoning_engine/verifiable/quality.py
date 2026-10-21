@@ -7,6 +7,9 @@ from typing import Any
 from reasoning_engine.verifiable.models import utc_now
 
 BLOCKING_STATUSES = {"unsupported", "needs_more_evidence", "contradicted"}
+# Not blocking, but the evidence backs only part of the claim, so a person
+# has to read it before the report can be trusted.
+REVIEW_STATUSES = {"partially_supported"}
 
 
 def _field(record: Any, name: str, default: Any = None) -> Any:
@@ -39,8 +42,18 @@ def run_quality_gate(
         if _field(claim, "requires_citation")
         and _field(claim, "claim_id") not in verification_by_claim
     ]
+    needs_review = [
+        _field(claim, "claim_id")
+        for claim in claims
+        if _field(claim, "requires_citation")
+        and verification_by_claim.get(_field(claim, "claim_id")) is not None
+        and _field(verification_by_claim[_field(claim, "claim_id")], "support_status")
+        in REVIEW_STATUSES
+    ]
     if unsupported or missing_verifications:
         blocking_failures.append("unsupported factual claims remain")
+    if needs_review:
+        warnings.append("partially supported claims need human review")
     if gaps:
         warnings.append("unresolved evidence gaps are present")
 

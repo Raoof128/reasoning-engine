@@ -2813,6 +2813,7 @@
         "result": "pass_with_warnings",
         "run_id": "run_test",
         "warnings": [
+          "partially supported claims need human review",
           "unresolved evidence gaps are present"
         ]
       },
@@ -2824,6 +2825,39 @@
         {
           "claim_id": "c2",
           "support_status": "unsupported"
+        }
+      ]
+    },
+    {
+      "claims": [
+        {
+          "claim_id": "c1",
+          "requires_citation": true
+        },
+        {
+          "claim_id": "c2",
+          "requires_citation": true
+        }
+      ],
+      "gaps": [],
+      "name": "partial_support_warns",
+      "result": {
+        "blocking_failures": [],
+        "gate_id": "gate_run_test",
+        "result": "pass_with_warnings",
+        "run_id": "run_test",
+        "warnings": [
+          "partially supported claims need human review"
+        ]
+      },
+      "verifications": [
+        {
+          "claim_id": "c1",
+          "support_status": "supported"
+        },
+        {
+          "claim_id": "c2",
+          "support_status": "partially_supported"
         }
       ]
     },

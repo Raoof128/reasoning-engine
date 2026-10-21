@@ -266,7 +266,7 @@ mod task7 {
     #[test]
     fn quality_gate_matches_python() {
         let cases = section("quality_gate");
-        assert_eq!(cases.len(), 5);
+        assert_eq!(cases.len(), 6);
         for case in cases {
             let claims: Vec<GateClaim> = from(&case["claims"]);
             let verifications: Vec<GateVerification> = from(&case["verifications"]);
