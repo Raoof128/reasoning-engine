@@ -115,6 +115,26 @@ def test_arxiv_parses_atom_feed(monkeypatch):
     assert rec.url == "http://arxiv.org/abs/1706.03762v1"
 
 
+@pytest.mark.parametrize(
+    ("query", "expected"),
+    [
+        (
+            "Does intermittent fasting improve insulin sensitivity in type 2 diabetes?",
+            "all:intermittent OR all:fasting OR all:improve OR all:insulin"
+            " OR all:sensitivity OR all:type OR all:diabetes",
+        ),
+        ("MCP prompt-injection: a/b & c?", "all:MCP OR all:prompt-injection OR all:a/b"),
+        ("café نتیجه", "all:café OR all:نتیجه"),
+        ("What is it?", "all:What is it?"),
+        ("", "all:"),
+    ],
+)
+def test_arxiv_search_query_ors_content_words(query, expected):
+    from reasoning_engine.verifiable.sources.arxiv import search_query
+
+    assert search_query(query) == expected
+
+
 def test_arxiv_rejects_malicious_xml(monkeypatch):
     # Billion-laughs style entity payload must be refused, not expanded.
     _patch_text(

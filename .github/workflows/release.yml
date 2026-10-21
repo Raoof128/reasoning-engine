@@ -2,24 +2,56 @@ name: Release
 
 # A `v*` tag builds static binaries for four platforms, publishes them with
 # SHA-256 sums and build provenance, and pushes a multi-arch distroless
-# image to GHCR. A manual run builds everything but publishes nothing.
+# image to GHCR. A manual run builds everything but publishes nothing,
+# unless it is given a `tag`: then it creates that tag on the dispatched
+# commit and publishes exactly as a tag push would. That serves anyone who
+# can run workflows but not push tags.
 
 on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag to create and publish (e.g. v0.2.0); empty builds only
+        required: false
+        default: ""
 
 permissions:
   contents: read
 
 env:
   CARGO_TERM_COLOR: always
+  TAG: ${{ inputs.tag || github.ref_name }}
   # Same digest as the Dockerfile's build stage; bump both together.
   ALPINE_RUST: rust:1.99.1-alpine3.22@sha256:2b3b5cdd9112f19366d21b94541ffcd3d58bf838f696451a0d50c8032088cb15
 
 jobs:
+  # Fails in seconds, before the builds, on a tag that would publish the
+  # wrong version or one that already exists.
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tag matches the workspace version
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -1)
+          if [ "$TAG" != "v$version" ]; then
+            echo "::error::tag $TAG does not match the workspace version $version"
+            exit 1
+          fi
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] \
+            && gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" > /dev/null 2>&1; then
+            echo "::error::tag $TAG already exists; push it instead of dispatching"
+            exit 1
+          fi
+
   binaries:
     name: binary (${{ matrix.name }})
+    needs: check
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -80,7 +112,7 @@ jobs:
       - name: Package
         shell: bash
         run: |
-          name="reasoning-engine-${GITHUB_REF_NAME//\//-}-${{ matrix.name }}"
+          name="reasoning-engine-${TAG//\//-}-${{ matrix.name }}"
           cp LICENSE README.md dist/
           if [ "$RUNNER_OS" = Windows ]; then
             (cd dist && 7z a "../$name.zip" reasoning-engine.exe LICENSE README.md > /dev/null)
@@ -95,7 +127,7 @@ jobs:
 
   publish:
     needs: binaries
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.tag != ''
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -116,12 +148,21 @@ jobs:
       - name: GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --generate-notes --verify-tag
+        # A pushed tag must already exist; a dispatched one is created here,
+        # on the commit that was built.
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            where=(--target "$GITHUB_SHA")
+          else
+            where=(--verify-tag)
+          fi
+          gh release create "$TAG" dist/* --title "$TAG" --generate-notes "${where[@]}"
 
   # One native runner per architecture (no QEMU), pushed by digest and
   # merged into one multi-arch tag.
   image:
     name: image (${{ matrix.platform }})
+    needs: check
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
@@ -138,7 +179,7 @@ jobs:
       - name: Image name
         run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
       - uses: docker/setup-buildx-action@v3
-      - if: startsWith(github.ref, 'refs/tags/v')
+      - if: startsWith(github.ref, 'refs/tags/v') || inputs.tag != ''
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -149,7 +190,7 @@ jobs:
         with:
           context: .
           platforms: ${{ matrix.platform }}
-          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=${{ startsWith(github.ref, 'refs/tags/v') }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=${{ startsWith(github.ref, 'refs/tags/v') || inputs.tag != '' }}
           cache-from: type=gha,scope=${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
       - name: Record digest
@@ -166,7 +207,7 @@ jobs:
 
   manifest:
     needs: image
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.tag != ''
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -189,7 +230,7 @@ jobs:
       - name: Tag the multi-arch image
         working-directory: digests
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          version="${TAG#v}"
           refs=()
           for digest in *; do refs+=("$IMAGE@sha256:$digest"); done
           docker buildx imagetools create -t "$IMAGE:$version" -t "$IMAGE:latest" "${refs[@]}"

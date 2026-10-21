@@ -9,6 +9,10 @@ use serde::{Deserialize, Serialize};
 /// Verification statuses that block a final report.
 pub const BLOCKING_STATUSES: &[&str] = &["unsupported", "needs_more_evidence", "contradicted"];
 
+/// Statuses that do not block but need a person to read the claim: the
+/// evidence backs only part of it.
+pub const REVIEW_STATUSES: &[&str] = &["partially_supported"];
+
 /// The parts of a claim the gate reads.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GateClaim {
@@ -34,7 +38,7 @@ pub struct GateVerification {
 pub enum GateResult {
     /// Nothing blocks and nothing to warn about.
     Pass,
-    /// Nothing blocks, but evidence gaps remain.
+    /// Nothing blocks, but evidence gaps remain or a claim needs review.
     PassWithWarnings,
     /// At least one cited claim is unsupported or unverified.
     Blocked,
@@ -76,12 +80,20 @@ pub fn run_quality_gate(
             .get(c.claim_id.as_str())
             .is_none_or(|v| BLOCKING_STATUSES.contains(&v.support_status.as_str()))
     });
+    let needs_review = claims.iter().filter(|c| c.requires_citation).any(|c| {
+        by_claim
+            .get(c.claim_id.as_str())
+            .is_some_and(|v| REVIEW_STATUSES.contains(&v.support_status.as_str()))
+    });
 
     let mut blocking_failures = Vec::new();
     if blocked {
         blocking_failures.push("unsupported factual claims remain".to_string());
     }
     let mut warnings = Vec::new();
+    if needs_review {
+        warnings.push("partially supported claims need human review".to_string());
+    }
     if gap_count > 0 {
         warnings.push("unresolved evidence gaps are present".to_string());
     }

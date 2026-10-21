@@ -113,7 +113,7 @@ Tagged releases also publish `ghcr.io/raoof128/reasoning-engine` for `linux/amd6
 reasoning-engine setup
 ```
 
-`setup` asks where to keep data (default `~/.reasoning-engine`), which verifier to use, and whether to enable the local HTTP server and audit UI. Both are **off** unless you say yes. Every question has a flag (`setup --help`), and `setup` never prompts when stdin is not a terminal, so scripts can run it.
+`setup` asks where to keep data (default `~/.reasoning-engine`), which verifier to use, and whether to enable the local HTTP server and audit UI. Both are **off** unless you say yes. Every question has a flag (`setup --help`). Without a terminal, `setup` never prompts, so scripts add `--yes`: it keeps the defaults for anything not given as a flag (`setup --yes --http --ui`).
 
 ### Configure Claude Code
 
@@ -190,7 +190,7 @@ Search is live by default and fans out concurrently across seven free sources:
 reasoning-engine scholar search "MCP prompt injection" --limit 3
 ```
 
-The full pipeline searches, extracts claims, verifies them, runs the quality gate and exports an attested run pack:
+The full pipeline searches, extracts claims, verifies them, runs the quality gate and exports an attested run pack. The gate returns `blocked` when a cited claim is unsupported, unverified or contradicted. It returns `pass_with_warnings` when a cited claim is only `partially_supported` (read those before trusting the report) or evidence gaps remain. Otherwise it returns `pass`.
 
 ```bash
 reasoning-engine research "Retrieval augmented generation reduces hallucination" \

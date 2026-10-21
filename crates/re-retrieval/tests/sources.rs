@@ -107,7 +107,7 @@ fn parse_body_matches_python_for_every_case() {
 fn build_url_matches_python_for_awkward_queries() {
     let expected = expected();
     let urls = expected["urls"].as_array().expect("urls");
-    assert_eq!(urls.len(), 21);
+    assert_eq!(urls.len(), 28);
     for entry in urls {
         let name = entry["source"].as_str().expect("source");
         let source = free_source(name, &SourceConfig::default()).expect("known source");

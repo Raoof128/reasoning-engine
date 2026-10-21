@@ -77,3 +77,15 @@ def test_quality_gate_passes_supported_claims():
 
     assert gate["result"] == "pass"
     assert gate["blocking_failures"] == []
+
+
+def test_quality_gate_warns_on_partially_supported_claims():
+    claims = extract_claims("run_001", "Scholar Gateway exposes semantic search.", "general")
+    verifications = verify_claims(claims, [_evidence("Scholar Gateway is a search product.")])
+    assert verifications[0].support_status == "partially_supported"
+
+    gate = run_quality_gate(run_id="run_001", claims=claims, verifications=verifications, gaps=[])
+
+    assert gate["result"] == "pass_with_warnings"
+    assert gate["blocking_failures"] == []
+    assert gate["warnings"] == ["partially supported claims need human review"]

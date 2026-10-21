@@ -24,6 +24,39 @@ const NAME: &str = "arxiv";
 const ATOM: &str = "http://www.w3.org/2005/Atom";
 const ARXIV: &str = "http://arxiv.org/schemas/atom";
 
+/// Function words that occur in nearly every paper (Python's `_STOPWORDS`).
+const STOPWORDS: &[&str] = &[
+    "a", "an", "and", "are", "as", "at", "be", "been", "but", "by", "can", "could", "did", "do",
+    "does", "for", "from", "has", "have", "how", "if", "in", "into", "is", "it", "its", "no",
+    "not", "of", "on", "or", "than", "that", "the", "their", "there", "these", "this", "those",
+    "to", "versus", "vs", "was", "were", "what", "when", "where", "which", "who", "whom", "why",
+    "will", "with", "would",
+];
+
+/// The arXiv `search_query` for a free-text query (Python's `search_query`).
+///
+/// arXiv binds a field prefix such as `all:` to the first word only and ORs
+/// the rest across every field, so `all:{query}` matched "Does", "in" or
+/// "2" anywhere in the archive. Each content word gets its own `all:`
+/// instead; arXiv ranks papers that match more of them first. Splitting,
+/// trimming and the digit test are ASCII-only, as in Python, so both split
+/// every query the same way.
+#[must_use]
+pub fn search_query(query: &str) -> String {
+    let terms: Vec<String> = query
+        .split([' ', '\t', '\n', '\r', '\x0b', '\x0c'])
+        .map(|token| token.trim_matches(|c: char| c.is_ascii_punctuation()))
+        .filter(|term| term.chars().count() >= 2 && !term.bytes().all(|b| b.is_ascii_digit()))
+        .filter(|term| !STOPWORDS.contains(&term.to_lowercase().as_str()))
+        .map(|term| format!("all:{term}"))
+        .collect();
+    if terms.is_empty() {
+        format!("all:{query}")
+    } else {
+        terms.join(" OR ")
+    }
+}
+
 /// The arXiv export API search.
 #[derive(Debug, Clone)]
 pub struct Arxiv {
@@ -349,7 +382,7 @@ impl HttpSource for Arxiv {
 
     fn build_url(&self, query: &str, limit: usize) -> String {
         let params = [
-            ("search_query", format!("all:{query}")),
+            ("search_query", search_query(query)),
             ("start", "0".to_string()),
             ("max_results", limit.to_string()),
             ("sortBy", "relevance".to_string()),
@@ -433,6 +466,27 @@ mod tests {
         );
         let entries = parse_feed(&xml).expect("valid feed");
         assert_eq!(entries[0].title.as_deref(), Some("a & <b>A"));
+    }
+
+    #[test]
+    fn search_query_ors_content_words_like_python() {
+        let cases = [
+            (
+                "Does intermittent fasting improve insulin sensitivity in type 2 diabetes?",
+                "all:intermittent OR all:fasting OR all:improve OR all:insulin \
+                 OR all:sensitivity OR all:type OR all:diabetes",
+            ),
+            (
+                "MCP prompt-injection: a/b & c?",
+                "all:MCP OR all:prompt-injection OR all:a/b",
+            ),
+            ("café نتیجه", "all:café OR all:نتیجه"),
+            ("What is it?", "all:What is it?"),
+            ("", "all:"),
+        ];
+        for (query, expected) in cases {
+            assert_eq!(search_query(query), expected, "{query:?}");
+        }
     }
 
     #[test]
