@@ -1309,7 +1309,7 @@
       "limit": 5,
       "query": "edge query",
       "source": "arxiv",
-      "url": "https://export.arxiv.org/api/query?search_query=all%3Aedge+query&start=0&max_results=5&sortBy=relevance"
+      "url": "https://export.arxiv.org/api/query?search_query=all%3Aedge+OR+all%3Aquery&start=0&max_results=5&sortBy=relevance"
     },
     "arxiv__entities": {
       "body": "arxiv__entities.body",
@@ -1325,7 +1325,7 @@
       "limit": 5,
       "query": "edge query",
       "source": "arxiv",
-      "url": "https://export.arxiv.org/api/query?search_query=all%3Aedge+query&start=0&max_results=5&sortBy=relevance"
+      "url": "https://export.arxiv.org/api/query?search_query=all%3Aedge+OR+all%3Aquery&start=0&max_results=5&sortBy=relevance"
     },
     "arxiv__not_xml": {
       "body": "arxiv__not_xml.body",
@@ -1341,7 +1341,7 @@
       "limit": 5,
       "query": "edge query",
       "source": "arxiv",
-      "url": "https://export.arxiv.org/api/query?search_query=all%3Aedge+query&start=0&max_results=5&sortBy=relevance"
+      "url": "https://export.arxiv.org/api/query?search_query=all%3Aedge+OR+all%3Aquery&start=0&max_results=5&sortBy=relevance"
     },
     "arxiv__recorded": {
       "body": "arxiv.body",
@@ -1448,7 +1448,7 @@
       "limit": 3,
       "query": "reward model",
       "source": "arxiv",
-      "url": "https://export.arxiv.org/api/query?search_query=all%3Areward+model&start=0&max_results=3&sortBy=relevance"
+      "url": "https://export.arxiv.org/api/query?search_query=all%3Areward+OR+all%3Amodel&start=0&max_results=3&sortBy=relevance"
     },
     "crossref__empty": {
       "body": "crossref__empty.body",
@@ -2418,6 +2418,12 @@
       "url": "https://api.openalex.org/works?search=caf%C3%A9+%D9%86%D8%AA%DB%8C%D8%AC%D9%87&per_page=5&mailto=reasoning-engine%40example.org"
     },
     {
+      "limit": 5,
+      "query": "Does intermittent fasting help in type 2 diabetes?",
+      "source": "openalex",
+      "url": "https://api.openalex.org/works?search=Does+intermittent+fasting+help+in+type+2+diabetes%3F&per_page=5&mailto=reasoning-engine%40example.org"
+    },
+    {
       "limit": 3,
       "query": "reward model",
       "source": "crossref",
@@ -2436,22 +2442,34 @@
       "url": "https://api.crossref.org/works?query=caf%C3%A9+%D9%86%D8%AA%DB%8C%D8%AC%D9%87&rows=5&mailto=reasoning-engine%40example.org&select=title%2Cauthor%2CDOI%2Cpublisher%2Ccontainer-title%2Cabstract%2Cis-referenced-by-count%2CURL%2Cissued%2Cpublished"
     },
     {
+      "limit": 5,
+      "query": "Does intermittent fasting help in type 2 diabetes?",
+      "source": "crossref",
+      "url": "https://api.crossref.org/works?query=Does+intermittent+fasting+help+in+type+2+diabetes%3F&rows=5&mailto=reasoning-engine%40example.org&select=title%2Cauthor%2CDOI%2Cpublisher%2Ccontainer-title%2Cabstract%2Cis-referenced-by-count%2CURL%2Cissued%2Cpublished"
+    },
+    {
       "limit": 3,
       "query": "reward model",
       "source": "arxiv",
-      "url": "https://export.arxiv.org/api/query?search_query=all%3Areward+model&start=0&max_results=3&sortBy=relevance"
+      "url": "https://export.arxiv.org/api/query?search_query=all%3Areward+OR+all%3Amodel&start=0&max_results=3&sortBy=relevance"
     },
     {
       "limit": 10,
       "query": "MCP prompt-injection: a/b & c?",
       "source": "arxiv",
-      "url": "https://export.arxiv.org/api/query?search_query=all%3AMCP+prompt-injection%3A+a%2Fb+%26+c%3F&start=0&max_results=10&sortBy=relevance"
+      "url": "https://export.arxiv.org/api/query?search_query=all%3AMCP+OR+all%3Aprompt-injection+OR+all%3Aa%2Fb&start=0&max_results=10&sortBy=relevance"
     },
     {
       "limit": 5,
       "query": "caf\u00e9 \u0646\u062a\u06cc\u062c\u0647",
       "source": "arxiv",
-      "url": "https://export.arxiv.org/api/query?search_query=all%3Acaf%C3%A9+%D9%86%D8%AA%DB%8C%D8%AC%D9%87&start=0&max_results=5&sortBy=relevance"
+      "url": "https://export.arxiv.org/api/query?search_query=all%3Acaf%C3%A9+OR+all%3A%D9%86%D8%AA%DB%8C%D8%AC%D9%87&start=0&max_results=5&sortBy=relevance"
+    },
+    {
+      "limit": 5,
+      "query": "Does intermittent fasting help in type 2 diabetes?",
+      "source": "arxiv",
+      "url": "https://export.arxiv.org/api/query?search_query=all%3Aintermittent+OR+all%3Afasting+OR+all%3Ahelp+OR+all%3Atype+OR+all%3Adiabetes&start=0&max_results=5&sortBy=relevance"
     },
     {
       "limit": 3,
@@ -2472,6 +2490,12 @@
       "url": "https://api.semanticscholar.org/graph/v1/paper/search?query=caf%C3%A9+%D9%86%D8%AA%DB%8C%D8%AC%D9%87&limit=5&fields=title%2Cabstract%2Cyear%2Cauthors%2Cvenue%2CexternalIds%2CcitationCount%2Curl%2CpublicationTypes"
     },
     {
+      "limit": 5,
+      "query": "Does intermittent fasting help in type 2 diabetes?",
+      "source": "semantic_scholar",
+      "url": "https://api.semanticscholar.org/graph/v1/paper/search?query=Does+intermittent+fasting+help+in+type+2+diabetes%3F&limit=5&fields=title%2Cabstract%2Cyear%2Cauthors%2Cvenue%2CexternalIds%2CcitationCount%2Curl%2CpublicationTypes"
+    },
+    {
       "limit": 3,
       "query": "reward model",
       "source": "europepmc",
@@ -2488,6 +2512,12 @@
       "query": "caf\u00e9 \u0646\u062a\u06cc\u062c\u0647",
       "source": "europepmc",
       "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=caf%C3%A9+%D9%86%D8%AA%DB%8C%D8%AC%D9%87&format=json&pageSize=5&resultType=core"
+    },
+    {
+      "limit": 5,
+      "query": "Does intermittent fasting help in type 2 diabetes?",
+      "source": "europepmc",
+      "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=Does+intermittent+fasting+help+in+type+2+diabetes%3F&format=json&pageSize=5&resultType=core"
     },
     {
       "limit": 3,
@@ -2508,6 +2538,12 @@
       "url": "https://doaj.org/api/search/articles/caf%C3%A9%20%D9%86%D8%AA%DB%8C%D8%AC%D9%87?pageSize=5"
     },
     {
+      "limit": 5,
+      "query": "Does intermittent fasting help in type 2 diabetes?",
+      "source": "doaj",
+      "url": "https://doaj.org/api/search/articles/Does%20intermittent%20fasting%20help%20in%20type%202%20diabetes%3F?pageSize=5"
+    },
+    {
       "limit": 3,
       "query": "reward model",
       "source": "dblp",
@@ -2524,6 +2560,12 @@
       "query": "caf\u00e9 \u0646\u062a\u06cc\u062c\u0647",
       "source": "dblp",
       "url": "https://dblp.org/search/publ/api?q=caf%C3%A9+%D9%86%D8%AA%DB%8C%D8%AC%D9%87&format=json&h=5"
+    },
+    {
+      "limit": 5,
+      "query": "Does intermittent fasting help in type 2 diabetes?",
+      "source": "dblp",
+      "url": "https://dblp.org/search/publ/api?q=Does+intermittent+fasting+help+in+type+2+diabetes%3F&format=json&h=5"
     }
   ]
 }

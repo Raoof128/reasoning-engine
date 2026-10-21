@@ -259,6 +259,7 @@ URL_QUERIES = [
     ("reward model", 3),
     ("MCP prompt-injection: a/b & c?", 10),
     ("café نتیجه", 5),
+    ("Does intermittent fasting help in type 2 diabetes?", 5),
 ]
 
 
