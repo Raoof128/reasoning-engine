@@ -12,7 +12,7 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use re_model::clock::utc_now;
+use re_model::clock::system_utc_now;
 use re_model::pin::pin;
 use re_retrieval::tape::Tape;
 use re_retrieval::{AcademicSearchAggregator, adapters_with};
@@ -24,11 +24,11 @@ use crate::runpack::{ARTIFACTS, RECORDINGS_DIR, REPLAY_INPUTS, verify_run_pack_a
 use crate::service::{Recorder, VerifiableResearchService};
 use crate::verify::load_verifier;
 
-/// A fresh seed from the operating system's randomness.
+/// A fresh seed from the operating system's randomness, never from a pin
+/// another run holds.
 #[must_use]
 pub fn new_seed() -> u64 {
-    // 16 hex digits of a v4 UUID's random part always parse.
-    u64::from_str_radix(&re_model::ids::short_hex(16), 16).unwrap_or_default()
+    re_model::ids::os_random_u64()
 }
 
 /// How a run is recorded: what `replay.json` needs besides the pipeline's
@@ -70,7 +70,7 @@ impl RecordPlan {
     #[must_use]
     pub fn now(sources: Vec<String>, offline: bool, verifier: &str) -> Self {
         Self {
-            clock: utc_now(),
+            clock: system_utc_now(),
             seed: new_seed(),
             sources,
             offline,

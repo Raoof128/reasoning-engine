@@ -6,9 +6,13 @@ use std::time::{SystemTime, UNIX_EPOCH};
 /// [`crate::pin::pin`] is in effect.
 #[must_use]
 pub fn utc_now() -> String {
-    if let Some(pinned) = crate::pin::clock() {
-        return pinned;
-    }
+    crate::pin::clock().unwrap_or_else(system_utc_now)
+}
+
+/// The operating system's current time in [`utc_now`]'s format, ignoring any
+/// pin: for choosing the clock a new recording will pin.
+#[must_use]
+pub fn system_utc_now() -> String {
     let secs = match SystemTime::now().duration_since(UNIX_EPOCH) {
         Ok(d) => i64::try_from(d.as_secs()).unwrap_or(i64::MAX),
         Err(e) => -i64::try_from(e.duration().as_secs()).unwrap_or(i64::MAX),
@@ -67,6 +71,7 @@ mod tests {
 
     #[test]
     fn now_has_the_right_shape() {
+        let _serial = crate::pin::serial();
         let now = utc_now();
         assert_eq!(now.len(), 20);
         assert!(now.ends_with('Z'));

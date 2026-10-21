@@ -10,9 +10,13 @@
 //! order-independent.
 //!
 //! The pin is process-wide: only one-shot commands (`research --record`,
-//! `replay`) set it, never a long-running server.
+//! `replay`) set it, never a long-running server. Pins never overlap: a
+//! second [`pin`] waits until the first guard drops, so two recorded runs
+//! in one process (parallel tests, an embedding library) each get their own
+//! seed instead of resetting and then unpinning each other mid-run. Nesting
+//! a pin on the thread that holds one therefore deadlocks; do not.
 
-use std::sync::{Mutex, PoisonError};
+use std::sync::{Condvar, Mutex, PoisonError};
 
 struct State {
     clock: String,
@@ -20,6 +24,8 @@ struct State {
 }
 
 static PIN: Mutex<Option<State>> = Mutex::new(None);
+/// Signalled when a pin is released, waking the next [`pin`] in line.
+static RELEASED: Condvar = Condvar::new();
 
 fn with_state<T>(f: impl FnOnce(&mut Option<State>) -> T) -> T {
     f(&mut PIN.lock().unwrap_or_else(PoisonError::into_inner))
@@ -33,17 +39,21 @@ pub struct Pinned(());
 impl Drop for Pinned {
     fn drop(&mut self) {
         with_state(|state| *state = None);
+        RELEASED.notify_all();
     }
 }
 
 /// Pin the clock to `clock` (`YYYY-MM-DDTHH:MM:SSZ`) and seed identifiers
-/// with `seed` until the returned guard drops.
+/// with `seed` until the returned guard drops. Blocks while another pin is
+/// held.
 pub fn pin(clock: &str, seed: u64) -> Pinned {
-    with_state(|state| {
-        *state = Some(State {
-            clock: clock.to_string(),
-            stream: seed,
-        });
+    let mut state = PIN.lock().unwrap_or_else(PoisonError::into_inner);
+    while state.is_some() {
+        state = RELEASED.wait(state).unwrap_or_else(PoisonError::into_inner);
+    }
+    *state = Some(State {
+        clock: clock.to_string(),
+        stream: seed,
     });
     Pinned(())
 }
@@ -65,6 +75,15 @@ pub(crate) fn next_u64() -> Option<u64> {
     })
 }
 
+/// Serialises this crate's unit tests that read the clock or draw IDs.
+/// They cannot tell a pin held by a parallel test from no pin at all, so
+/// any such test running beside a pinned one would consume its stream.
+#[cfg(test)]
+pub(crate) fn serial() -> std::sync::MutexGuard<'static, ()> {
+    static SERIAL: Mutex<()> = Mutex::new(());
+    SERIAL.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
 /// 16 bytes from the seeded stream, if pinned.
 pub(crate) fn next_bytes() -> Option<[u8; 16]> {
     let (a, b) = (next_u64()?, next_u64()?);
@@ -80,31 +99,61 @@ mod tests {
     use crate::clock::utc_now;
     use crate::ids::{new_run_id, new_uuid, short_hex};
 
-    // One test, because the pin is process-wide and tests run in parallel.
+    const CLOCK: &str = "2026-10-19T00:00:00Z";
+
+    #[test]
+    fn concurrent_pins_take_turns_instead_of_clobbering_each_other() {
+        let _serial = serial();
+        let draws = || {
+            (0..50)
+                .map(|_| {
+                    std::thread::yield_now();
+                    new_uuid()
+                })
+                .collect::<Vec<_>>()
+        };
+        let expected = {
+            let _pin = pin(CLOCK, 7);
+            draws()
+        };
+        let threads: Vec<_> = (0..4)
+            .map(|_| {
+                std::thread::spawn(move || {
+                    let _pin = pin(CLOCK, 7);
+                    draws()
+                })
+            })
+            .collect();
+        for thread in threads {
+            assert_eq!(thread.join().expect("no panic"), expected);
+        }
+    }
+
     #[test]
     fn pinning_makes_time_and_ids_repeatable_until_dropped() {
+        let _serial = serial();
         let draw = || (new_run_id(), short_hex(8), new_uuid(), utc_now());
         let first = {
-            let _pin = pin("2026-10-19T00:00:00Z", 42);
+            let _pin = pin(CLOCK, 42);
             draw()
         };
         let second = {
-            let _pin = pin("2026-10-19T00:00:00Z", 42);
+            let _pin = pin(CLOCK, 42);
             draw()
         };
         assert_eq!(first, second);
-        assert_eq!(first.3, "2026-10-19T00:00:00Z");
+        assert_eq!(first.3, CLOCK);
         assert!(first.0.starts_with("run_") && first.0.len() == 16);
         assert_eq!(first.1.len(), 8);
         let uuid = uuid::Uuid::parse_str(&first.2).expect("a valid uuid");
         assert_eq!(uuid.get_version_num(), 4);
 
         let other = {
-            let _pin = pin("2026-10-19T00:00:00Z", 43);
+            let _pin = pin(CLOCK, 43);
             draw()
         };
         assert_ne!(first.0, other.0, "a different seed gives different ids");
-        assert_ne!(utc_now(), "2026-10-19T00:00:00Z", "unpinned after drop");
+        assert_ne!(utc_now(), CLOCK, "unpinned after drop");
         assert_ne!(new_run_id(), first.0);
     }
 }

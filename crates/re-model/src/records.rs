@@ -475,6 +475,7 @@ mod tests {
 
     #[test]
     fn research_run_has_profile_and_mode() {
+        let _serial = crate::pin::serial();
         let run = ResearchRun::create("Explain MCP security", "security", "standard");
         assert!(run.run_id.starts_with("run_"));
         assert_eq!(run.query, "Explain MCP security");

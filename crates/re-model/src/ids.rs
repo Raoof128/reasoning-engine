@@ -15,6 +15,14 @@ fn random_uuid() -> Uuid {
     })
 }
 
+/// 64 bits from the operating system, ignoring any pin: for seeds and other
+/// values that must stay random while a recorded run is pinned.
+#[must_use]
+pub fn os_random_u64() -> u64 {
+    let (high, _) = Uuid::new_v4().as_u64_pair();
+    high
+}
+
 /// `uuid.uuid4().hex[:n]`, with `n` capped at 32.
 #[must_use]
 pub fn short_hex(n: usize) -> String {
@@ -35,6 +43,7 @@ mod tests {
 
     #[test]
     fn formats_match_python() {
+        let _serial = crate::pin::serial();
         let uuid = new_uuid();
         assert_eq!(uuid.len(), 36);
         assert_eq!(uuid.matches('-').count(), 4);
