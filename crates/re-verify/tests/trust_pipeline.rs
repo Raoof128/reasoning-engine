@@ -70,6 +70,31 @@ async fn a_number_missing_from_the_evidence_caps_support() {
 }
 
 #[tokio::test]
+async fn an_invented_number_on_weak_evidence_is_unsupported_and_blocks() {
+    let root = tempfile::tempdir().unwrap();
+    let query = "Retrieval augmented generation reduces hallucination";
+    let draft =
+        "Retrieval augmented generation eliminates 100% of hallucinations in every language model.";
+    let result = service(root.path())
+        .run_research_pipeline(query, draft, "standard", "auto", false)
+        .await
+        .unwrap();
+    let pack = PathBuf::from(result["run_pack"].as_str().unwrap());
+    let verifications: Value = serde_json::from_str(
+        &std::fs::read_to_string(pack.join("claim_verifications.json")).unwrap(),
+    )
+    .unwrap();
+    let verdict = &verifications[0];
+    assert_eq!(verdict["support_status"], "unsupported", "{verdict}");
+    assert_eq!(
+        verdict["missing_evidence"],
+        "numeric value not found in evidence"
+    );
+    assert_eq!(verdict["evidence_ids"], serde_json::json!([]));
+    assert_eq!(result["quality_gate"]["result"], "blocked", "{result}");
+}
+
+#[tokio::test]
 async fn packs_carry_an_attested_reference_list_in_the_profile_style() {
     let root = tempfile::tempdir().unwrap();
     let (_, pack) = run(
