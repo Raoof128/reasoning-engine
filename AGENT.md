@@ -36,3 +36,6 @@ Plain `cargo test` must pass too, not only nextest: nextest runs each test in it
 - Invented figures on weak evidence are now `unsupported` under `trust`.
 - Rewrote the `deep-research` skill for the Rust engine, Claude Code and Codex.
 - Verification and follow-ups: see `CHANGELOG.md`.
+
+### Raouf: 2026-10-22b (Australia/Sydney)
+- PR #20 merged (`080a5f1`). Claude Code and Codex now run the Rust binary at `~/.local/bin/reasoning-engine` (a local build of `master`, pending a v0.2.1 tag); data lives in `~/.reasoning-engine/`. See `CHANGELOG.md`.
