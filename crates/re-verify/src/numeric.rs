@@ -8,10 +8,12 @@
 //! `increased from 4 to 9`) and units (`ms`, `s`, `%`, `x`, `points`).
 //! Seconds become milliseconds; everything else keeps its unit.
 //!
-//! [`enforce`] applies the rule: a quantitative claim cannot be `supported`
-//! unless one of its numbers appears, within 2% relative tolerance and with
-//! a compatible unit, in the evidence it cites. Otherwise it is capped at
-//! `partially_supported` and flagged for review. Bare years (1900-2100 with
+//! [`enforce`] applies the rule: a quantitative claim's numbers must appear,
+//! within 2% relative tolerance and with a compatible unit, in the evidence
+//! it cites. When none does, the verdict drops one step: `supported` to
+//! `partially_supported`, and `partially_supported` (weak overlap already)
+//! to `unsupported`, which cites nothing and so blocks the quality gate. An
+//! invented figure on loosely related evidence is not partial support. Bare years (1900-2100 with
 //! no unit) and confidence levels are ignored on the claim side, so
 //! "in 2024" or "95% CI" can never be the number that matches.
 
@@ -322,8 +324,9 @@ pub fn supported_by(claim_text: &str, evidence_text: &str) -> Option<bool> {
     Some(wanted.iter().any(|w| found.iter().any(|f| matches(w, f))))
 }
 
-/// Cap `supported` quantitative claims whose numbers are not in their
-/// cited evidence. Returns how many were capped.
+/// Drop quantitative claims whose numbers are not in their cited evidence
+/// one step (`supported` to `partially_supported`, `partially_supported` to
+/// `unsupported`). Returns how many were downgraded.
 pub fn enforce(
     claims: &mut [ClaimRecord],
     verifications: &mut [VerificationRecord],
@@ -331,9 +334,11 @@ pub fn enforce(
 ) -> usize {
     let mut capped = 0;
     for verification in verifications.iter_mut() {
-        if verification.support_status != "supported" {
-            continue;
-        }
+        let downgraded = match verification.support_status.as_str() {
+            "supported" => "partially_supported",
+            "partially_supported" => "unsupported",
+            _ => continue,
+        };
         let Some(claim) = claims
             .iter_mut()
             .find(|c| c.claim_id == verification.claim_id)
@@ -351,12 +356,17 @@ pub fn enforce(
                 text
             });
         if supported_by(&claim.text, &cited) == Some(false) {
-            verification.support_status = "partially_supported".into();
+            verification.support_status = downgraded.into();
             verification.support_rationale =
                 format!("{} ({RATIONALE})", verification.support_rationale);
             verification.missing_evidence = Some(RATIONALE.into());
             verification.requires_human_review = true;
-            claim.status = "partially_supported".into();
+            claim.status = downgraded.into();
+            if downgraded == "unsupported" {
+                // Like the lexical verifier's own `unsupported`: no citation.
+                verification.evidence_ids.clear();
+                claim.evidence_ids.clear();
+            }
             capped += 1;
         }
     }

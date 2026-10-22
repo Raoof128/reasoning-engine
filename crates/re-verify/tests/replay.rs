@@ -402,3 +402,25 @@ async fn the_evidence_graph_is_recorded_and_replayed() {
         .unwrap();
     assert_eq!(report["identical"], true, "{report}");
 }
+
+#[test]
+fn a_plan_made_during_another_pinned_run_leaves_its_pin_alone() {
+    use re_model::ids::new_uuid;
+    use re_model::pin::pin;
+    const CLOCK: &str = "2026-10-19T00:00:00Z";
+    let expected = {
+        let _pinned = pin(CLOCK, 9);
+        (new_uuid(), new_uuid())
+    };
+    let _pinned = pin(CLOCK, 9);
+    let first = new_uuid();
+    // Another recording, planned while this run is pinned.
+    let plan = RecordPlan::now(Vec::new(), true, "lexical");
+    let second = new_uuid();
+    assert_eq!(
+        (first, second),
+        expected,
+        "the plan consumed the pinned stream"
+    );
+    assert_ne!(plan.clock, CLOCK, "the plan took the pinned clock");
+}
