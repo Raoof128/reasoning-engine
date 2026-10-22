@@ -1,5 +1,27 @@
 # Changelog
 
+## Raouf: 2026-10-22b (Australia/Sydney): merged PR #20; installs moved to the Rust engine
+
+**Scope:** release/install state, no code change.
+
+**Summary**
+- PR #20 (pin race, invented figures, deep-research skill) merged into `master` as `080a5f1` after all 8 CI checks passed (test on macOS, Ubuntu and Windows; lint; deny; msrv; parity; Python test).
+- The maintainer's Claude Code and Codex now run the Rust engine instead of the Python package: `~/.local/bin/reasoning-engine mcp`, registered user-wide in both (`claude mcp add -s user`, `codex mcp add`). The Python `.venv` and build artefacts were removed from the checkout; the Python source stays until 0.3.0.
+- Data moved with it: the Python database was copied with SQLite's online backup to `~/.reasoning-engine/reasoning.db` (integrity check ok; 153 sessions, 130 research runs, 21 memories) and the 53 run packs to `~/.reasoning-engine/runs`. The original is kept as `~/.reasoning-engine/reasoning.python-backup.db`.
+- The installed binary is a local release build of `master` with the release features (`local-host,trust,tasks`), because v0.2.0 predates PR #20. The signed v0.2.0 binary is kept as `~/.local/bin/reasoning-engine.v0.2.0-release`.
+- The `deep-research` skill from `master` is installed as `SKILL.md` for both clients.
+
+**Files changed**
+- `CHANGELOG.md`, `AGENT.md`.
+
+**Verification**
+- `claude mcp get reasoning-engine`: connected; `codex mcp list`: enabled; both point at `~/.local/bin/reasoning-engine`.
+- A recall over MCP returned memories from the migrated database.
+- Installed skill files are byte-identical to `skill/deep-research.md` on `master`.
+
+**Follow-ups**
+- Tag v0.2.1 so the installed binary can return to a signed, attested release.
+
 ## Raouf: 2026-10-22 (Australia/Sydney): pin race, invented figures, deep-research skill
 
 **Scope:** `re-model` (pin, ids, clock), `re-verify` (replay, numeric), `skill/deep-research.md`, `README.md`.
