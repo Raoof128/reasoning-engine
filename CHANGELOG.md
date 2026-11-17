@@ -1,5 +1,28 @@
 # Changelog
 
+## Raouf: 2026-11-17b (Australia/Sydney): `cargo deny` advisories: rmcp 3.9.0, rusqlite 0.41.0
+
+**Scope:** `Cargo.toml`, `Cargo.lock`, `deny.toml`. No source change.
+
+**Summary**
+- The `deny` job, green on 22 October, failed on 17 November on five advisories published in between. None came from a change in this repository.
+- `rmcp` 3.5.1 to 3.9.0: RUSTSEC-2026-0457 (OAuth client SSRF filter), RUSTSEC-2026-0461 (unbounded tool schema cache in the Streamable HTTP server transport) and RUSTSEC-2026-0462 (unbounded response buffering in the Streamable HTTP clients, fixed in 3.9.0).
+- `rusqlite` 0.40.2 to 0.41.0, which moves `libsqlite3-sys` to 0.39.1: RUSTSEC-2026-0459 (the bundled SQLite, CVE-2026-119375).
+- RUSTSEC-2026-0543 flags `chrono` as unmaintained and offers no upgrade. `chrono` is not a direct dependency (it comes through `rmcp` and `schemars`), so it is ignored in `deny.toml` with that reason, as the other unmaintained notices are.
+- Both bumps are the smallest patched versions. Nothing in the workspace needed changing to compile against them.
+
+**Files changed**
+- `Cargo.toml` (two exact pins), `Cargo.lock`, `deny.toml`, `CHANGELOG.md`.
+
+**Verification**
+- `cargo test --workspace --locked --features local-host,trust,tasks` (offline, macOS on Apple silicon): 262 passed, 0 failed.
+- `cargo clippy --workspace --all-targets --locked --features local-host,trust,tasks -- -D warnings`: clean. `cargo fmt --all --check`: clean.
+- `cargo deny` is not installed locally; the `deny`, `--all-features`, parity and MSRV jobs are checked by CI on the pull request.
+
+**Follow-ups**
+- The released v0.2.0 binaries were built with the old versions. Tag v0.2.1 to ship the patched ones.
+- `docs/rust-rewrite-plan-2026.md` still names the versions the port started from (rmcp 3.5.1, rusqlite 0.40.2); it is a dated plan and is left as written.
+
 ## Raouf: 2026-11-17 (Australia/Sydney): contributing guide for the Rust engine; stale and local details corrected
 
 **Scope:** documentation only, no code change.

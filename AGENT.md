@@ -46,3 +46,4 @@ Plain `cargo test` must pass too, not only nextest: nextest runs each test in it
 - `CONTRIBUTING.md` now describes the Rust workflow; keep it in step with `.github/workflows/rust.yml` when a CI check changes.
 - Do not write machine paths (`/Users/...`) into tracked files; say "this repository" or use `~`.
 - Verification and follow-ups: see `CHANGELOG.md`.
+- `rmcp` is pinned at 3.9.0 and `rusqlite` at 0.41.0 for the advisories listed in `CHANGELOG.md` (2026-11-17b). Do not pin below them. A new `cargo deny` failure is either fixed by an upgrade or ignored in `deny.toml` with a written reason, never left red.
