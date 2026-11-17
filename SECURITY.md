@@ -4,7 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 0.1.x   | Yes       |
+| 0.2.x (Rust engine) | Yes |
+| 0.1.x (Python package) | Deprecated; removed in 0.3.0 |
 
 ## Reporting a Vulnerability
 

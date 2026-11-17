@@ -30,6 +30,9 @@ ignore = [
     # capped at 20 MB, and a parser panic is caught and reported as a
     # malformed response. The feature is not in release builds.
     { id = "RUSTSEC-2026-0192", reason = "unmaintained, safe Rust, capped and panic-isolated input; revisit when pdf-extract moves to skrifa" },
+    # chrono is flagged unmaintained (no vulnerability named, no safe upgrade
+    # offered). It is not a direct dependency: rmcp and schemars pull it in.
+    { id = "RUSTSEC-2026-0543", reason = "unmaintained, transitive via rmcp and schemars, no safe upgrade; revisit when they move off chrono" },
 ]
 yanked = "deny"
 

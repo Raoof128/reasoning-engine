@@ -1,5 +1,51 @@
 # Changelog
 
+## Raouf: 2026-11-17b (Australia/Sydney): `cargo deny` advisories: rmcp 3.9.0, rusqlite 0.41.0
+
+**Scope:** `Cargo.toml`, `Cargo.lock`, `deny.toml`. No source change.
+
+**Summary**
+- The `deny` job, green on 22 October, failed on 17 November on five advisories published in between. None came from a change in this repository.
+- `rmcp` 3.5.1 to 3.9.0: RUSTSEC-2026-0457 (OAuth client SSRF filter), RUSTSEC-2026-0461 (unbounded tool schema cache in the Streamable HTTP server transport) and RUSTSEC-2026-0462 (unbounded response buffering in the Streamable HTTP clients, fixed in 3.9.0).
+- `rusqlite` 0.40.2 to 0.41.0, which moves `libsqlite3-sys` to 0.39.1: RUSTSEC-2026-0459 (the bundled SQLite, CVE-2026-119375).
+- RUSTSEC-2026-0543 flags `chrono` as unmaintained and offers no upgrade. `chrono` is not a direct dependency (it comes through `rmcp` and `schemars`), so it is ignored in `deny.toml` with that reason, as the other unmaintained notices are.
+- Both bumps are the smallest patched versions. Nothing in the workspace needed changing to compile against them.
+
+**Files changed**
+- `Cargo.toml` (two exact pins), `Cargo.lock`, `deny.toml`, `CHANGELOG.md`.
+
+**Verification**
+- `cargo test --workspace --locked --features local-host,trust,tasks` (offline, macOS on Apple silicon): 262 passed, 0 failed.
+- `cargo clippy --workspace --all-targets --locked --features local-host,trust,tasks -- -D warnings`: clean. `cargo fmt --all --check`: clean.
+- `cargo deny` is not installed locally; the `deny`, `--all-features`, parity and MSRV jobs are checked by CI on the pull request.
+
+**Follow-ups**
+- The released v0.2.0 binaries were built with the old versions. Tag v0.2.1 to ship the patched ones.
+- `docs/rust-rewrite-plan-2026.md` still names the versions the port started from (rmcp 3.5.1, rusqlite 0.40.2); it is a dated plan and is left as written.
+
+## Raouf: 2026-11-17 (Australia/Sydney): contributing guide for the Rust engine; stale and local details corrected
+
+**Scope:** documentation only, no code change.
+
+**Summary**
+- `CONTRIBUTING.md` described the deprecated Python package (virtual environment, `pytest`, `ruff`). It now describes the Rust workflow: the four checks CI runs, why plain `cargo test` must pass as well as nextest, the parity, MSRV and `cargo deny` jobs, and the rules for verdict changes and tool contracts.
+- `SECURITY.md` listed 0.1.x as the supported version. It now lists 0.2.x (the Rust engine) and marks the 0.1.x Python package as deprecated.
+- `MCP_AUDIT_2026-06-21.md` named a path on the maintainer's machine; it now says "this repository". A note at the top says the audit covers the Python server of June 2026.
+- `AGENT.md` opens with a note for human readers and no longer says the contributing guide is out of date.
+- Repository topics added on GitHub (`mcp`, `rust`, `claude-code`, `research`, `verification`).
+- README checked against the code, no change needed: 20 MCP tools, seven search adapters, 147 labelled pairs in `tests/fixtures/verify/labelled_pairs.json`, minimum Rust 1.89, release v0.2.0.
+
+**Files changed**
+- `CONTRIBUTING.md`, `SECURITY.md`, `MCP_AUDIT_2026-06-21.md`, `AGENT.md`, `CHANGELOG.md`.
+
+**Verification**
+- `cargo test --workspace --locked` (default features, `REASONING_ENGINE_OFFLINE=1`, macOS on Apple silicon): 236 passed, 0 failed.
+- `gitleaks detect` over all 113 commits: no leaks found.
+- Not run locally: the `--all-features` suite, the parity job and `cargo deny`. CI runs them on the pull request.
+
+**Follow-ups**
+- Tag v0.2.1 (unchanged from the entry below).
+
 ## Raouf: 2026-10-22b (Australia/Sydney): merged PR #20; installs moved to the Rust engine
 
 **Scope:** release/install state, no code change.
