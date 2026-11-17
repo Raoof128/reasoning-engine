@@ -1,5 +1,28 @@
 # Changelog
 
+## Raouf: 2026-11-17 (Australia/Sydney): contributing guide for the Rust engine; stale and local details corrected
+
+**Scope:** documentation only, no code change.
+
+**Summary**
+- `CONTRIBUTING.md` described the deprecated Python package (virtual environment, `pytest`, `ruff`). It now describes the Rust workflow: the four checks CI runs, why plain `cargo test` must pass as well as nextest, the parity, MSRV and `cargo deny` jobs, and the rules for verdict changes and tool contracts.
+- `SECURITY.md` listed 0.1.x as the supported version. It now lists 0.2.x (the Rust engine) and marks the 0.1.x Python package as deprecated.
+- `MCP_AUDIT_2026-06-21.md` named a path on the maintainer's machine; it now says "this repository". A note at the top says the audit covers the Python server of June 2026.
+- `AGENT.md` opens with a note for human readers and no longer says the contributing guide is out of date.
+- Repository topics added on GitHub (`mcp`, `rust`, `claude-code`, `research`, `verification`).
+- README checked against the code, no change needed: 20 MCP tools, seven search adapters, 147 labelled pairs in `tests/fixtures/verify/labelled_pairs.json`, minimum Rust 1.89, release v0.2.0.
+
+**Files changed**
+- `CONTRIBUTING.md`, `SECURITY.md`, `MCP_AUDIT_2026-06-21.md`, `AGENT.md`, `CHANGELOG.md`.
+
+**Verification**
+- `cargo test --workspace --locked` (default features, `REASONING_ENGINE_OFFLINE=1`, macOS on Apple silicon): 236 passed, 0 failed.
+- `gitleaks detect` over all 113 commits: no leaks found.
+- Not run locally: the `--all-features` suite, the parity job and `cargo deny`. CI runs them on the pull request.
+
+**Follow-ups**
+- Tag v0.2.1 (unchanged from the entry below).
+
 ## Raouf: 2026-10-22b (Australia/Sydney): merged PR #20; installs moved to the Rust engine
 
 **Scope:** release/install state, no code change.

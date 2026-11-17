@@ -1,6 +1,8 @@
 # Agent notes
 
-Working rules for agents changing this repo. `CONTRIBUTING.md` still describes the deprecated Python package; the Rust workspace under `crates/` is the engine.
+> **For human readers.** This file is addressed to AI coding assistants that work on this repository: the rules they follow and a short log of what they changed. `docs/superpowers/` holds the specs and plans they worked from. Start with [README.md](README.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Working rules for agents changing this repo. The Rust workspace under `crates/` is the engine; the Python package under `src/` is deprecated.
 
 ## Checks before a PR
 
@@ -39,3 +41,8 @@ Plain `cargo test` must pass too, not only nextest: nextest runs each test in it
 
 ### Raouf: 2026-10-22b (Australia/Sydney)
 - PR #20 merged (`080a5f1`). Claude Code and Codex now run the Rust binary at `~/.local/bin/reasoning-engine` (a local build of `master`, pending a v0.2.1 tag); data lives in `~/.reasoning-engine/`. See `CHANGELOG.md`.
+
+### Raouf: 2026-11-17 (Australia/Sydney)
+- `CONTRIBUTING.md` now describes the Rust workflow; keep it in step with `.github/workflows/rust.yml` when a CI check changes.
+- Do not write machine paths (`/Users/...`) into tracked files; say "this repository" or use `~`.
+- Verification and follow-ups: see `CHANGELOG.md`.
