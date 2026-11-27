@@ -760,8 +760,14 @@ impl VerifiableResearchService {
                 gaps: vec![gap],
             });
         }
-        for item in &result.evidence {
-            self.store.save_evidence(item)?;
+        // A run's evidence accumulates. Every search numbers its results
+        // from `ev_0001` and records are stored by (run, id), so a second
+        // search in the same run used to replace the first one's records.
+        let fresh = self.number_within_run(run_id, &mut result.evidence)?;
+        for (item, is_new) in result.evidence.iter().zip(fresh) {
+            if is_new {
+                self.store.save_evidence(item)?;
+            }
         }
         self.store.append_provenance(
             run_id,
@@ -773,6 +779,113 @@ impl VerifiableResearchService {
             error: None,
             gaps: Vec::new(),
         })
+    }
+
+    /// The evidence already stored for `run_id`, in ID order.
+    fn stored_evidence(&self, run_id: &str) -> Result<Vec<EvidenceRecord>, VerifyError> {
+        Ok(self
+            .store
+            .list_evidence(run_id)?
+            .into_iter()
+            .filter_map(|payload| serde_json::from_value(payload).ok())
+            .collect())
+    }
+
+    /// Give `found` IDs that fit the run's existing evidence: a work the
+    /// run already holds keeps the ID it was stored under, and a new one
+    /// takes the next free number. Returns which records are new. For a
+    /// run's first search nothing changes.
+    fn number_within_run(
+        &self,
+        run_id: &str,
+        found: &mut [EvidenceRecord],
+    ) -> Result<Vec<bool>, VerifyError> {
+        let stored = self.stored_evidence(run_id)?;
+        if stored.is_empty() {
+            return Ok(vec![true; found.len()]);
+        }
+        let mut ids: std::collections::HashMap<String, String> = stored
+            .iter()
+            .map(|e| (re_retrieval::aggregate::dedup_key(e), e.evidence_id.clone()))
+            .collect();
+        let mut next = stored
+            .iter()
+            .filter_map(|e| e.evidence_id.strip_prefix("ev_")?.parse::<usize>().ok())
+            .max()
+            .unwrap_or(stored.len());
+        Ok(found
+            .iter_mut()
+            .map(|record| {
+                let key = re_retrieval::aggregate::dedup_key(record);
+                if let Some(id) = ids.get(&key) {
+                    record.evidence_id.clone_from(id);
+                    false
+                } else {
+                    next += 1;
+                    record.evidence_id = format!("ev_{next:04}");
+                    ids.insert(key, record.evidence_id.clone());
+                    true
+                }
+            })
+            .collect())
+    }
+
+    /// Copy the evidence gathered in `from_run` into `run_id`, renumbered
+    /// from `ev_0001`, and record where it came from. Empty when that run
+    /// holds none.
+    ///
+    /// # Errors
+    /// An unknown `from_run`, or a store failure.
+    fn adopt_evidence(
+        &self,
+        run_id: &str,
+        from_run: &str,
+    ) -> Result<Vec<EvidenceRecord>, VerifyError> {
+        self.store.get_run(from_run)?;
+        let mut adopted = self.stored_evidence(from_run)?;
+        for (record, number) in adopted.iter_mut().zip(1_usize..) {
+            record.run_id = run_id.to_string();
+            record.evidence_id = format!("ev_{number:04}");
+            self.store.save_evidence(record)?;
+        }
+        self.store.append_provenance(
+            run_id,
+            "evidence_reused",
+            &payload(&[
+                ("from_run", from_run.into()),
+                ("evidence_count", adopted.len().into()),
+            ]),
+        )?;
+        Ok(adopted)
+    }
+
+    /// The evidence a pipeline run verifies against and where it came
+    /// from: `evidence_run_id`'s evidence when that run holds any, else one
+    /// search on `query`.
+    async fn pipeline_evidence<'a>(
+        &self,
+        run_id: &str,
+        query: &str,
+        use_mock_empty: bool,
+        evidence_run_id: Option<&'a str>,
+    ) -> Result<(Vec<EvidenceRecord>, EvidenceOrigin<'a>), VerifyError> {
+        if let Some(from_run) = evidence_run_id {
+            let adopted = self.adopt_evidence(run_id, from_run)?;
+            if !adopted.is_empty() {
+                let origin = EvidenceOrigin::Named {
+                    from: Some(from_run),
+                };
+                return Ok((adopted, origin));
+            }
+        }
+        let search = self
+            .scholar_search(run_id, query, PIPELINE_SEARCH_LIMIT, use_mock_empty)
+            .await?;
+        let origin = match evidence_run_id {
+            Some(_) => EvidenceOrigin::Named { from: None },
+            None => EvidenceOrigin::Searched,
+        };
+        Ok((search.evidence_records, origin))
     }
 
     /// The `graph` stages, in order: contradiction search, the evidence
@@ -901,11 +1014,42 @@ impl VerifiableResearchService {
         profile: &str,
         use_mock_empty: bool,
     ) -> Result<Value, VerifyError> {
+        self.run_research_pipeline_from(query, draft, mode, profile, use_mock_empty, None)
+            .await
+    }
+
+    /// [`Self::run_research_pipeline`], optionally verifying against the
+    /// evidence an earlier run gathered instead of searching again.
+    ///
+    /// The pipeline's own search asks every source for the query as typed
+    /// and keeps ten records. A draft written from thirty papers found by
+    /// a dozen narrower searches is then judged against ten other papers,
+    /// and nearly every claim comes back unsupported. With
+    /// `evidence_run_id`, the claims are checked against what the research
+    /// actually read. The run's own search still happens when that run
+    /// holds no evidence.
+    ///
+    /// The result is also shorter in this mode: evidence is counted, not
+    /// repeated, and `summary` lists the claims that need attention so the
+    /// caller does not have to open the run pack to find them.
+    ///
+    /// # Errors
+    /// An unknown profile, mode or `evidence_run_id`, or store and
+    /// filesystem failures.
+    pub async fn run_research_pipeline_from(
+        &self,
+        query: &str,
+        draft: &str,
+        mode: &str,
+        profile: &str,
+        use_mock_empty: bool,
+        evidence_run_id: Option<&str>,
+    ) -> Result<Value, VerifyError> {
         let run = self.start_run(query, mode, profile)?;
-        let search = self
-            .scholar_search(&run.run_id, query, PIPELINE_SEARCH_LIMIT, use_mock_empty)
+        let (found, origin) = self
+            .pipeline_evidence(&run.run_id, query, use_mock_empty, evidence_run_id)
             .await?;
-        let evidence = &search.evidence_records;
+        let evidence = &found;
         let evidence_dicts: Vec<Value> = evidence.iter().map(EvidenceRecord::to_dict).collect();
         let mut claims = extract_claims(&run.run_id, draft, &run.profile)?;
         let verifier = self.verifier_for(&run.mode).await;
@@ -986,16 +1130,102 @@ impl VerifiableResearchService {
             self.store.append_transparency(&run.run_id, &hash)?;
         }
         let attestation = verify_run_pack_attestation(&output);
-        let snippets: Vec<&str> = evidence.iter().map(|e| e.snippet.as_str()).collect();
-        Ok(json!({
-            "run_id": run.run_id,
-            "quality_gate": gate,
-            "run_pack": output.display().to_string(),
-            "attestation": attestation,
-            "evidence": evidence_dicts,
-            "verified_against_snippets": snippets,
-        }))
+        Ok(pipeline_result(
+            json!({
+                "run_id": run.run_id,
+                "quality_gate": gate,
+                "run_pack": output.display().to_string(),
+                "attestation": attestation,
+            }),
+            &origin,
+            evidence,
+            &evidence_dicts,
+            (verifier.method(), summary(&claims, &verifications)),
+        ))
     }
+}
+
+/// How a pipeline run got its evidence, which decides the shape of its answer.
+enum EvidenceOrigin<'a> {
+    /// One search on the query: the original behaviour and the original answer.
+    Searched,
+    /// The caller named a run to take evidence from. `from` is that run
+    /// when it held any; otherwise the pipeline searched after all.
+    Named { from: Option<&'a str> },
+}
+
+/// The pipeline's answer: `base` (the fields every caller gets), then the
+/// evidence itself for a searched run, or a count, the verifier's method and
+/// the summary when the caller named an evidence run.
+fn pipeline_result(
+    mut base: Value,
+    origin: &EvidenceOrigin<'_>,
+    evidence: &[EvidenceRecord],
+    evidence_dicts: &[Value],
+    (method, summary): (&str, Value),
+) -> Value {
+    let extra = if let EvidenceOrigin::Named { from } = origin {
+        json!({
+            "evidence_reused_from": from,
+            "evidence_count": evidence.len(),
+            "verifier": method,
+            "summary": summary,
+        })
+    } else {
+        let snippets: Vec<&str> = evidence.iter().map(|e| e.snippet.as_str()).collect();
+        json!({"evidence": evidence_dicts, "verified_against_snippets": snippets})
+    };
+    if let (Some(base), Value::Object(extra)) = (base.as_object_mut(), extra) {
+        base.extend(extra);
+    }
+    base
+}
+
+/// Claims listed in a pipeline summary before it says how many more there are.
+pub const SUMMARY_LIMIT: usize = 25;
+
+/// What a caller needs to act on a verification: how many claims landed in
+/// each status, and the ones that block the gate or need a second look, with
+/// the verifier's reason and the evidence it used.
+fn summary(claims: &[ClaimRecord], verifications: &[VerificationRecord]) -> Value {
+    let mut by_status: std::collections::BTreeMap<&str, usize> = std::collections::BTreeMap::new();
+    let mut attention = Vec::new();
+    let mut omitted = 0_usize;
+    for claim in claims {
+        let status = final_status(claim, verifications);
+        *by_status.entry(status).or_default() += 1;
+        if !matches!(
+            status,
+            "unsupported" | "contradicted" | "needs_more_evidence" | "partially_supported"
+        ) {
+            continue;
+        }
+        if attention.len() >= SUMMARY_LIMIT {
+            omitted += 1;
+            continue;
+        }
+        let verdict = verifications
+            .iter()
+            .rev()
+            .find(|v| v.claim_id == claim.claim_id);
+        let text: String = claim.text.chars().take(240).collect();
+        attention.push(json!({
+            "claim_id": claim.claim_id,
+            "text": text,
+            "status": status,
+            "rationale": verdict.map(|v| v.support_rationale.as_str()),
+            "evidence_ids": verdict.map(|v| v.evidence_ids.clone()).unwrap_or_default(),
+            "contradicted_by": verdict
+                .map(|v| v.contradictory_evidence_ids.clone())
+                .unwrap_or_default(),
+        }));
+    }
+    json!({
+        "claims": claims.len(),
+        "by_status": by_status,
+        "needs_attention": attention,
+        "not_listed": omitted,
+    })
 }
 
 /// `references.<style>.md` in the profile's citation style. A style that

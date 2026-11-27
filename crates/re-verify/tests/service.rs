@@ -198,3 +198,192 @@ fn start_run_escalates_and_rejects_like_python() {
     assert!(error.to_string().contains("astrology"), "{error}");
     assert!(service.start_run("q", "turbo", "auto").is_err());
 }
+
+/// Returns `limit` records whose DOI and snippet depend on the query, so
+/// two different searches find different papers.
+struct PerQuery;
+
+impl re_retrieval::SourceAdapter for PerQuery {
+    fn name(&self) -> &'static str {
+        "per_query"
+    }
+
+    fn search<'a>(
+        &'a self,
+        run_id: &'a str,
+        query: &'a str,
+        limit: usize,
+    ) -> re_retrieval::sources::BoxFuture<'a, re_retrieval::RetrievalResult> {
+        Box::pin(async move {
+            let mut result = MockScholarGateway::search_now(run_id, query, limit);
+            let slug: String = query
+                .chars()
+                .filter(|c| c.is_alphanumeric())
+                .collect::<String>()
+                .to_lowercase();
+            for (record, number) in result.evidence.iter_mut().zip(1..) {
+                record.doi = Some(format!("10.1000/{slug}.{number}"));
+                record.title = format!("{query} paper {number}");
+                record.snippet = format!("{query} improve accuracy on long tasks.");
+            }
+            result
+        })
+    }
+}
+
+fn per_query_service(dir: &Path) -> VerifiableResearchService {
+    let store = Store::open(dir.join("reasoning.db")).expect("store");
+    let search = Arc::new(AcademicSearchAggregator::new(vec![Arc::new(PerQuery)]));
+    VerifiableResearchService::new(store, dir.join("runs"), search, Box::new(LexicalOverlap))
+}
+
+fn ids(outcome: &re_verify::service::SearchOutcome) -> Vec<String> {
+    outcome
+        .evidence_records
+        .iter()
+        .map(|e| e.evidence_id.clone())
+        .collect()
+}
+
+#[tokio::test]
+async fn searches_in_one_run_accumulate_evidence() {
+    // Each search numbers its results from ev_0001 and records are stored by
+    // (run, id): the second search used to replace the first one's evidence.
+    let dir = tempfile::tempdir().expect("tmp");
+    let service = per_query_service(dir.path());
+    let run = service
+        .start_run("reward models", "standard", "auto")
+        .expect("run");
+    let first = service
+        .scholar_search(&run.run_id, "process reward models", 3, false)
+        .await
+        .expect("first search");
+    let second = service
+        .scholar_search(&run.run_id, "outcome reward models", 3, false)
+        .await
+        .expect("second search");
+    assert_eq!(ids(&first), ["ev_0001", "ev_0002", "ev_0003"]);
+    assert_eq!(ids(&second), ["ev_0004", "ev_0005", "ev_0006"]);
+    let stored = service.store().list_evidence(&run.run_id).expect("stored");
+    assert_eq!(stored.len(), 6);
+    assert!(
+        stored[0]["snippet"]
+            .as_str()
+            .expect("snippet")
+            .starts_with("process")
+    );
+
+    // Asking again finds the same papers under the IDs they already have.
+    let again = service
+        .scholar_search(&run.run_id, "process reward models", 3, false)
+        .await
+        .expect("repeat search");
+    assert_eq!(ids(&again), ids(&first));
+    assert_eq!(
+        service
+            .store()
+            .list_evidence(&run.run_id)
+            .expect("stored")
+            .len(),
+        6
+    );
+}
+
+#[tokio::test]
+async fn pipeline_verifies_against_the_evidence_a_run_gathered() {
+    let dir = tempfile::tempdir().expect("tmp");
+    let service = per_query_service(dir.path());
+    let run = service
+        .start_run("reward models", "standard", "auto")
+        .expect("run");
+    for query in ["process reward models", "outcome reward models"] {
+        service
+            .scholar_search(&run.run_id, query, 3, false)
+            .await
+            .expect("search");
+    }
+    let draft = "# Findings\n\n## What we saw\n\nProcess reward models improve accuracy on long \
+                 tasks. Quantum annealing cures insomnia in mice.\n\n| a | b |\n| --- | --- |\n\n\
+                 ## Sources\n\n1. Someone. A paper. https://doi.org/10.1/x\n";
+    let result = service
+        .run_research_pipeline_from(
+            "reward models",
+            draft,
+            "standard",
+            "auto",
+            false,
+            Some(&run.run_id),
+        )
+        .await
+        .expect("pipeline");
+
+    assert_eq!(result["evidence_reused_from"], run.run_id.as_str());
+    assert_eq!(result["evidence_count"], 6);
+    assert_eq!(result["attestation"]["valid"], true);
+    // The evidence is counted, not repeated.
+    assert!(result.get("evidence").is_none());
+    assert!(result.get("verified_against_snippets").is_none());
+
+    // Two claims: the heading, the table and the source list are not claims.
+    let summary = &result["summary"];
+    assert_eq!(summary["claims"], 2);
+    assert_eq!(summary["by_status"]["supported"], 1);
+    let attention = summary["needs_attention"].as_array().expect("list");
+    assert_eq!(attention.len(), 1);
+    assert!(
+        attention[0]["text"]
+            .as_str()
+            .expect("text")
+            .starts_with("Quantum annealing")
+    );
+    assert_eq!(result["quality_gate"]["result"], "blocked");
+
+    // The new run reused evidence and did not search again.
+    let new_run = result["run_id"].as_str().expect("run id");
+    let events = event_types(&service, new_run);
+    assert!(
+        events.contains(&"evidence_reused".to_string()),
+        "{events:?}"
+    );
+    assert!(
+        !events.contains(&"scholar_search_requested".to_string()),
+        "{events:?}"
+    );
+    assert_eq!(
+        service
+            .store()
+            .list_evidence(new_run)
+            .expect("stored")
+            .len(),
+        6
+    );
+}
+
+#[tokio::test]
+async fn reuse_falls_back_to_searching_and_rejects_unknown_runs() {
+    let dir = tempfile::tempdir().expect("tmp");
+    let service = per_query_service(dir.path());
+    // A run that never searched holds no evidence: the pipeline searches.
+    let empty = service
+        .start_run("reward models", "standard", "auto")
+        .expect("run");
+    let result = service
+        .run_research_pipeline_from(
+            "process reward models",
+            "Process reward models improve accuracy on long tasks.",
+            "standard",
+            "auto",
+            false,
+            Some(&empty.run_id),
+        )
+        .await
+        .expect("pipeline");
+    assert!(result["evidence_reused_from"].is_null());
+    assert_eq!(result["evidence_count"], 10);
+    assert_eq!(result["summary"]["by_status"]["supported"], 1);
+
+    let unknown = service
+        .run_research_pipeline_from("q", "A claim.", "standard", "auto", false, Some("run_nope"))
+        .await;
+    assert!(unknown.is_err());
+}

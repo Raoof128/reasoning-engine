@@ -16,7 +16,10 @@ fn tool_list_matches_python() {
     for (spec, theirs) in TOOLS.iter().zip(python) {
         assert_eq!(spec.name, theirs["name"], "order");
         assert_eq!(spec.description, theirs["description"], "{}", spec.name);
-        #[cfg_attr(not(any(feature = "tasks", feature = "learn")), allow(unused_mut))]
+        #[cfg_attr(
+            not(any(feature = "tasks", feature = "learn", feature = "reuse")),
+            allow(unused_mut)
+        )]
         let mut ours = input_schema(spec);
         // `include_evidence` is Rust-only (learn feature).
         #[cfg(feature = "learn")]
@@ -37,6 +40,16 @@ fn tool_list_matches_python() {
                 .expect("prefetch parameter");
             assert_eq!(prefetch["type"], "boolean");
             assert_eq!(prefetch["default"], false);
+        }
+        // `evidence_run_id` is Rust-only (reuse feature).
+        #[cfg(feature = "reuse")]
+        if spec.name == "run_research_pipeline_tool" {
+            let from_run = ours["properties"]
+                .as_object_mut()
+                .and_then(|p| p.remove("evidence_run_id"))
+                .expect("evidence_run_id parameter");
+            assert_eq!(from_run["type"], "string");
+            assert_eq!(from_run["default"], "");
         }
         assert_eq!(Value::Object(ours), theirs["inputSchema"], "{}", spec.name);
     }

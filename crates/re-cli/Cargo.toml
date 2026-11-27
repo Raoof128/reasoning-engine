@@ -38,6 +38,9 @@ learn = ["re-mcp/learn", "re-verify/learn", "re-store/learn", "re-core/learn"]
 # Persian: normalisation, Persian reports, and with `semantic` the
 # multilingual bge-m3 embedder (plan Phase 12).
 fa = ["re-verify/fa", "re-core/fa"]
+# Verify a draft against the evidence a run already gathered
+# (`run_research_pipeline_tool(evidence_run_id)`), with a short summary.
+reuse = ["re-mcp/reuse"]
 # Sandboxed third-party source adapters loaded from the adapters directory
 # (plan Phase 12; needs Rust 1.97).
 wasm-adapters = ["re-retrieval/wasm-adapters"]

@@ -21,6 +21,9 @@ tasks = []
 graph = ["re-verify/graph"]
 # Learned prior and cross-session evidence memory (plan Phase 11).
 learn = ["re-core/learn", "re-store/learn", "re-verify/learn"]
+# run_research_pipeline_tool(evidence_run_id): verify a draft against the
+# evidence a run already gathered, and return a short summary of the verdicts.
+reuse = []
 
 [dependencies]
 axum = { workspace = true, optional = true }

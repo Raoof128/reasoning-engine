@@ -555,6 +555,28 @@ impl Tools {
         let profile = a.str_or("profile", "auto")?;
         let query = validate::text(&query, "query", MAX_QUERY_CHARS, false)?;
         let draft = validate::text(&draft, "draft", MAX_DRAFT_CHARS, false)?;
+        // Rust-only: check the draft against the evidence that run gathered
+        // instead of running one more search on the query.
+        #[cfg(feature = "reuse")]
+        {
+            let from_run = a.str_or("evidence_run_id", "")?;
+            let from_run = from_run.trim();
+            if !from_run.is_empty() {
+                let from_run =
+                    validate::text(from_run, "evidence_run_id", MAX_RUN_ID_CHARS, false)?;
+                return Ok(self
+                    .service
+                    .run_research_pipeline_from(
+                        &query,
+                        &draft,
+                        &mode,
+                        &profile,
+                        false,
+                        Some(&from_run),
+                    )
+                    .await?);
+            }
+        }
         Ok(self
             .service
             .run_research_pipeline(&query, &draft, &mode, &profile, false)
