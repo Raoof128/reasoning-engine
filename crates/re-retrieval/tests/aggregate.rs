@@ -401,3 +401,269 @@ async fn ranking_matches_python_on_recorded_fixtures() {
         );
     }
 }
+
+/// Answers after `delay`, like a slow provider.
+struct Slow {
+    name: &'static str,
+    delay: std::time::Duration,
+    result: RetrievalResult,
+}
+
+impl SourceAdapter for Slow {
+    fn name(&self) -> &'static str {
+        self.name
+    }
+
+    fn search<'a>(&'a self, _: &'a str, _: &'a str, _: usize) -> BoxFuture<'a, RetrievalResult> {
+        let (delay, result) = (self.delay, self.result.clone());
+        Box::pin(async move {
+            tokio::time::sleep(delay).await;
+            result
+        })
+    }
+}
+
+fn slow(name: &'static str, millis: u64, result: RetrievalResult) -> Adapter {
+    Arc::new(Slow {
+        name,
+        delay: std::time::Duration::from_millis(millis),
+        result,
+    })
+}
+
+fn policy(quorum: usize, grace_ms: u64, deadline_ms: u64) -> re_retrieval::aggregate::FanoutPolicy {
+    re_retrieval::aggregate::FanoutPolicy {
+        quorum,
+        grace: std::time::Duration::from_millis(grace_ms),
+        deadline: std::time::Duration::from_millis(deadline_ms),
+    }
+}
+
+#[tokio::test]
+async fn a_slow_source_no_longer_sets_the_pace() {
+    let aggregator = AcademicSearchAggregator::new(vec![
+        fake(
+            "fast_a",
+            found(vec![rec("fast_a", Some("10.1/a"), "Alpha result", 0.9)]),
+        ),
+        fake(
+            "fast_b",
+            found(vec![rec("fast_b", Some("10.1/b"), "Beta result", 0.8)]),
+        ),
+        slow(
+            "straggler",
+            30_000,
+            found(vec![rec("straggler", Some("10.1/c"), "Late", 0.99)]),
+        ),
+    ])
+    .with_fanout(Some(policy(2, 50, 5_000)));
+    let started = std::time::Instant::now();
+    let result = aggregator.search("run_1", "q", 10).await;
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(5),
+        "waited for the straggler"
+    );
+    let sources: Vec<&str> = result
+        .evidence
+        .iter()
+        .map(|e| e.source_adapter.as_str())
+        .collect();
+    assert_eq!(sources, ["fast_a", "fast_b"]);
+    assert!(result.error.is_none());
+    // The cut-off is on the record, not silent.
+    let cut = result
+        .diagnostics
+        .get("straggler")
+        .expect("straggler diagnostics");
+    assert_eq!(cut["deadline_exceeded"], json!(true));
+}
+
+#[tokio::test]
+async fn a_source_inside_the_grace_period_is_kept() {
+    let aggregator = AcademicSearchAggregator::new(vec![
+        fake(
+            "fast",
+            found(vec![rec("fast", Some("10.1/a"), "Alpha result", 0.9)]),
+        ),
+        slow(
+            "a_bit_late",
+            60,
+            found(vec![rec("a_bit_late", Some("10.1/b"), "Beta", 0.8)]),
+        ),
+    ])
+    .with_fanout(Some(policy(1, 2_000, 10_000)));
+    let result = aggregator.search("run_1", "q", 10).await;
+    assert_eq!(result.evidence.len(), 2);
+    assert!(result.diagnostics.get("a_bit_late").is_none());
+}
+
+#[tokio::test]
+async fn with_nothing_in_hand_the_deadline_does_not_return_empty() {
+    // The only source with evidence is slower than the deadline. Returning
+    // nothing on time would be worse than returning something late.
+    let aggregator = AcademicSearchAggregator::new(vec![
+        fake("empty", found(Vec::new())),
+        slow(
+            "only_one",
+            150,
+            found(vec![rec("only_one", Some("10.1/a"), "Alpha", 0.9)]),
+        ),
+    ])
+    .with_fanout(Some(policy(1, 10, 20)));
+    let result = aggregator.search("run_1", "q", 10).await;
+    assert_eq!(result.evidence.len(), 1);
+}
+
+#[tokio::test]
+async fn without_a_policy_every_source_is_awaited() {
+    let aggregator = AcademicSearchAggregator::new(vec![
+        fake(
+            "fast",
+            found(vec![rec("fast", Some("10.1/a"), "Alpha result", 0.9)]),
+        ),
+        slow(
+            "late",
+            120,
+            found(vec![rec("late", Some("10.1/b"), "Beta", 0.8)]),
+        ),
+    ]);
+    let result = aggregator.search("run_1", "q", 10).await;
+    assert_eq!(result.evidence.len(), 2);
+}
+
+#[test]
+fn fanout_policy_reads_the_environment() {
+    use re_retrieval::aggregate::FanoutPolicy;
+    let env = |value: Option<&'static str>| {
+        move |var: &str| {
+            (var == "REASONING_ENGINE_FANOUT_DEADLINE_SECS")
+                .then(|| value.map(String::from))
+                .flatten()
+        }
+    };
+    assert_eq!(
+        FanoutPolicy::from_env(env(None)),
+        Some(FanoutPolicy::DEFAULT)
+    );
+    assert_eq!(FanoutPolicy::from_env(env(Some("0"))), None);
+    assert_eq!(
+        FanoutPolicy::from_env(env(Some("3"))).map(|p| p.deadline),
+        Some(std::time::Duration::from_secs(3))
+    );
+    assert_eq!(
+        FanoutPolicy::from_env(env(Some("soon"))),
+        Some(FanoutPolicy::DEFAULT)
+    );
+}
+
+#[tokio::test]
+async fn one_paper_under_three_identifiers_takes_one_place() {
+    // The publisher's DOI, the arXiv DOI and no DOI: three dedup keys, one work.
+    let title = "MiniCheck: Efficient Fact-Checking of LLMs on Grounding Documents";
+    let mut published = rec(
+        "openalex",
+        Some("10.18653/v1/2024.emnlp-main.499"),
+        title,
+        0.95,
+    );
+    published.year = Some(2024);
+    let mut preprint = rec(
+        "semantic_scholar",
+        Some("10.48550/arxiv.2404.10774"),
+        title,
+        0.94,
+    );
+    preprint.year = Some(2024);
+    preprint.snippet = "Recognizing if LLM output can be grounded in evidence.".into();
+    let mut bare = rec(
+        "arxiv",
+        None,
+        "MiniCheck: efficient fact-checking of LLMs on grounding documents.",
+        0.6,
+    );
+    bare.year = Some(2024);
+    let other = rec(
+        "crossref",
+        Some("10.1/other"),
+        "A different paper about fact checking",
+        0.5,
+    );
+    let aggregator = AcademicSearchAggregator::new(vec![
+        fake("openalex", found(vec![published])),
+        fake("semantic_scholar", found(vec![preprint])),
+        fake("arxiv", found(vec![bare])),
+        fake("crossref", found(vec![other])),
+    ]);
+    let result = aggregator.search("run_1", "q", 10).await;
+    assert_eq!(result.evidence.len(), 2);
+    let kept = &result.evidence[0];
+    assert_eq!(kept.source_adapter, "openalex");
+    assert_eq!(kept.doi.as_deref(), Some("10.18653/v1/2024.emnlp-main.499"));
+    // The best record had no abstract; it takes the preprint's.
+    assert_eq!(
+        kept.snippet,
+        "Recognizing if LLM output can be grounded in evidence."
+    );
+    assert_eq!(
+        kept.metadata["also_found_in"],
+        json!(["semantic_scholar", "arxiv"])
+    );
+}
+
+#[tokio::test]
+async fn generic_or_distant_titles_are_not_merged() {
+    let mut early = rec(
+        "a",
+        Some("10.1/a"),
+        "A survey of natural language inference methods",
+        0.9,
+    );
+    early.year = Some(2015);
+    let mut late = rec(
+        "b",
+        Some("10.1/b"),
+        "A survey of natural language inference methods",
+        0.8,
+    );
+    late.year = Some(2024);
+    let aggregator = AcademicSearchAggregator::new(vec![
+        fake(
+            "a",
+            found(vec![early, rec("a", Some("10.1/c"), "Editorial", 0.3)]),
+        ),
+        fake(
+            "b",
+            found(vec![late, rec("b", Some("10.1/d"), "Editorial", 0.2)]),
+        ),
+    ]);
+    let result = aggregator.search("run_1", "q", 10).await;
+    assert_eq!(result.evidence.len(), 4);
+}
+
+#[tokio::test]
+async fn the_last_straggler_gets_only_the_grace_period_below_quorum() {
+    // Two sources with evidence, two empty, one slow: the quorum of three is
+    // never met, but nothing else is coming, so the deadline is not waited out.
+    let aggregator = AcademicSearchAggregator::new(vec![
+        fake(
+            "a",
+            found(vec![rec("a", Some("10.1/a"), "Alpha result", 0.9)]),
+        ),
+        fake(
+            "b",
+            found(vec![rec("b", Some("10.1/b"), "Beta result", 0.8)]),
+        ),
+        fake("empty_1", found(Vec::new())),
+        fake("empty_2", found(Vec::new())),
+        slow(
+            "straggler",
+            30_000,
+            found(vec![rec("straggler", Some("10.1/c"), "Late", 0.7)]),
+        ),
+    ])
+    .with_fanout(Some(policy(3, 50, 20_000)));
+    let started = std::time::Instant::now();
+    let result = aggregator.search("run_1", "q", 10).await;
+    assert!(started.elapsed() < std::time::Duration::from_secs(5));
+    assert_eq!(result.evidence.len(), 2);
+}

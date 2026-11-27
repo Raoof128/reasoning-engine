@@ -223,7 +223,10 @@ fn search(config: &Config, offline: bool) -> Result<AcademicSearchAggregator, Fa
         );
         adapters = re_retrieval::cache::cached(adapters, &cache);
     }
-    Ok(AcademicSearchAggregator::new(adapters))
+    // Live searches stop waiting for slow sources; recorded runs (`trust`)
+    // build their own aggregator and wait for every one.
+    let policy = re_retrieval::aggregate::FanoutPolicy::from_env(|var| std::env::var(var).ok());
+    Ok(AcademicSearchAggregator::new(adapters).with_fanout(policy))
 }
 
 async fn service(config: &Config) -> Result<VerifiableResearchService, Failure> {
