@@ -92,6 +92,35 @@ pub const NLI_DEBERTA_XSMALL: ModelSpec = ModelSpec {
     ],
 };
 
+/// `cross-encoder/nli-deberta-v3-base`: the same labels and tokenizer as
+/// the xsmall model, 184M parameters to its 71M.
+pub const NLI_DEBERTA_BASE: ModelSpec = ModelSpec {
+    name: "nli-deberta-v3-base",
+    repo: "cross-encoder/nli-deberta-v3-base",
+    revision: "6c749ce3425cd33b46d187e45b92bbf96ee12ec7",
+    files: [
+        ModelFile {
+            remote: "onnx/model.onnx",
+            local: "model.onnx",
+            sha256: "369ebf04fce8206c83b8fd62e9dc860144f10351a7f885ed3076beb17b7c6dda",
+        },
+        ModelFile {
+            remote: "tokenizer.json",
+            local: "tokenizer.json",
+            sha256: "5124ef2ead1a10a717703bc436de7f353da76d6340e4587719b42b1693707964",
+        },
+    ],
+};
+
+/// The spec for the NLI model in force ([`crate::verify::nli_model`]).
+#[must_use]
+pub fn nli_spec() -> &'static ModelSpec {
+    match crate::verify::nli_model() {
+        "base" => &NLI_DEBERTA_BASE,
+        _ => &NLI_DEBERTA_XSMALL,
+    }
+}
+
 /// Why a model is unavailable.
 #[derive(Debug, thiserror::Error)]
 pub enum ModelError {
@@ -478,21 +507,28 @@ impl Embedder for OnnxEmbedder {
     }
 }
 
-/// `nli-deberta-v3-xsmall` cross-encoder: softmax over three logits.
+/// A DeBERTa-v3 NLI cross-encoder: softmax over three logits.
 pub struct OnnxNli {
+    spec: &'static ModelSpec,
     session: Mutex<Session>,
     tokenizer: Tokenizer,
 }
 
 impl OnnxNli {
-    /// Load (downloading if allowed) the pinned NLI model.
+    /// Load (downloading if allowed) the NLI model in force
+    /// ([`nli_spec`]).
     ///
     /// # Errors
     /// See [`ensure`] and [`ModelError::Load`].
     pub async fn load(models_dir: &Path, offline: bool) -> Result<Self, ModelError> {
-        let dir = ensure(&NLI_DEBERTA_XSMALL, models_dir, offline).await?;
-        let (session, tokenizer) = load(&NLI_DEBERTA_XSMALL, &dir)?;
-        Ok(Self { session, tokenizer })
+        let spec = nli_spec();
+        let dir = ensure(spec, models_dir, offline).await?;
+        let (session, tokenizer) = load(spec, &dir)?;
+        Ok(Self {
+            spec,
+            session,
+            tokenizer,
+        })
     }
 }
 
@@ -505,7 +541,7 @@ fn softmax(logits: &[f32]) -> [f32; 3] {
 
 impl NliModel for OnnxNli {
     fn id(&self) -> String {
-        NLI_DEBERTA_XSMALL.id()
+        self.spec.id()
     }
 
     fn classify(&self, pairs: &[(&str, &str)]) -> Result<Vec<NliScores>, String> {

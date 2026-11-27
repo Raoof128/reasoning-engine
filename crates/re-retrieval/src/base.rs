@@ -3,6 +3,7 @@
 
 use std::fmt::Write as _;
 use std::sync::LazyLock;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use re_core::pyjson::python_float_repr;
 use re_model::clock::utc_now;
@@ -15,8 +16,44 @@ static DECIMAL_DIGIT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\d$").exp
 
 /// Default contact address for polite-pool `User-Agent` and `mailto`.
 pub const DEFAULT_CONTACT_EMAIL: &str = "reasoning-engine@example.org";
-/// Snippet length cap, in characters.
+/// The default snippet length cap, in characters, and the Python engine's.
 pub const SNIPPET_LIMIT: usize = 1500;
+/// The cap for builds with the model tiers. A third of the abstracts in
+/// `SciFact` dev run past 1,500 characters and none of the 340 past this
+/// with a sentence the verifier needed: the `nli` tier scored 0.588 on
+/// abstracts cut at 1,500 and 0.629 cut here or not at all (2026-11-27).
+/// The end of an abstract is where it states its conclusion.
+pub const LONG_SNIPPET_LIMIT: usize = 4000;
+/// Bounds for a cap set by hand.
+const SNIPPET_LIMIT_RANGE: std::ops::RangeInclusive<usize> = 200..=20_000;
+
+static SNIPPET_CHARS: AtomicUsize = AtomicUsize::new(SNIPPET_LIMIT);
+
+/// The snippet cap in force for this process, in characters.
+#[must_use]
+pub fn snippet_limit() -> usize {
+    SNIPPET_CHARS.load(Ordering::Relaxed)
+}
+
+/// Set the snippet cap for this process, clamped to 200..=20,000.
+///
+/// It is one setting for the whole process because every source builds its
+/// records through [`build_record`]. The CLI sets it once at start; a
+/// replay sets it to the value its run pack was recorded with.
+pub fn set_snippet_limit(chars: usize) {
+    let chars = chars.clamp(*SNIPPET_LIMIT_RANGE.start(), *SNIPPET_LIMIT_RANGE.end());
+    SNIPPET_CHARS.store(chars, Ordering::Relaxed);
+}
+
+/// The cap `REASONING_ENGINE_SNIPPET_CHARS` asks for, else `default`. A
+/// value that is not a number in 200..=20,000 is ignored.
+#[must_use]
+pub fn snippet_limit_from_env(get: impl Fn(&str) -> Option<String>, default: usize) -> usize {
+    get("REASONING_ENGINE_SNIPPET_CHARS")
+        .and_then(|raw| raw.trim().parse::<usize>().ok())
+        .filter(|chars| SNIPPET_LIMIT_RANGE.contains(chars))
+        .unwrap_or(default)
+}
 /// Title length cap, in characters.
 pub const TITLE_LIMIT: usize = 500;
 
@@ -316,7 +353,7 @@ pub fn build_record(input: RecordInput) -> EvidenceRecord {
         query: input.query,
         rank: i64::try_from(input.rank).unwrap_or(i64::MAX),
         score: input.score,
-        snippet: clip_snippet(&input.snippet, SNIPPET_LIMIT),
+        snippet: clip_snippet(&input.snippet, snippet_limit()),
         licence_notes: input.licence_notes,
         risk_flags: Vec::new(),
         metadata: input.metadata,

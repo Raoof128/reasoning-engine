@@ -63,6 +63,11 @@ pub struct RecordPlan {
     /// The conformal calibration in force (`graph` feature), stored whole
     /// so a replay does not depend on the local file.
     pub calibration: Option<Value>,
+    /// The snippet cap in force, in characters
+    /// ([`re_retrieval::base::snippet_limit`]).
+    pub snippet_chars: usize,
+    /// The NLI model in force ([`crate::verify::nli_model`]).
+    pub nli_model: String,
 }
 
 impl RecordPlan {
@@ -80,6 +85,8 @@ impl RecordPlan {
             counter_search: false,
             evidence_graph: false,
             calibration: None,
+            snippet_chars: re_retrieval::base::snippet_limit(),
+            nli_model: crate::verify::nli_model().to_string(),
         }
     }
 
@@ -111,8 +118,37 @@ impl RecordPlan {
         if let Some(calibration) = &self.calibration {
             settings.insert("calibration".into(), calibration.clone());
         }
+        // Only when it is not the default, for the same reason: a pack
+        // without it was recorded with 1,500.
+        if self.snippet_chars != re_retrieval::base::SNIPPET_LIMIT {
+            settings.insert("snippet_chars".into(), self.snippet_chars.into());
+        }
+        if self.nli_model != crate::verify::NLI_MODELS[0] {
+            settings.insert("nli_model".into(), self.nli_model.clone().into());
+        }
         Recorder { tape, settings }
     }
+}
+
+/// Put the process settings where the recording had them: the snippet cap
+/// (1,500 unless the pack says otherwise) and the NLI model (`xsmall`
+/// unless it says otherwise). Evidence is rebuilt from the recorded
+/// responses, so it has to be cut where the recording cut it; and a
+/// high-stakes run can call on the NLI model whatever the tier.
+fn apply_recorded_settings(inputs: &Value) -> Result<(), VerifyError> {
+    re_retrieval::base::set_snippet_limit(
+        inputs
+            .get("snippet_chars")
+            .and_then(Value::as_u64)
+            .and_then(|chars| usize::try_from(chars).ok())
+            .unwrap_or(re_retrieval::base::SNIPPET_LIMIT),
+    );
+    crate::verify::set_nli_model(
+        inputs
+            .get("nli_model")
+            .and_then(Value::as_str)
+            .unwrap_or(crate::verify::NLI_MODELS[0]),
+    )
 }
 
 /// Turn on what the recording turned on.
@@ -284,6 +320,7 @@ pub async fn replay_pack(
         })
         .unwrap_or_default();
     let offline = inputs.get("offline").and_then(Value::as_bool) == Some(true);
+    apply_recorded_settings(&inputs)?;
 
     let tape = Arc::new(Tape::replaying(&pack_dir.join(RECORDINGS_DIR))?);
     let joined = sources.join(",");
