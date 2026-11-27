@@ -492,3 +492,65 @@ async fn fts_memory_recall_is_opt_in_and_reads_learnings() {
     assert_eq!(found[0]["query"], "reward models");
     assert!(found[0].get("_relevance").is_none());
 }
+
+/// `evidence_run_id` (reuse feature): the draft is checked against the
+/// evidence that run gathered, and the result is a summary, not the records.
+#[cfg(feature = "reuse")]
+#[tokio::test]
+async fn pipeline_reuses_a_runs_evidence_when_asked() {
+    let dir = tempfile::tempdir().expect("tmp");
+    let server = server(dir.path());
+    let run = ok(
+        &server,
+        "start_research_run",
+        json!({"query": "MCP prompt injection defences"}),
+    )
+    .await;
+    let run_id = run["run_id"].as_str().expect("run id");
+    ok(
+        &server,
+        "scholar_search_tool",
+        json!({"run_id": run_id, "query": "MCP prompt injection defences", "limit": 4}),
+    )
+    .await;
+
+    let draft = "## Findings\n\nMock evidence for MCP prompt injection defences.\n";
+    let reused = ok(
+        &server,
+        "run_research_pipeline_tool",
+        json!({"query": "MCP prompt injection defences", "draft": draft, "evidence_run_id": run_id}),
+    )
+    .await;
+    assert_eq!(reused["evidence_reused_from"], run_id);
+    assert_eq!(reused["evidence_count"], 4);
+    assert_eq!(reused["summary"]["claims"], 1);
+    assert_eq!(reused["summary"]["by_status"]["supported"], 1);
+    // The query is security, so a `semantic` build with its models uses NLI.
+    let verifier = reused["verifier"].as_str().expect("verifier");
+    assert!(
+        ["term_overlap_mvp", "nli_cross_encoder"].contains(&verifier),
+        "{verifier}"
+    );
+    assert!(reused.get("evidence").is_none());
+
+    // Without it, or with an empty string, the tool answers as it always has.
+    let plain = ok(
+        &server,
+        "run_research_pipeline_tool",
+        json!({"query": "MCP prompt injection defences", "draft": draft, "evidence_run_id": "  "}),
+    )
+    .await;
+    assert!(plain.get("summary").is_none());
+    assert_eq!(plain["evidence"].as_array().expect("evidence").len(), 10);
+
+    let unknown = err(
+        &server,
+        "run_research_pipeline_tool",
+        json!({"query": "q", "draft": "A claim.", "evidence_run_id": "run_missing"}),
+    )
+    .await;
+    assert!(
+        unknown.contains("run_missing") || unknown.to_lowercase().contains("not found"),
+        "{unknown}"
+    );
+}

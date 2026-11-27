@@ -92,6 +92,35 @@ pub const NLI_DEBERTA_XSMALL: ModelSpec = ModelSpec {
     ],
 };
 
+/// `cross-encoder/nli-deberta-v3-base`: the same labels and tokenizer as
+/// the xsmall model, 184M parameters to its 71M.
+pub const NLI_DEBERTA_BASE: ModelSpec = ModelSpec {
+    name: "nli-deberta-v3-base",
+    repo: "cross-encoder/nli-deberta-v3-base",
+    revision: "6c749ce3425cd33b46d187e45b92bbf96ee12ec7",
+    files: [
+        ModelFile {
+            remote: "onnx/model.onnx",
+            local: "model.onnx",
+            sha256: "369ebf04fce8206c83b8fd62e9dc860144f10351a7f885ed3076beb17b7c6dda",
+        },
+        ModelFile {
+            remote: "tokenizer.json",
+            local: "tokenizer.json",
+            sha256: "5124ef2ead1a10a717703bc436de7f353da76d6340e4587719b42b1693707964",
+        },
+    ],
+};
+
+/// The spec for the NLI model in force ([`crate::verify::nli_model`]).
+#[must_use]
+pub fn nli_spec() -> &'static ModelSpec {
+    match crate::verify::nli_model() {
+        "base" => &NLI_DEBERTA_BASE,
+        _ => &NLI_DEBERTA_XSMALL,
+    }
+}
+
 /// Why a model is unavailable.
 #[derive(Debug, thiserror::Error)]
 pub enum ModelError {
@@ -478,21 +507,28 @@ impl Embedder for OnnxEmbedder {
     }
 }
 
-/// `nli-deberta-v3-xsmall` cross-encoder: softmax over three logits.
+/// A DeBERTa-v3 NLI cross-encoder: softmax over three logits.
 pub struct OnnxNli {
+    spec: &'static ModelSpec,
     session: Mutex<Session>,
     tokenizer: Tokenizer,
 }
 
 impl OnnxNli {
-    /// Load (downloading if allowed) the pinned NLI model.
+    /// Load (downloading if allowed) the NLI model in force
+    /// ([`nli_spec`]).
     ///
     /// # Errors
     /// See [`ensure`] and [`ModelError::Load`].
     pub async fn load(models_dir: &Path, offline: bool) -> Result<Self, ModelError> {
-        let dir = ensure(&NLI_DEBERTA_XSMALL, models_dir, offline).await?;
-        let (session, tokenizer) = load(&NLI_DEBERTA_XSMALL, &dir)?;
-        Ok(Self { session, tokenizer })
+        let spec = nli_spec();
+        let dir = ensure(spec, models_dir, offline).await?;
+        let (session, tokenizer) = load(spec, &dir)?;
+        Ok(Self {
+            spec,
+            session,
+            tokenizer,
+        })
     }
 }
 
@@ -505,12 +541,33 @@ fn softmax(logits: &[f32]) -> [f32; 3] {
 
 impl NliModel for OnnxNli {
     fn id(&self) -> String {
-        NLI_DEBERTA_XSMALL.id()
+        self.spec.id()
     }
 
     fn classify(&self, pairs: &[(&str, &str)]) -> Result<Vec<NliScores>, String> {
-        let mut out = Vec::with_capacity(pairs.len());
-        for chunk in pairs.chunks(BATCH) {
+        // A batch is padded to its longest pair, so one whole abstract makes
+        // every sentence beside it cost as much as an abstract. Batch pairs
+        // of similar length together and put the scores back in input order.
+        let mut order: Vec<usize> = (0..pairs.len()).collect();
+        order.sort_by_key(|&i| pairs[i].0.len() + pairs[i].1.len());
+        let sorted: Vec<(&str, &str)> = order.iter().map(|&i| pairs[i]).collect();
+        let size = |pair: &(&str, &str)| pair.0.len() + pair.1.len();
+        // A batch also ends where the next pair is more than twice as long
+        // as its shortest, so a few sentences never ride with an abstract.
+        let mut batches: Vec<&[(&str, &str)]> = Vec::new();
+        let mut start = 0;
+        for end in 1..=sorted.len() {
+            let full = end - start == BATCH;
+            let jump = sorted
+                .get(end)
+                .is_some_and(|next| size(next) > 2 * size(&sorted[start]) + 64);
+            if end == sorted.len() || full || jump {
+                batches.push(&sorted[start..end]);
+                start = end;
+            }
+        }
+        let mut by_length = Vec::with_capacity(pairs.len());
+        for chunk in batches {
             let batch: Vec<EncodeInput> = chunk
                 .iter()
                 .map(|(p, h)| EncodeInput::Dual((*p).into(), (*h).into()))
@@ -531,12 +588,23 @@ impl NliModel for OnnxNli {
             for row in logits.chunks(3) {
                 // Label order from the model's config.json.
                 let [contradiction, entailment, neutral] = softmax(row);
-                out.push(NliScores {
+                by_length.push(NliScores {
                     contradiction,
                     entailment,
                     neutral,
                 });
             }
+        }
+        if by_length.len() != pairs.len() {
+            return Err(format!(
+                "NLI returned {} scores for {} pairs",
+                by_length.len(),
+                pairs.len()
+            ));
+        }
+        let mut out = by_length.clone();
+        for (score, &index) in by_length.iter().zip(&order) {
+            out[index] = *score;
         }
         Ok(out)
     }

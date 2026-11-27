@@ -92,8 +92,10 @@ Needs Rust 1.89 or newer (1.92 for `semantic`).
 git clone https://github.com/Raoof128/reasoning-engine.git
 cd reasoning-engine
 cargo install --locked --path crates/re-cli                          # stdio MCP only
-cargo install --locked --path crates/re-cli --features local-host,trust,tasks,semantic,fulltext,graph,learn,fa,wasm-adapters   # everything
+cargo install --locked --path crates/re-cli --features local-host,trust,tasks,semantic,fulltext,graph,learn,fa,reuse,wasm-adapters   # everything
 ```
+
+On macOS a `semantic` build fails at link time with `___isPlatformVersionAtLeast` undefined, because the ONNX runtime's CoreML objects need the compiler runtime. `scripts/build-local.sh` adds it for the final binary and builds `target/release/reasoning-engine` with the release features plus `semantic`, `fulltext`, `graph`, `learn`, `fa` and `reuse`; set `FEATURES=...` to choose others.
 
 ### Docker
 
@@ -159,6 +161,7 @@ cp skill/deep-research.md ~/.codex/skills/deep-research/SKILL.md
 | `fa` | Persian: spelling normalisation, Persian terms in `lexical`, a right-to-left Persian report, and with `semantic` the multilingual bge-m3 embedder | no |
 | `wasm-adapters` | Sandboxed third-party search sources loaded from `~/.reasoning-engine/adapters` (needs Rust 1.97) | no |
 | `semantic` | `hybrid` and `nli` verifier tiers (ONNX models, downloaded on first use) | no |
+| `reuse` | `run_research_pipeline_tool(evidence_run_id)`: verify a draft against the evidence a run already gathered, and get a short summary of the verdicts back | no |
 | `scholar-gateway` | Token-gated Scholar Gateway as an extra search source | no |
 
 ### Verifier tiers
@@ -177,17 +180,35 @@ A public yardstick, not one we labelled ourselves. `reasoning-engine bench verif
 
 | Tier | Accuracy | F1 supported | F1 contradicted | F1 neutral | Macro F1 | ms / pair |
 |---|---:|---:|---:|---:|---:|---:|
-| `lexical` | 0.538 | 0.532 | 0.000 | 0.641 | 0.391 | 0.1 |
-| `hybrid` | 0.582 | 0.657 | 0.000 | 0.642 | 0.433 | 114.3 |
-| `nli` | 0.479 | 0.160 | 0.472 | 0.600 | 0.411 | 276.1 |
+| `lexical` | 0.565 | 0.579 | 0.000 | 0.663 | 0.414 | 0.1 |
+| `hybrid` | 0.588 | 0.663 | 0.000 | 0.649 | 0.437 | 83.8 |
+| `nli` | 0.626 | 0.614 | 0.500 | 0.676 | 0.597 | 328.6 |
 
-Verifiers at commit `fd4c0a940c7a`, measured 2026-10-19 on 4 CPUs.
+Measured 2026-11-27 on 8 CPUs with a `semantic` build, which keeps up to 4,000 characters of each abstract.
 
-This set is much harder than the labelled pairs above. A whole abstract is a long premise for a sentence-level NLI model, so `nli` almost never reaches its 0.7 entailment bar: when it says `supported` it is right every time, but it finds only 9% of the supported pairs. It is still the only tier that catches contradictions. Treat these numbers as the baseline the next verifier has to beat.
+How the `nli` figure got there, on the same 340 pairs:
+
+| `nli` tier | Accuracy | Macro F1 | Supported recall |
+|---|---:|---:|---:|
+| Whole abstract, cut at 1,500 characters (2026-10-19) | 0.479 | 0.411 | 0.087 |
+| Sentence windows, cut at 1,500 characters | 0.585 | 0.554 | 0.391 |
+| Sentence windows, cut at 4,000 characters | 0.626 | 0.597 | 0.478 |
+
+With abstracts cut at 1,500 characters `lexical` scored 0.538 and `hybrid` 0.582.
+
+This set is much harder than the labelled pairs above. A whole abstract is a long premise for a sentence-level NLI model, so judged whole it almost never reaches the 0.7 entailment bar: `nli` was right every time it said `supported` and found only 9% of the supported pairs. It is still the only tier that catches contradictions.
+
+Every source's abstract used to be cut at 1,500 characters. 127 of these 340 abstracts are longer, and an abstract states its conclusion at the end, so the sentence a claim rests on was often the part thrown away. A build with `semantic` now keeps 4,000 characters; none of the three tiers did worse for it and keeping the whole abstract added nothing more. `REASONING_ENGINE_SNIPPET_CHARS` sets the cap by hand, and the default build still uses 1,500. How sentences are split was measured too and made no difference (0.626 with SciFact's own sentence boundaries, 0.629 with the engine's).
+
+Since 2026-11-27 `nli` judges each abstract as a whole and also in windows of one and two sentences, the ones sharing the most terms with the claim, and takes the highest entailment (the granularity fix of SummaC, Laban et al. 2022). Contradiction is still read from the whole abstract only: taking it from single sentences as well raised contradiction recall but cost precision and overall accuracy on this set (accuracy 0.541 and contradiction precision 0.423 with single sentences, 0.574 and 0.494 with single sentences at p >= 0.9, against 0.585 and 0.569 for the rule kept, all with abstracts cut at 1,500 characters). Recall on supported pairs rose from 9% to 39% at a precision of 0.844, and to 48% at 0.857 once abstracts were kept to 4,000 characters. Treat these numbers as the baseline the next verifier has to beat.
+
+A larger model is available for the `nli` tier: `REASONING_ENGINE_NLI_MODEL=base` loads `cross-encoder/nli-deberta-v3-base` (184M parameters against 71M, a 739 MB download on first use) with the same labels, thresholds and pooling. On this set it scores 0.674 against 0.626 (macro F1 0.649 against 0.597, supported precision 0.895 and recall 0.558, contradicted precision 0.727 and recall 0.451), and 0.912 on the labelled pairs, the same as the default. It took 1,413 ms a pair against 531 ms for the default in the same session, so it is off unless asked for. Four candidates were compared before choosing it; the table is in `CHANGELOG.md` under 2026-11-27.
 
 ## Academic search and the verifiable pipeline
 
-Search is live by default and fans out concurrently across seven free sources:
+Search is live by default and fans out concurrently across seven free sources. A slow source no longer sets the pace: once three sources have returned evidence the rest get 1.5 seconds, and a search never waits more than 8 seconds once it has something. A source that is cut off is reported as `deadline_exceeded` in the search diagnostics and keeps running in the background, so in a long-lived server its answer is cached for the next time the same query is asked. Recorded runs (`research --record`) and replays wait for every source, because a replay has to reproduce the recording byte for byte.
+
+Records that are one paper under different identifiers (the publisher's DOI, the arXiv DOI, no DOI) are merged by title, year and (when both records list them) a shared author name, so one paper takes one place in the results. If the kept record had no abstract, DOI or URL and takes one from a merged record, its metadata says which source it came from (`snippet_from`, `doi_from`, `url_from`). Every search in a run adds to that run's evidence: IDs continue across searches, and a paper found again keeps the ID it has.
 
 ```bash
 reasoning-engine scholar search "MCP prompt injection" --limit 3
@@ -217,7 +238,10 @@ reasoning-engine verify-runpack ~/.reasoning-engine/runs/<run_id>
 | `REASONING_ENGINE_SOURCES=openalex,crossref` | Narrow which sources are enabled |
 | `REASONING_ENGINE_CONTACT_EMAIL` | Contact address for OpenAlex/Crossref's polite pool |
 | `REASONING_ENGINE_HTTP_TIMEOUT_SECS` | Per-request timeout (default 25) |
-| `S2_API_KEY`, `OPENALEX_API_KEY` | Optional keys for higher rate limits |
+| `REASONING_ENGINE_FANOUT_DEADLINE_SECS` | Longest a live search waits once it has evidence (default 8). `0` waits for every source |
+| `REASONING_ENGINE_NLI_MODEL` | Model for the `nli` tier: `xsmall` (default) or `base`, which is more accurate and about 2.7 times slower. A run pack records the choice and a replay uses it |
+| `REASONING_ENGINE_SNIPPET_CHARS` | Characters of each abstract kept as evidence, 200 to 20,000 (default 1,500; 4,000 in a build with `semantic`). A run pack records the value and a replay uses it |
+| `S2_API_KEY`, `OPENALEX_API_KEY` | Free keys, worth setting. Since February 2026 OpenAlex gives a keyless caller a small daily budget (1,000 credits at 10 per search when checked on 2026-11-27), and Semantic Scholar answers keyless calls with 429 most of the time |
 | `REASONING_ENGINE_DORA=directional` | Add direction-level budget advice to `select_next_branches` |
 | `REASONING_ENGINE_MEMORY=fts` | Rank memory recall with SQLite FTS5 BM25 |
 | `SCHOLAR_GATEWAY_LIVE=1`, `SCHOLAR_GATEWAY_ACCESS_TOKEN` | Scholar Gateway (`scholar-gateway` builds) |

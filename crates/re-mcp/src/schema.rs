@@ -85,6 +85,19 @@ const PLAN_ANGLES: &[Param] = &[
     opt("prefetch", Kind::Bool, "false"),
 ];
 
+/// `run_research_pipeline_tool` parameters. The `reuse` feature adds
+/// `evidence_run_id`, which Python's tool does not have.
+#[cfg(not(feature = "reuse"))]
+const PIPELINE: &[Param] = &[QUERY, req("draft", Kind::Str), MODE, PROFILE];
+#[cfg(feature = "reuse")]
+const PIPELINE: &[Param] = &[
+    QUERY,
+    req("draft", Kind::Str),
+    MODE,
+    PROFILE,
+    opt("evidence_run_id", Kind::Str, "\"\""),
+];
+
 const SESSION: Param = req("session_id", Kind::Str);
 const BRANCH: Param = req("branch_id", Kind::Str);
 const QUERY: Param = req("query", Kind::Str);
@@ -241,7 +254,7 @@ pub const TOOLS: [ToolSpec; 20] = [
     tool(
         "run_research_pipeline_tool",
         "Run the MVP verifiable research pipeline and export an attested run pack.",
-        &[QUERY, req("draft", Kind::Str), MODE, PROFILE],
+        PIPELINE,
         false,
     ),
     tool(

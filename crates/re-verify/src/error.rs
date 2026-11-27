@@ -22,6 +22,9 @@ pub enum VerifyError {
     /// `REASONING_ENGINE_VERIFIER` names no known verifier.
     #[error("unknown verifier: {0} (expected one of: lexical, hybrid, nli)")]
     UnknownVerifier(String),
+    /// `REASONING_ENGINE_NLI_MODEL`, or a run pack, names no known NLI model.
+    #[error("unknown NLI model: {0} (expected one of: xsmall, base)")]
+    UnknownNliModel(String),
     /// A model tier was requested from a build without it.
     #[error("verifier {0} needs a build with `--features semantic`; this build has only lexical")]
     NeedsSemantic(String),

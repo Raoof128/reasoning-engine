@@ -6,6 +6,7 @@
 use std::borrow::Cow;
 use std::collections::HashSet;
 use std::sync::LazyLock;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use re_model::clock::utc_now;
 use re_model::ids::short_hex;
@@ -58,6 +59,33 @@ pub trait Verifier: Send + Sync {
 
 /// Every tier name `REASONING_ENGINE_VERIFIER` accepts.
 pub const TIERS: [&str; 3] = ["lexical", "hybrid", "nli"];
+
+/// The models the `nli` tier can judge with, by the name the setting uses:
+/// `xsmall` (the default) and `base`, which is 2.6 times the size.
+pub const NLI_MODELS: [&str; 2] = ["xsmall", "base"];
+
+static NLI_MODEL: AtomicUsize = AtomicUsize::new(0);
+
+/// The NLI model in force for this process.
+#[must_use]
+pub fn nli_model() -> &'static str {
+    NLI_MODELS[NLI_MODEL.load(Ordering::Relaxed).min(NLI_MODELS.len() - 1)]
+}
+
+/// Choose the NLI model for this process. Like the snippet cap, it is one
+/// setting for the process: the CLI sets it once at start, and a replay
+/// sets it to what its run pack was recorded with.
+///
+/// # Errors
+/// A name that is not in [`NLI_MODELS`].
+pub fn set_nli_model(name: &str) -> Result<(), VerifyError> {
+    let index = NLI_MODELS
+        .iter()
+        .position(|known| *known == name.trim())
+        .ok_or_else(|| VerifyError::UnknownNliModel(name.to_string()))?;
+    NLI_MODEL.store(index, Ordering::Relaxed);
+    Ok(())
+}
 
 fn tier(name: Option<&str>) -> Result<&'static str, VerifyError> {
     let name = name

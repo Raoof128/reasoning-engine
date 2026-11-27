@@ -223,7 +223,10 @@ fn search(config: &Config, offline: bool) -> Result<AcademicSearchAggregator, Fa
         );
         adapters = re_retrieval::cache::cached(adapters, &cache);
     }
-    Ok(AcademicSearchAggregator::new(adapters))
+    // Live searches stop waiting for slow sources; recorded runs (`trust`)
+    // build their own aggregator and wait for every one.
+    let policy = re_retrieval::aggregate::FanoutPolicy::from_env(|var| std::env::var(var).ok());
+    Ok(AcademicSearchAggregator::new(adapters).with_fanout(policy))
 }
 
 async fn service(config: &Config) -> Result<VerifiableResearchService, Failure> {
@@ -473,6 +476,23 @@ async fn bench(command: BenchCommand) -> Result<u8, Failure> {
 }
 
 async fn run(cli: Cli) -> Result<u8, Failure> {
+    // Builds with the model tiers keep more of each abstract: the verifier
+    // reads sentences, and an abstract ends with its conclusion.
+    let snippet_default = if cfg!(feature = "semantic") {
+        re_retrieval::base::LONG_SNIPPET_LIMIT
+    } else {
+        re_retrieval::base::SNIPPET_LIMIT
+    };
+    re_retrieval::base::set_snippet_limit(re_retrieval::base::snippet_limit_from_env(
+        |var| std::env::var(var).ok(),
+        snippet_default,
+    ));
+    if let Some(model) = std::env::var("REASONING_ENGINE_NLI_MODEL")
+        .ok()
+        .filter(|name| !name.trim().is_empty())
+    {
+        re_verify::verify::set_nli_model(&model)?;
+    }
     match cli.command {
         Command::Setup(args) => Ok(setup::run(&args)?),
         Command::Mcp => {
