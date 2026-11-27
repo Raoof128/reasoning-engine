@@ -1,5 +1,53 @@
 # Changelog
 
+## Raouf: 2026-11-27 (Australia/Sydney), second pass: whole abstracts for the verifier, an optional larger NLI model, labelled merges
+
+**Scope:** `re-retrieval` (base, aggregate), `re-verify` (verify, models, replay, error), `re-cli` (main), `README.md`, `AGENT.md`, tests.
+
+**Why:** a second look for accuracy, measured before changing anything. The first hypothesis was wrong and is recorded here so it is not tried again.
+
+**Summary**
+- **Abstracts are no longer cut at 1,500 characters in builds with `semantic`.** Every source's abstract went through `clip_snippet(…, 1500)`. 127 of the 340 SciFact dev abstracts are longer (31 past 2,500, 5 past 4,000), and an abstract states its conclusion at the end, so the sentence a claim rests on was often the part cut off. The cap is now a process setting (`re_retrieval::base::snippet_limit`): 1,500 in the library and in the default build, which keeps the Python parity, 4,000 when the CLI is built with `semantic`, and `REASONING_ENGINE_SNIPPET_CHARS` (200 to 20,000) to set it by hand. SciFact dev, 340 pairs, 1,500 to 4,000 characters: `nli` 0.585 to 0.626 (macro F1 0.554 to 0.597; supported precision 0.844 to 0.857 and recall 0.391 to 0.478; contradicted precision 0.569 to 0.644, recall unchanged at 0.408), `lexical` 0.538 to 0.565, `hybrid` 0.582 to 0.588. The labelled pairs are single sentences and did not move (0.585 / 0.571 / 0.912). **This changes verdicts.**
+- **Run packs record the cap.** `replay.json` carries `snippet_chars` when it is not 1,500, and a replay sets the cap to the recorded value (1,500 when absent) before rebuilding evidence, so packs recorded before today replay as they did.
+- **Optional larger NLI model.** `REASONING_ENGINE_NLI_MODEL=base` makes the `nli` tier judge with `cross-encoder/nli-deberta-v3-base` (184M parameters, Apache-2.0, pinned revision and SHA-256, a 739 MB download on first use) in place of the xsmall model (71M). It has the same labels and tokenizer. Measured in the engine: SciFact dev 0.674 against 0.626 (macro F1 0.649 against 0.597; supported precision 0.895 and recall 0.558; contradicted precision 0.727 and recall 0.451), labelled pairs 0.912, the same as xsmall. It costs time: 1,413 ms a pair against 531 ms for xsmall in the same session. The default stays xsmall. A run pack records `nli_model` when it is not `xsmall`, and a replay loads the recorded model. An unknown name is an error at start, not a silent fallback.
+- **Merged records say where a borrowed field came from.** The title-and-year merge added earlier today could fill the kept record's abstract, DOI or URL from the record merged into it with nothing to show for it. The kept record's metadata now names the source (`snippet_from`, `doi_from`, `url_from`), carried through later merges, and two records are merged only if their author lists share a name when both have one. Raised by the commit security review.
+- **Measured and not the cause: sentence splitting.** The engine's splitter breaks after every full stop, `e.g.` and `S. aureus` included. On SciFact that costs nothing: 0.626 with SciFact's own sentence boundaries, 0.629 with the engine's, 0.626 with an abbreviation-aware splitter. The two-sentence windows absorb a bad split.
+- **Measured and left alone: Europe PMC and DBLP.** `resultType=lite` on Europe PMC is no faster (22.5 s and 1.4 s on consecutive identical calls, against 10.6 s and 23.1 s for `core`) and drops the abstract, so the latency is theirs and the fan-out deadline stays the answer. DBLP's search API and its Trier mirror both answer with an Anubis bot check (HTTP 202, HTML); `sparql.dblp.org` answers without one (a title `FILTER` took 6.5 s) and is the route for a future adapter.
+
+**Model comparison** (Python, `transformers` on Apple MPS, the engine's verdict rule reimplemented, whole abstracts; the xsmall row reproduces the engine's figures, 0.626 and 0.912):
+
+| Model | Parameters | SciFact accuracy | Macro F1 | Supported P / R | Contradicted P / R | Labelled pairs |
+|---|---:|---:|---:|---:|---:|---:|
+| `cross-encoder/nli-deberta-v3-xsmall` (shipped) | 71M | 0.626 | 0.596 | 0.85 / 0.48 | 0.64 / 0.41 | 0.912 |
+| `cross-encoder/nli-deberta-v3-small` | 142M | 0.588 | 0.553 | 0.83 / 0.49 | 0.59 / 0.32 | 0.912 |
+| `tasksource/deberta-small-long-nli` | 142M | 0.688 | 0.621 | 0.82 / 0.68 | 0.86 / 0.25 | 0.898 |
+| `cross-encoder/nli-deberta-v3-base` (now optional) | 184M | 0.674 | 0.649 | 0.90 / 0.56 | 0.73 / 0.45 | 0.912 |
+| `MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli` | 184M | 0.703 | 0.675 | 0.79 / 0.67 | 0.72 / 0.47 | 0.884 |
+
+The base cross-encoder was chosen because it is the only candidate that is better on every SciFact measure and no worse on the labelled pairs; the MoritzLaurer model scores higher on SciFact but says `supported` wrongly more often (precision 0.79) and loses three points on the labelled pairs. MiniCheck (Tang et al., EMNLP 2024) was not run: its DeBERTa is 435M parameters with no ONNX export, and it has no contradiction class.
+
+**Files changed**
+- `crates/re-retrieval/src/{base,aggregate}.rs`, `crates/re-retrieval/tests/{aggregate,snippet_limit}.rs`
+- `crates/re-verify/src/{verify,models,replay,error}.rs`, `crates/re-verify/tests/replay_settings.rs`
+- `crates/re-cli/src/main.rs`, `README.md`, `AGENT.md`, `CHANGELOG.md`
+
+**Verification**
+- `cargo test --workspace --locked` (default features, `REASONING_ENGINE_OFFLINE=1`): 258 passed, 0 failed. With `--features local-host,trust,tasks,fulltext,graph,learn,fa,reuse,semantic`: 339 passed, 0 failed. Five tests are new: two for merges, two for the snippet cap, one that records and replays packs under each setting.
+- `cargo clippy --workspace --all-targets --locked -- -D warnings` on the default features, `local-host,trust,tasks` and the nine-feature set: clean. `cargo fmt --all --check`: clean. `cargo doc --workspace --no-deps` with `-D warnings`: clean.
+- Python parity (`tests/parity/run_parity.py`, default build): 46 steps, identical after normalisation.
+- `reasoning-engine bench verify --dataset scifact --tier lexical --tier hybrid --tier nli` and the same with `REASONING_ENGINE_SNIPPET_CHARS=1500` and with `REASONING_ENGINE_NLI_MODEL=base`: the figures above. `bench verify` on the labelled pairs: 0.585 / 0.571 / 0.912, and 0.912 with `base`.
+- `scripts/e2e_mcp_verify.py` (live, five searches then nine claims against 40 evidence records): searches 13.0 to 14.5 s, verification 36.6 s with the 4,000-character cap and 31.8 s with 1,500; six claims supported, one partially supported and both planted false claims blocking in each. With 1,500 the planted "always more accurate on every benchmark" claim came back `contradicted`; with 4,000 it came back `unsupported`. See the first follow-up.
+- `verify-runpack` on a pack recorded on 2026-11-26: valid. `REASONING_ENGINE_NLI_MODEL=huge`: refused with `unknown NLI model`.
+- Not run: `--all-features` (`wasm-adapters`, `scholar-gateway`), the MSRV job, `cargo deny`. No dependency changed.
+
+**Follow-ups**
+- Contradiction is read from the whole snippet, which a longer snippet dilutes: one live case went from `contradicted` to `unsupported`. Taking the larger of the whole snippet's and its first 1,500 characters' contradiction was measured on SciFact: recall 0.408 to 0.437, precision 0.644 to 0.585, accuracy 0.629 to 0.626. Not adopted, because a wrong `contradicted` misleads more than a missed one, which still blocks the gate as `unsupported`. Worth revisiting with a set that has more contradictions than SciFact's 71.
+- The base model's ONNX file is float32. The same repository has an int8 build a third of the size (`model_qint8_arm64.onnx`); it was not measured. If it holds the accuracy it would give most of the gain at something near xsmall's speed.
+- OpenAlex (`search.semantic`, a 1,024-dimension Qwen3 embedding index, one request a second, 2,000 characters) and Semantic Scholar (`/snippet/search`, passages of about 500 words from paper bodies) both now offer what the verify phase most needs: retrieval by a whole claim, and text from beyond the abstract. Both answer 429 without a key, so neither could be tested here; the day's keyless OpenAlex budget was spent by these measurements. They are the next adapters to write once `OPENALEX_API_KEY` and `S2_API_KEY` are set.
+- Crossref has rate-limited by contact address since 21 July 2026. Every install shares the default one; set `REASONING_ENGINE_CONTACT_EMAIL`.
+- A calibration file made with the xsmall model does not fit the base model's scores. Recalibrate after switching.
+- Unchanged from the entry below: verification time per claim, the DBLP source, tagging v0.2.1.
+
 ## Raouf: 2026-11-27 (Australia/Sydney): faster search, sentence-level NLI, verification against the run's own evidence
 
 **Scope:** `re-retrieval` (aggregate), `re-verify` (nli, models, claims, service), `re-mcp` (schema, tools), `re-cli` (features, search wiring), `skill/deep-research.md`, `README.md`, two scripts.

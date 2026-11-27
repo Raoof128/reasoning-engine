@@ -180,16 +180,29 @@ A public yardstick, not one we labelled ourselves. `reasoning-engine bench verif
 
 | Tier | Accuracy | F1 supported | F1 contradicted | F1 neutral | Macro F1 | ms / pair |
 |---|---:|---:|---:|---:|---:|---:|
-| `lexical` | 0.538 | 0.532 | 0.000 | 0.641 | 0.391 | 0.1 |
-| `hybrid` | 0.582 | 0.657 | 0.000 | 0.642 | 0.433 | 114.3 |
-| `nli` (whole abstract, before 2026-11-27) | 0.479 | 0.160 | 0.472 | 0.600 | 0.411 | 276.1 |
-| `nli` (sentence windows) | 0.585 | 0.535 | 0.475 | 0.652 | 0.554 | 529.7 |
+| `lexical` | 0.565 | 0.579 | 0.000 | 0.663 | 0.414 | 0.1 |
+| `hybrid` | 0.588 | 0.663 | 0.000 | 0.649 | 0.437 | 83.8 |
+| `nli` | 0.626 | 0.614 | 0.500 | 0.676 | 0.597 | 328.6 |
 
-The first three rows are verifiers at commit `fd4c0a940c7a`, measured 2026-10-19 on 4 CPUs. The last row is the `nli` tier after the 2026-11-27 change, measured that day on 8 CPUs.
+Measured 2026-11-27 on 8 CPUs with a `semantic` build, which keeps up to 4,000 characters of each abstract.
 
-This set is much harder than the labelled pairs above. A whole abstract is a long premise for a sentence-level NLI model, so `nli` almost never reaches its 0.7 entailment bar: when it says `supported` it is right every time, but it finds only 9% of the supported pairs. It is still the only tier that catches contradictions.
+How the `nli` figure got there, on the same 340 pairs:
 
-Since 2026-11-27 `nli` judges each abstract as a whole and also in windows of one and two sentences, the ones sharing the most terms with the claim, and takes the highest entailment (the granularity fix of SummaC, Laban et al. 2022). Contradiction is still read from the whole abstract only: taking it from single sentences as well raised contradiction recall but cost precision and overall accuracy on this set (accuracy 0.541 and contradiction precision 0.423 with single sentences, 0.574 and 0.494 with single sentences at p >= 0.9, against 0.585 and 0.569 as shipped). Recall on supported pairs rose from 9% to 39%, at a precision of 0.844. Treat these numbers as the baseline the next verifier has to beat.
+| `nli` tier | Accuracy | Macro F1 | Supported recall |
+|---|---:|---:|---:|
+| Whole abstract, cut at 1,500 characters (2026-10-19) | 0.479 | 0.411 | 0.087 |
+| Sentence windows, cut at 1,500 characters | 0.585 | 0.554 | 0.391 |
+| Sentence windows, cut at 4,000 characters | 0.626 | 0.597 | 0.478 |
+
+With abstracts cut at 1,500 characters `lexical` scored 0.538 and `hybrid` 0.582.
+
+This set is much harder than the labelled pairs above. A whole abstract is a long premise for a sentence-level NLI model, so judged whole it almost never reaches the 0.7 entailment bar: `nli` was right every time it said `supported` and found only 9% of the supported pairs. It is still the only tier that catches contradictions.
+
+Every source's abstract used to be cut at 1,500 characters. 127 of these 340 abstracts are longer, and an abstract states its conclusion at the end, so the sentence a claim rests on was often the part thrown away. A build with `semantic` now keeps 4,000 characters; none of the three tiers did worse for it and keeping the whole abstract added nothing more. `REASONING_ENGINE_SNIPPET_CHARS` sets the cap by hand, and the default build still uses 1,500. How sentences are split was measured too and made no difference (0.626 with SciFact's own sentence boundaries, 0.629 with the engine's).
+
+Since 2026-11-27 `nli` judges each abstract as a whole and also in windows of one and two sentences, the ones sharing the most terms with the claim, and takes the highest entailment (the granularity fix of SummaC, Laban et al. 2022). Contradiction is still read from the whole abstract only: taking it from single sentences as well raised contradiction recall but cost precision and overall accuracy on this set (accuracy 0.541 and contradiction precision 0.423 with single sentences, 0.574 and 0.494 with single sentences at p >= 0.9, against 0.585 and 0.569 for the rule kept, all with abstracts cut at 1,500 characters). Recall on supported pairs rose from 9% to 39% at a precision of 0.844, and to 48% at 0.857 once abstracts were kept to 4,000 characters. Treat these numbers as the baseline the next verifier has to beat.
+
+A larger model is available for the `nli` tier: `REASONING_ENGINE_NLI_MODEL=base` loads `cross-encoder/nli-deberta-v3-base` (184M parameters against 71M, a 739 MB download on first use) with the same labels, thresholds and pooling. On this set it scores 0.674 against 0.626 (macro F1 0.649 against 0.597, supported precision 0.895 and recall 0.558, contradicted precision 0.727 and recall 0.451), and 0.912 on the labelled pairs, the same as the default. It took 1,413 ms a pair against 531 ms for the default in the same session, so it is off unless asked for. Four candidates were compared before choosing it; the table is in `CHANGELOG.md` under 2026-11-27.
 
 ## Academic search and the verifiable pipeline
 
@@ -226,6 +239,8 @@ reasoning-engine verify-runpack ~/.reasoning-engine/runs/<run_id>
 | `REASONING_ENGINE_CONTACT_EMAIL` | Contact address for OpenAlex/Crossref's polite pool |
 | `REASONING_ENGINE_HTTP_TIMEOUT_SECS` | Per-request timeout (default 25) |
 | `REASONING_ENGINE_FANOUT_DEADLINE_SECS` | Longest a live search waits once it has evidence (default 8). `0` waits for every source |
+| `REASONING_ENGINE_NLI_MODEL` | Model for the `nli` tier: `xsmall` (default) or `base`, which is more accurate and about 2.7 times slower. A run pack records the choice and a replay uses it |
+| `REASONING_ENGINE_SNIPPET_CHARS` | Characters of each abstract kept as evidence, 200 to 20,000 (default 1,500; 4,000 in a build with `semantic`). A run pack records the value and a replay uses it |
 | `S2_API_KEY`, `OPENALEX_API_KEY` | Free keys, worth setting. Since February 2026 OpenAlex gives a keyless caller a small daily budget (1,000 credits at 10 per search when checked on 2026-11-27), and Semantic Scholar answers keyless calls with 429 most of the time |
 | `REASONING_ENGINE_DORA=directional` | Add direction-level budget advice to `select_next_branches` |
 | `REASONING_ENGINE_MEMORY=fts` | Rank memory recall with SQLite FTS5 BM25 |

@@ -34,6 +34,9 @@ Plain `cargo test` must pass too, not only nextest: nextest runs each test in it
 - Behaviour the Python package does not have goes behind a Cargo feature or leaves plain-input behaviour untouched. The parity job compares the default build with Python, and `crates/re-core/tests/golden.rs` pins the pure functions. `reuse` (the `evidence_run_id` argument) follows the pattern of `tasks` and `learn`: gate the schema parameter and strip it in `crates/re-mcp/tests/params.rs`.
 - The `nli` tier pools sentence windows for entailment and reads contradiction from the whole snippet. Any change to that pooling is a verdict change: measure it with `bench verify` on both sets and log the numbers.
 - On macOS, build `semantic` with `scripts/build-local.sh`; a plain `cargo build` fails at link time.
+- The snippet cap is a process setting (`re_retrieval::base::snippet_limit`): 1,500 characters in the library and the default build, 4,000 when the CLI is built with `semantic`, `REASONING_ENGINE_SNIPPET_CHARS` to override. A run pack records it as `snippet_chars` when it is not 1,500 and a replay applies the recorded value. A test that changes it needs a test binary of its own.
+- The `nli` tier's model is a process setting too (`re_verify::verify::nli_model`): `xsmall` by default, `base` through `REASONING_ENGINE_NLI_MODEL`, recorded in a run pack as `nli_model` when it is not `xsmall`. Adding a model means a pinned `ModelSpec` (revision and SHA-256), a name in `NLI_MODELS`, and `bench verify` figures on both sets in the changelog. The models must share the label order contradiction, entailment, neutral.
+- A same-work merge may fill a missing abstract, DOI or URL from the merged record only with the source named in `snippet_from`, `doi_from` or `url_from`. Do not copy a field across records without that.
 
 ## The skill
 
@@ -60,3 +63,4 @@ Plain `cargo test` must pass too, not only nextest: nextest runs each test in it
 - Search fan-out deadline, same-work merge, evidence accumulation within a run, sentence-window NLI with length-aware batching, Markdown-aware claim extraction, and the `reuse` feature (`run_research_pipeline_tool(evidence_run_id)` with a verdict summary).
 - `skill/deep-research.md` updated to match; installed copies must stay byte-identical to it.
 - Numbers, verification and follow-ups: see `CHANGELOG.md`.
+- Later the same day: merged records label borrowed fields and need a shared author; the snippet cap became a setting (4,000 with `semantic`) after measuring that the 1,500 cut cost the `nli` tier four points on SciFact. Sentence splitting was measured and is not the cause. `REASONING_ENGINE_NLI_MODEL=base` added as an option after comparing five models.
