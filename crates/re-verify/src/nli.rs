@@ -3,6 +3,18 @@
 //! pair as entailment, contradiction or neutral. This is the only tier that
 //! can say `contradicted`.
 //!
+//! A snippet is usually a whole abstract, and a sentence-pair NLI model
+//! rarely calls a claim entailed by a ten-sentence premise even when one of
+//! those sentences states it. So each shortlisted snippet is judged as a
+//! whole and also in windows of one and two sentences (the ones sharing the
+//! most terms with the claim), and the snippet's entailment is the highest
+//! of them. This is the granularity fix of `SummaC` (Laban et al., TACL 2022).
+//! Contradiction is still read from the whole snippet only, and is capped
+//! at one minus the snippet's entailment. A single sentence out of context
+//! ("the treatment failed in mice") contradicts too readily: on `SciFact`,
+//! taking contradiction from sentences as well cost more precision than it
+//! gained recall (see `CHANGELOG.md`, 2026-11-27).
+//!
 //! Mapping, unchanged from the plan so the gate and run-pack schema stay put:
 //! - the strongest contradiction p >= 0.7, above every entailment -> `contradicted`
 //! - entailment p >= 0.7 -> `supported`
@@ -22,6 +34,10 @@ pub const ENTAILED: f32 = 0.7;
 pub const CONTRADICTED: f32 = 0.7;
 /// Entailment at or above this partially supports it.
 pub const PARTIAL: f32 = 0.4;
+
+/// Sentence windows judged per snippet, besides the snippet as a whole.
+/// Keeps the cost of one claim bounded whatever the abstract's length.
+pub const WINDOWS_PER_SNIPPET: usize = 6;
 
 /// Probabilities for one (premise, hypothesis) pair.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -55,6 +71,69 @@ impl<E: Embedder, N: NliModel> NliVerifier<E, N> {
     /// A verifier using both models.
     pub fn new(embedder: E, nli: N) -> Self {
         Self { embedder, nli }
+    }
+}
+
+/// Lowercased letter-and-digit runs of three characters or more.
+fn terms(text: &str) -> Vec<String> {
+    text.split(|c: char| !c.is_alphanumeric())
+        .filter(|t| t.chars().count() >= 3)
+        .map(str::to_lowercase)
+        .collect()
+}
+
+/// The premises to judge `claim` against for one snippet: the snippet
+/// itself first, then up to [`WINDOWS_PER_SNIPPET`] one- and two-sentence
+/// windows, the ones sharing the most distinct terms with the claim, in
+/// document order. A snippet of one sentence yields only itself.
+fn windows(snippet: &str, claim: &str) -> Vec<String> {
+    let mut out = vec![snippet.to_string()];
+    let sentences = re_core::claims::split_sentences(snippet);
+    if sentences.len() < 2 {
+        return out;
+    }
+    let wanted: std::collections::HashSet<String> = terms(claim).into_iter().collect();
+    let overlap = |text: &str| {
+        let seen: std::collections::HashSet<String> = terms(text).into_iter().collect();
+        wanted.intersection(&seen).count()
+    };
+    // (shared terms, is a single sentence, position, text)
+    let mut candidates: Vec<(usize, bool, usize, String)> = Vec::new();
+    for (i, sentence) in sentences.iter().enumerate() {
+        let position = candidates.len();
+        candidates.push((overlap(sentence), true, position, (*sentence).to_string()));
+        if let Some(next) = sentences.get(i + 1) {
+            let pair = format!("{sentence} {next}");
+            let position = candidates.len();
+            candidates.push((overlap(&pair), false, position, pair));
+        }
+    }
+    // Most shared terms first; a single sentence beats the pair containing
+    // it at equal overlap, because the shorter premise is the sharper one.
+    candidates.sort_by(|a, b| {
+        b.0.cmp(&a.0)
+            .then_with(|| b.1.cmp(&a.1))
+            .then_with(|| a.2.cmp(&b.2))
+    });
+    candidates.truncate(WINDOWS_PER_SNIPPET);
+    candidates.sort_by_key(|c| c.2);
+    out.extend(candidates.into_iter().filter(|c| c.0 > 0).map(|c| c.3));
+    out
+}
+
+/// One snippet's scores from the scores of its premises, the whole snippet
+/// first: the highest entailment of any of them, and the whole snippet's
+/// contradiction, capped so the two cannot both be near one.
+fn pooled(judged: &[NliScores]) -> NliScores {
+    let entailment = judged.iter().map(|s| s.entailment).fold(0.0_f32, f32::max);
+    let contradiction = judged
+        .first()
+        .map_or(0.0, |whole| whole.contradiction)
+        .min(1.0 - entailment);
+    NliScores {
+        contradiction,
+        entailment,
+        neutral: (1.0 - entailment - contradiction).max(0.0),
     }
 }
 
@@ -206,16 +285,28 @@ impl<E: Embedder, N: NliModel> Verifier for NliVerifier<E, N> {
                         english_only(&lists[i], evidence, cutoffs)
                     }
                     Ok(lists) => {
-                        let pairs: Vec<(&str, &str)> = lists[i]
+                        // Every window of every shortlisted snippet, judged
+                        // in one batch per claim.
+                        let cut: Vec<Vec<String>> = lists[i]
                             .iter()
-                            .map(|c| (evidence[c.index].snippet.as_str(), claim.text.as_str()))
+                            .map(|c| windows(&evidence[c.index].snippet, &claim.text))
+                            .collect();
+                        let pairs: Vec<(&str, &str)> = cut
+                            .iter()
+                            .flatten()
+                            .map(|w| (w.as_str(), claim.text.as_str()))
                             .collect();
                         match self.nli.classify(&pairs) {
                             Ok(probabilities) => {
+                                let mut scores = probabilities.into_iter();
                                 let judged: Vec<(usize, NliScores)> = lists[i]
                                     .iter()
-                                    .map(|c| c.index)
-                                    .zip(probabilities)
+                                    .zip(&cut)
+                                    .map(|(c, ws)| {
+                                        let per_window: Vec<NliScores> =
+                                            scores.by_ref().take(ws.len()).collect();
+                                        (c.index, pooled(&per_window))
+                                    })
                                     .collect();
                                 decide(&judged, evidence)
                             }
@@ -310,6 +401,58 @@ mod tests {
         assert_eq!(claims[1].contradiction_ids, [ev[1].evidence_id.clone()]);
         assert!(matches!(statuses[2], "unsupported" | "partially_supported"));
         assert_eq!(records[0].method, "nli_cross_encoder");
+    }
+
+    #[test]
+    fn one_sentence_of_a_long_snippet_can_entail() {
+        // The claim is one sentence of five. Judged whole, the fake model
+        // sees too little overlap; judged by sentence, it entails.
+        let abstract_ = "We study verifiers for model reasoning. Prior work labels only \
+                         final answers. Process reward model scores each step. We report \
+                         results on three suites. Limitations are discussed at length.";
+        let ev = evidence(&[abstract_]);
+        let verifier = NliVerifier::new(FakeEmbedder, FakeNli);
+        let mut claims = vec![claim(
+            "process reward model scores each step",
+            "empirical",
+            true,
+        )];
+        let records = verifier.verify(&mut claims, &ev);
+        assert_eq!(records[0].support_status, "supported");
+        assert_eq!(records[0].evidence_ids, [ev[0].evidence_id.clone()]);
+    }
+
+    #[test]
+    fn a_contradicting_sentence_does_not_outvote_an_entailing_one() {
+        let abstract_ = "The tool fails on legacy inputs and does not handle them. The \
+                         process reward model scores each step. Further work is planned.";
+        let ev = evidence(&[abstract_]);
+        let verifier = NliVerifier::new(FakeEmbedder, FakeNli);
+        let mut claims = vec![claim(
+            "process reward model scores each step",
+            "empirical",
+            true,
+        )];
+        let records = verifier.verify(&mut claims, &ev);
+        assert_eq!(records[0].support_status, "supported");
+        assert_eq!(records[0].contradictory_evidence_ids, Vec::<String>::new());
+    }
+
+    #[test]
+    fn windows_keep_the_whole_snippet_first_and_stay_bounded() {
+        let snippet = (1..=20)
+            .map(|i| format!("Sentence {i} mentions reward models."))
+            .collect::<Vec<_>>()
+            .join(" ");
+        let cut = windows(&snippet, "reward models");
+        assert_eq!(cut[0], snippet);
+        assert!(cut.len() <= 1 + WINDOWS_PER_SNIPPET);
+        assert_eq!(windows("Only one sentence here.", "one sentence").len(), 1);
+        // No shared term, no window: nothing to gain from judging it.
+        assert_eq!(
+            windows("Alpha beta. Gamma delta.", "unrelated words").len(),
+            1
+        );
     }
 
     #[test]

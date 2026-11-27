@@ -509,8 +509,29 @@ impl NliModel for OnnxNli {
     }
 
     fn classify(&self, pairs: &[(&str, &str)]) -> Result<Vec<NliScores>, String> {
-        let mut out = Vec::with_capacity(pairs.len());
-        for chunk in pairs.chunks(BATCH) {
+        // A batch is padded to its longest pair, so one whole abstract makes
+        // every sentence beside it cost as much as an abstract. Batch pairs
+        // of similar length together and put the scores back in input order.
+        let mut order: Vec<usize> = (0..pairs.len()).collect();
+        order.sort_by_key(|&i| pairs[i].0.len() + pairs[i].1.len());
+        let sorted: Vec<(&str, &str)> = order.iter().map(|&i| pairs[i]).collect();
+        let size = |pair: &(&str, &str)| pair.0.len() + pair.1.len();
+        // A batch also ends where the next pair is more than twice as long
+        // as its shortest, so a few sentences never ride with an abstract.
+        let mut batches: Vec<&[(&str, &str)]> = Vec::new();
+        let mut start = 0;
+        for end in 1..=sorted.len() {
+            let full = end - start == BATCH;
+            let jump = sorted
+                .get(end)
+                .is_some_and(|next| size(next) > 2 * size(&sorted[start]) + 64);
+            if end == sorted.len() || full || jump {
+                batches.push(&sorted[start..end]);
+                start = end;
+            }
+        }
+        let mut by_length = Vec::with_capacity(pairs.len());
+        for chunk in batches {
             let batch: Vec<EncodeInput> = chunk
                 .iter()
                 .map(|(p, h)| EncodeInput::Dual((*p).into(), (*h).into()))
@@ -531,12 +552,23 @@ impl NliModel for OnnxNli {
             for row in logits.chunks(3) {
                 // Label order from the model's config.json.
                 let [contradiction, entailment, neutral] = softmax(row);
-                out.push(NliScores {
+                by_length.push(NliScores {
                     contradiction,
                     entailment,
                     neutral,
                 });
             }
+        }
+        if by_length.len() != pairs.len() {
+            return Err(format!(
+                "NLI returned {} scores for {} pairs",
+                by_length.len(),
+                pairs.len()
+            ));
+        }
+        let mut out = by_length.clone();
+        for (score, &index) in by_length.iter().zip(&order) {
+            out[index] = *score;
         }
         Ok(out)
     }
