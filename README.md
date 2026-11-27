@@ -195,7 +195,7 @@ Since 2026-11-27 `nli` judges each abstract as a whole and also in windows of on
 
 Search is live by default and fans out concurrently across seven free sources. A slow source no longer sets the pace: once three sources have returned evidence the rest get 1.5 seconds, and a search never waits more than 8 seconds once it has something. A source that is cut off is reported as `deadline_exceeded` in the search diagnostics and keeps running in the background, so in a long-lived server its answer is cached for the next time the same query is asked. Recorded runs (`research --record`) and replays wait for every source, because a replay has to reproduce the recording byte for byte.
 
-Records that are one paper under different identifiers (the publisher's DOI, the arXiv DOI, no DOI) are merged by title and year, so one paper takes one place in the results. Every search in a run adds to that run's evidence: IDs continue across searches, and a paper found again keeps the ID it has.
+Records that are one paper under different identifiers (the publisher's DOI, the arXiv DOI, no DOI) are merged by title, year and (when both records list them) a shared author name, so one paper takes one place in the results. If the kept record had no abstract, DOI or URL and takes one from a merged record, its metadata says which source it came from (`snippet_from`, `doi_from`, `url_from`). Every search in a run adds to that run's evidence: IDs continue across searches, and a paper found again keeps the ID it has.
 
 ```bash
 reasoning-engine scholar search "MCP prompt injection" --limit 3

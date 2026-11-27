@@ -608,6 +608,56 @@ async fn one_paper_under_three_identifiers_takes_one_place() {
         kept.metadata["also_found_in"],
         json!(["semantic_scholar", "arxiv"])
     );
+    // A borrowed field names the source it came from; the keeper's own do not.
+    assert_eq!(kept.metadata["snippet_from"], json!("semantic_scholar"));
+    assert!(!kept.metadata.contains_key("doi_from"));
+}
+
+#[tokio::test]
+async fn a_borrowed_field_keeps_its_origin_through_a_second_merge() {
+    // `first` borrows the abstract from `second`; `best` then outranks both
+    // and takes that abstract. Its origin is still `second`, not `first`.
+    let title = "Sentence-level evidence pooling for claim verification";
+    let first = rec("a", None, title, 0.7);
+    let mut second = rec("b", Some("10.1/b"), title, 0.6);
+    second.snippet = "Pooling entailment over sentences raises recall.".into();
+    let best = rec("c", None, title, 0.9);
+    let aggregator = AcademicSearchAggregator::new(vec![
+        fake("a", found(vec![first])),
+        fake("b", found(vec![second])),
+        fake("c", found(vec![best])),
+    ]);
+    let result = aggregator.search("run_1", "q", 10).await;
+    assert_eq!(result.evidence.len(), 1);
+    let kept = &result.evidence[0];
+    assert_eq!(kept.source_adapter, "c");
+    assert_eq!(kept.metadata["snippet_from"], json!("b"));
+    assert_eq!(kept.metadata["doi_from"], json!("b"));
+    assert_eq!(kept.doi.as_deref(), Some("10.1/b"));
+}
+
+#[tokio::test]
+async fn one_title_by_different_authors_is_two_works() {
+    let title = "Towards robust detection of machine-generated text";
+    let mut one = rec("a", Some("10.1/a"), title, 0.9);
+    one.authors = vec!["Okafor, N.".into(), "Lindqvist, P.".into()];
+    let mut two = rec("b", Some("10.1/b"), title, 0.8);
+    two.authors = vec!["Mei Tanaka".into()];
+    two.snippet = "A different study with the same name.".into();
+    // The same people written another way are still one work.
+    let mut again = rec("c", Some("10.1/c"), title, 0.7);
+    again.authors = vec!["Nkem Okafor".into(), "Per Lindqvist".into()];
+    let aggregator = AcademicSearchAggregator::new(vec![
+        fake("a", found(vec![one])),
+        fake("b", found(vec![two])),
+        fake("c", found(vec![again])),
+    ]);
+    let result = aggregator.search("run_1", "q", 10).await;
+    assert_eq!(result.evidence.len(), 2);
+    let kept = &result.evidence[0];
+    assert_eq!(kept.source_adapter, "a");
+    assert_eq!(kept.metadata["also_found_in"], json!(["c"]));
+    assert_eq!(kept.snippet, "", "no abstract taken from another work");
 }
 
 #[tokio::test]

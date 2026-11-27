@@ -2,7 +2,7 @@
 //! deterministic ranking (port of `verifiable/aggregator.py`).
 
 use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, LazyLock};
 use std::time::{Duration, Instant};
 
@@ -500,15 +500,47 @@ fn years_agree(a: Option<i64>, b: Option<i64>) -> bool {
     }
 }
 
+/// Whether two author lists can belong to one work: they share a name of
+/// three letters or more. Sources write names differently (`Tang, L.`,
+/// `Liyan Tang`), so only a shared word is asked for. A list that is empty
+/// says nothing, and does not block a merge.
+fn authors_agree(a: &[String], b: &[String]) -> bool {
+    let names = |authors: &[String]| -> HashSet<String> {
+        authors
+            .iter()
+            .flat_map(|name| name.split(|c: char| !c.is_alphabetic()))
+            .filter(|word| word.chars().count() >= 3)
+            .map(str::to_lowercase)
+            .collect()
+    };
+    let (a, b) = (names(a), names(b));
+    a.is_empty() || b.is_empty() || !a.is_disjoint(&b)
+}
+
+/// The source a field of `record` came from: the source it was borrowed
+/// from in an earlier merge (`<field>_from`), else the record's own.
+fn origin(record: &EvidenceRecord, field: &str) -> Value {
+    record
+        .metadata
+        .get(&format!("{field}_from"))
+        .cloned()
+        .unwrap_or_else(|| Value::String(record.source_adapter.clone()))
+}
+
 /// Merge records that are one work under different identifiers.
 ///
 /// [`dedup`] keys on the DOI, and a paper usually has several: the
 /// publisher's, the arXiv one, and none at all in a source that does not
 /// carry DOIs. One paper then took three of a search's ten places. Records
-/// whose titles are the same letters and digits, and whose years are within
-/// two of each other, are one work: the best-scoring record is kept, takes
-/// an abstract or DOI from the others if it lacks one, and lists where else
-/// it was found.
+/// whose titles are the same letters and digits, whose years are within two
+/// of each other, and whose author lists share a name when both have one,
+/// are one work: the best-scoring record is kept and lists where else it
+/// was found.
+///
+/// The kept record takes an abstract, DOI or URL from the others only when
+/// it has none, and says so: `snippet_from`, `doi_from` and `url_from` in
+/// its metadata name the source the field came from. A title is not an
+/// identifier, so a borrowed field must never read as the keeper's own.
 fn merge_same_work(records: IndexMap<String, EvidenceRecord>) -> IndexMap<String, EvidenceRecord> {
     let mut out: IndexMap<String, EvidenceRecord> = IndexMap::new();
     // Normalised title -> the key in `out` that holds the work.
@@ -522,8 +554,9 @@ fn merge_same_work(records: IndexMap<String, EvidenceRecord>) -> IndexMap<String
         let held = by_title
             .get(&title)
             .filter(|held| {
-                out.get(*held)
-                    .is_some_and(|e| years_agree(e.year, record.year))
+                out.get(*held).is_some_and(|e| {
+                    years_agree(e.year, record.year) && authors_agree(&e.authors, &record.authors)
+                })
             })
             .cloned();
         let Some(held) = held else {
@@ -546,13 +579,23 @@ fn merge_same_work(records: IndexMap<String, EvidenceRecord>) -> IndexMap<String
             .metadata
             .insert("also_found_in".into(), Value::Array(also));
         if existing.snippet.trim().is_empty() && !record.snippet.trim().is_empty() {
-            existing.snippet = record.snippet;
+            existing
+                .metadata
+                .insert("snippet_from".into(), origin(&record, "snippet"));
+            existing.snippet = std::mem::take(&mut record.snippet);
         }
-        if existing.doi.as_deref().is_none_or(str::is_empty) {
-            existing.doi = record.doi;
+        let lacks = |field: &Option<String>| field.as_deref().is_none_or(str::is_empty);
+        if lacks(&existing.doi) && !lacks(&record.doi) {
+            existing
+                .metadata
+                .insert("doi_from".into(), origin(&record, "doi"));
+            existing.doi = record.doi.take();
         }
-        if existing.url.as_deref().is_none_or(str::is_empty) {
-            existing.url = record.url;
+        if lacks(&existing.url) && !lacks(&record.url) {
+            existing
+                .metadata
+                .insert("url_from".into(), origin(&record, "url"));
+            existing.url = record.url.take();
         }
     }
     out
