@@ -27,6 +27,14 @@ Plain `cargo test` must pass too, not only nextest: nextest runs each test in it
 - Gate results are `pass`, `pass_with_warnings` and `blocked`. `unsupported`, `contradicted` and `needs_more_evidence` block; `partially_supported` warns.
 - With `trust`, a quantitative claim whose numbers are absent from its cited evidence drops one step (`supported` to `partially_supported`, `partially_supported` to `unsupported`). Changing a verdict rule changes replays of older packs: note it in `CHANGELOG.md`.
 
+## Search, evidence and the pipeline
+
+- Live searches run under `FanoutPolicy` and do not wait for a slow source. Anything recorded or replayed must build its aggregator without one (`AcademicSearchAggregator::new`, no `with_fanout`): cutting a source off depends on the clock.
+- A run's evidence accumulates across `scholar_search` calls; IDs continue and a work keeps its ID. Do not renumber from `ev_0001` in anything that saves evidence into an existing run.
+- Behaviour the Python package does not have goes behind a Cargo feature or leaves plain-input behaviour untouched. The parity job compares the default build with Python, and `crates/re-core/tests/golden.rs` pins the pure functions. `reuse` (the `evidence_run_id` argument) follows the pattern of `tasks` and `learn`: gate the schema parameter and strip it in `crates/re-mcp/tests/params.rs`.
+- The `nli` tier pools sentence windows for entailment and reads contradiction from the whole snippet. Any change to that pooling is a verdict change: measure it with `bench verify` on both sets and log the numbers.
+- On macOS, build `semantic` with `scripts/build-local.sh`; a plain `cargo build` fails at link time.
+
 ## The skill
 
 `skill/deep-research.md` is the source for both clients; install it as `~/.claude/skills/deep-research/SKILL.md` and `~/.codex/skills/deep-research/SKILL.md`. Refer to tools by bare MCP name. Keep its argument rules and gate results in step with `crates/re-mcp` and `crates/re-core/src/gate.rs`.
@@ -47,3 +55,8 @@ Plain `cargo test` must pass too, not only nextest: nextest runs each test in it
 - Do not write machine paths (`/Users/...`) into tracked files; say "this repository" or use `~`.
 - Verification and follow-ups: see `CHANGELOG.md`.
 - `rmcp` is pinned at 3.9.0 and `rusqlite` at 0.41.0 for the advisories listed in `CHANGELOG.md` (2026-11-17b). Do not pin below them. A new `cargo deny` failure is either fixed by an upgrade or ignored in `deny.toml` with a written reason, never left red.
+
+### Raouf: 2026-11-27 (Australia/Sydney)
+- Search fan-out deadline, same-work merge, evidence accumulation within a run, sentence-window NLI with length-aware batching, Markdown-aware claim extraction, and the `reuse` feature (`run_research_pipeline_tool(evidence_run_id)` with a verdict summary).
+- `skill/deep-research.md` updated to match; installed copies must stay byte-identical to it.
+- Numbers, verification and follow-ups: see `CHANGELOG.md`.
